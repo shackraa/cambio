@@ -1,0 +1,87 @@
+import { motion } from 'framer-motion';
+import type { Card as CardType } from '../types/game';
+
+interface CardProps {
+  card: CardType;
+  size?: 'sm' | 'md' | 'lg';
+  onClick?: () => void;
+  highlight?: boolean;
+  canInteract?: boolean;
+}
+
+const SUIT_SYMBOL: Record<string, string> = {
+  hearts:   '♥',
+  diamonds: '♦',
+  clubs:    '♣',
+  spades:   '♠',
+  joker:    '★',
+};
+
+function getCardScore(card: CardType): string {
+  if (card.rank === 'Joker') return '0';
+  if (card.rank === 'K' && (card.suit === 'hearts' || card.suit === 'diamonds')) return '-1';
+  return String(card.value);
+}
+
+export function GameCard({ card, size = 'md', onClick, highlight, canInteract }: CardProps) {
+  const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+
+  const sizes = {
+    sm: { w: 'w-14', h: 'h-20', text: 'text-base', corner: 'text-[10px]' },
+    md: { w: 'w-16', h: 'h-24', text: 'text-xl',   corner: 'text-xs' },
+    lg: { w: 'w-20', h: 'h-28', text: 'text-2xl',  corner: 'text-sm' },
+  }[size];
+
+  return (
+    <motion.div
+      className={`card-wrapper ${sizes.w} ${sizes.h} cursor-pointer select-none`}
+      whileHover={canInteract ? { scale: 1.08, y: -4 } : {}}
+      whileTap={canInteract ? { scale: 0.95 } : {}}
+      onClick={onClick}
+      style={{ filter: highlight ? 'drop-shadow(0 0 12px #d4a843)' : undefined }}
+    >
+      <div className={`card-inner ${card.isRevealed ? 'flipped' : ''} w-full h-full`}>
+        {/* KART ARKA YÜZÜ */}
+        <div className="card-back w-full h-full">
+          <div className="relative z-10 text-[var(--gold)] opacity-60 text-2xl">🂠</div>
+        </div>
+
+        {/* KART ÖN YÜZÜ */}
+        <div className="card-face w-full h-full px-1 py-1">
+          {card.rank === 'Joker' ? (
+            <div className="flex flex-col items-center justify-center h-full gap-1">
+              <span className="text-purple-600 text-2xl">🃏</span>
+              <span className="text-purple-600 font-bold text-xs">JOKER</span>
+            </div>
+          ) : (
+            <>
+              {/* Sol üst köşe */}
+              <div className={`absolute top-1 left-1.5 leading-tight ${isRed ? 'suit-red' : 'suit-black'}`}>
+                <div className={`font-bold ${sizes.corner}`}>{card.rank}</div>
+                <div className={sizes.corner}>{SUIT_SYMBOL[card.suit]}</div>
+              </div>
+
+              {/* Orta */}
+              <div className={`${sizes.text} ${isRed ? 'suit-red' : 'suit-black'} font-bold`}>
+                {SUIT_SYMBOL[card.suit]}
+              </div>
+
+              {/* Sağ alt köşe (döndürülmüş) */}
+              <div className={`absolute bottom-1 right-1.5 leading-tight rotate-180 ${isRed ? 'suit-red' : 'suit-black'}`}>
+                <div className={`font-bold ${sizes.corner}`}>{card.rank}</div>
+                <div className={sizes.corner}>{SUIT_SYMBOL[card.suit]}</div>
+              </div>
+
+              {/* Puan etiketi */}
+              <div className="absolute bottom-5 left-0 right-0 flex justify-center">
+                <span className="text-[8px] bg-black/10 rounded px-1 text-gray-600 font-semibold">
+                  {getCardScore(card)} pt
+                </span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
