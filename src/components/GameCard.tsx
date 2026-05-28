@@ -3,10 +3,11 @@ import type { Card as CardType } from '../types/game';
 
 interface CardProps {
   card: CardType;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   onClick?: () => void;
   highlight?: boolean;
   canInteract?: boolean;
+  className?: string;
 }
 
 const SUIT_SYMBOL: Record<string, string> = {
@@ -23,20 +24,29 @@ function getCardScore(card: CardType): string {
   return String(card.value);
 }
 
-export function GameCard({ card, size = 'md', onClick, highlight, canInteract }: CardProps) {
+export function GameCard({ card, size = 'md', onClick, highlight, canInteract, className = '' }: CardProps) {
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
 
-  const sizes = {
+  type SizeKey = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  const sizeMap: Record<SizeKey, { w: string; h: string; text: string; corner: string }> = {
     sm: { w: 'w-14', h: 'h-20', text: 'text-base', corner: 'text-[10px]' },
     md: { w: 'w-16', h: 'h-24', text: 'text-xl',   corner: 'text-xs' },
     lg: { w: 'w-20', h: 'h-28', text: 'text-2xl',  corner: 'text-sm' },
-  }[size];
+    xl: { w: 'w-24', h: 'h-36', text: 'text-3xl',  corner: 'text-base' },
+    '2xl': { w: 'w-28', h: 'h-40', text: 'text-4xl', corner: 'text-lg' },
+  };
+  const sizes = sizeMap[size as SizeKey];
+
+  if (card.isGhost) {
+    return <div className={`card-wrapper ${sizes.w} ${sizes.h} opacity-0 pointer-events-none`} />;
+  }
 
   return (
     <motion.div
-      className={`card-wrapper ${sizes.w} ${sizes.h} cursor-pointer select-none`}
-      whileHover={canInteract ? { scale: 1.08, y: -4 } : {}}
+      layoutId={card.id}
+      className={`card-wrapper ${sizes.w} ${sizes.h} shrink-0 cursor-pointer select-none ${canInteract ? 'hoverable-card' : ''} ${className}`}
       whileTap={canInteract ? { scale: 0.95 } : {}}
+      transition={{ layout: { type: 'tween', duration: 0.8, ease: [0.25, 1, 0.5, 1] } }}
       onClick={onClick}
       style={{ filter: highlight ? 'drop-shadow(0 0 12px #d4a843)' : undefined }}
     >

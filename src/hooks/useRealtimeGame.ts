@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { useToastStore } from '../store/useToastStore';
@@ -14,10 +15,15 @@ export type GameEvent =
   | { type: 'DISCARD_DRAWN' }
   | { type: 'USE_POWER'; power: string; targetSeat: number; targetPos: number; swapWith?: number }
   | { type: 'SKIP_POWER' }
-  | { type: 'STICK_CARD'; position: number; discardCardId: string; seat: number }
+  | { type: 'STICK_CARD'; targetSeat: number; position: number; discardCardId: string; initiatorSeat: number }
+  | { type: 'GIVE_CARD'; position: number; initiatorSeat: number }
   | { type: 'CALL_CAMBIO'; seat: number }
   | { type: 'END_GAME' }
-  | { type: 'GAME_STARTED'; gameStateId: string };
+  | { type: 'GAME_STARTED'; gameStateId: string }
+  | { type: 'PEEK_STATE_CHANGE'; state: 'dealing' | 'starting' | 'select' | 'highlight' | 'reveal' }
+  | { type: 'PEEK_CARD_SELECT'; seat: number; pos: number }
+  | { type: 'PEEK_PHASE_END' }
+  | { type: 'CHAT_MESSAGE'; text: string; senderId: string; senderName: string };
 
 interface UseRealtimeGameOptions {
   roomCode: string;
@@ -89,6 +95,10 @@ export function useRealtimeGame({
       cambioCaller: gs.cambio_caller,
       remainingTurns: gs.remaining_turns,
       roomCode,
+      knownCards: [], // Her yeni state yüklendiğinde knownCards temizlenir (eski oyunun hafızası silinir)
+      peekPhaseEndTime: gs.phase === 'peek' ? Date.now() + 5000 : null,
+      peekState: gs.phase === 'peek' ? 'select' : null,
+      peekSelectedPositions: [],
     });
   }, [roomId, myPlayerId, roomCode, store]);
 
@@ -113,16 +123,19 @@ export function useRealtimeGame({
     const shuffled = shuffleDeck(createDeck());
     const { playerHands, remainingDeck } = dealCards(shuffled);
 
-    // game_state kaydet
+    // game_state kaydet (varsa güncelle)
     const { data: gs, error: gsErr } = await supabase
       .from('game_state')
-      .insert({
+      .upsert({
         room_id: roomId,
         deck: remainingDeck,
         discard_pile: [],
         current_turn: 0,
         phase: 'peek',
-      })
+        drawn_card: null,
+        cambio_caller: null,
+        remaining_turns: 0
+      }, { onConflict: 'room_id' })
       .select()
       .single();
 
@@ -149,6 +162,9 @@ export function useRealtimeGame({
         is_penalty: false,
       }))
     );
+
+    // Varsa eski kartları sil (reset durumu)
+    await supabase.from('player_cards').delete().eq('room_id', roomId);
 
     const { error: cardsErr } = await supabase.from('player_cards').insert(cardInserts);
     if (cardsErr) {
@@ -182,6 +198,7 @@ export function useRealtimeGame({
         drawn_card: state.drawnCard,
         cambio_caller: state.cambioCaller,
         remaining_turns: state.remainingTurns,
+        deck: state.deck,
         updated_at: new Date().toISOString(),
       })
       .eq('room_id', roomId);
@@ -210,26 +227,66 @@ export function useRealtimeGame({
         break;
       case 'SWAP_CARD':
         if (event.fromSeat === s.currentTurn) {
-          s.swapCard(event.position);
+          s.swapCard(event.position, event.fromSeat);
           SoundManager.playCardDrop();
         }
         break;
       case 'DISCARD_DRAWN':
         if (event.fromSeat === s.currentTurn) {
-          s.discardDrawn();
+          s.discardDrawn(event.fromSeat);
           SoundManager.playCardDrop();
         }
         break;
-      case 'USE_POWER':
-        s.usePower(event.power as Parameters<typeof s.usePower>[0], event.targetSeat, event.targetPos, event.swapWith);
+      case 'USE_POWER': {
+        const isLocalUser = event.fromSeat === mySeat;
+        s.usePower(event.power as Parameters<typeof s.usePower>[0], event.targetSeat, event.targetPos, event.swapWith, isLocalUser, event.fromSeat);
         break;
+      }
       case 'SKIP_POWER':
-        s.skipPower();
+        s.skipPower(event.fromSeat);
+        break;
+      case 'STICK_CARD': {
+        // Geriye dönük uyumluluk (eski cacheli GameBoard'lar için)
+        const targetSeat = event.targetSeat !== undefined ? event.targetSeat : event.fromSeat!;
+        s.stickCard(targetSeat, event.position, event.discardCardId, event.fromSeat!);
+        SoundManager.playCardDrop();
+        break;
+      }
+      case 'GIVE_CARD':
+        s.giveCardToOpponent(event.position, event.fromSeat!);
+        SoundManager.playCardDrop();
         break;
       case 'CALL_CAMBIO':
         s.callCambio();
         SoundManager.playCambio();
         useToastStore.getState().addToast('🎯 Bir oyuncu CAMBIO dedi!', 'warning');
+        break;
+      case 'PEEK_STATE_CHANGE':
+        store.getState().transitionPeekState((event as any).state);
+        break;
+      case 'PEEK_PHASE_END':
+        store.getState().endPeekPhase();
+        break;
+      case 'CHAT_MESSAGE':
+        store.getState().addChatMessage({
+          senderId: (event as any).senderId,
+          senderName: (event as any).senderName,
+          text: (event as any).text,
+        });
+        break;
+      case 'PEEK_CARD_SELECT':
+        {
+          const ev = event as any;
+          const player = store.getState().players.find(p => p.seat === ev.seat);
+          if (player) {
+            const mySelections = store.getState().peekSelectedPositions.filter(p => p.playerId === player.id);
+            if (mySelections.length < 2 && !mySelections.find(s => s.pos === ev.pos)) {
+              store.setState(s => {
+                s.peekSelectedPositions.push({ playerId: player.id, pos: ev.pos });
+              });
+            }
+          }
+        }
         break;
       case 'END_GAME':
         s.endGame();

@@ -8,6 +8,7 @@ export interface Card {
   value: number;       // puan değeri
   isRevealed: boolean; // yüzü açık mı?
   isPenalty: boolean;  // ceza kartı mı?
+  isGhost?: boolean;   // takas sırasında slotu tutan hayalet kart
 }
 
 export interface Player {
@@ -27,6 +28,7 @@ export type GamePhase =
   | 'action'
   | 'stick_window'
   | 'power'
+  | 'give_card'
   | 'cambio_round'
   | 'reveal'
   | 'results';

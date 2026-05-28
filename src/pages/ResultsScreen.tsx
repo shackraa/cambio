@@ -7,7 +7,7 @@ export function ResultsScreen() {
   const sorted = [...finalScores].sort((a, b) => a.score - b.score);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 gap-8">
+    <div className="flex flex-col items-center justify-center gap-6">
       {/* Başlık */}
       <motion.div
         className="text-center"

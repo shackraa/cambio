@@ -1,44 +1,46 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameCard } from './GameCard';
 import type { Card } from '../types/game';
+import { useLangStore } from '../store/useLangStore';
+import { translations } from '../i18n/translations';
 
 interface CenterAreaProps {
   deckCount: number;
+  topDeckCard?: Card;
   discardPile: Card[];
   onDrawFromDeck?: () => void;
   onDrawFromDiscard?: () => void;
   canDraw?: boolean;
-  roomCode: string;
+  myPlayerId?: string;
 }
 
 export function CenterArea({
   deckCount,
+  topDeckCard,
   discardPile,
   onDrawFromDeck,
   onDrawFromDiscard,
   canDraw,
-  roomCode,
+  myPlayerId,
 }: CenterAreaProps) {
   const topDiscard = discardPile[discardPile.length - 1] ?? null;
 
-  return (
-    <div className="flex flex-col items-center gap-4">
-      {/* Oda kodu */}
-      <div className="px-4 py-1 bg-black/40 border border-[var(--gold)]/30 rounded-full">
-        <span className="text-[var(--gold)] text-xs font-bold tracking-widest">{roomCode}</span>
-      </div>
+  const lang = useLangStore((s) => s.lang);
+  const t = translations[lang];
 
-      <div className="flex items-center gap-6">
+  return (
+    <div className="flex flex-col items-center gap-4 relative">
+      <div className="flex items-center gap-6 relative z-10">
         {/* Deste (Deck) */}
         <motion.div
-          className="flex flex-col items-center gap-1 cursor-pointer"
+          className={`flex flex-col items-center gap-1 ${canDraw ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'}`}
           whileHover={canDraw ? { scale: 1.05 } : {}}
           whileTap={canDraw ? { scale: 0.95 } : {}}
-          onClick={onDrawFromDeck}
+          onClick={canDraw ? onDrawFromDeck : undefined}
         >
-          <div className="relative w-16 h-24">
-            {/* Deste derinliği efekti */}
-            {[2, 1, 0].map((offset) => (
+          <div className="relative w-20 h-28">
+            {/* Deste derinliği efekti (Alttaki statik kartlar) */}
+            {[2, 1].map((offset) => (
               <div
                 key={offset}
                 className="absolute card-back rounded-[10px] border-2 border-[var(--gold)]/50"
@@ -53,37 +55,43 @@ export function CenterArea({
                 }}
               />
             ))}
+            {/* EN ÜSTTEKİ KART (Layout Animasyonu İçin) */}
+            {topDeckCard && (
+              <div className="absolute top-0 left-0 w-full h-full z-10" style={{ transform: 'translate(0px, 0px)' }}>
+                <GameCard card={{ ...topDeckCard, isRevealed: false }} size="lg" />
+              </div>
+            )}
           </div>
           <span className="text-xs text-white/60 mt-1">
-            📦 {deckCount} kart
+            📦 {t.cardCount(deckCount)}
           </span>
         </motion.div>
 
         {/* Çöp destesi */}
         <motion.div
-          className="flex flex-col items-center gap-1 cursor-pointer"
+          className={`flex flex-col items-center gap-1 ${canDraw && topDiscard ? 'cursor-pointer' : 'cursor-not-allowed opacity-80'}`}
           whileHover={canDraw && topDiscard ? { scale: 1.05 } : {}}
           whileTap={canDraw && topDiscard ? { scale: 0.95 } : {}}
-          onClick={topDiscard ? onDrawFromDiscard : undefined}
+          onClick={canDraw && topDiscard ? onDrawFromDiscard : undefined}
         >
-          <AnimatePresence mode="popLayout">
+          <div className="relative w-20 h-28">
             {topDiscard ? (
               <motion.div
                 key={topDiscard.id}
-                initial={{ scale: 0.5, rotate: -15, opacity: 0 }}
-                animate={{ scale: 1, rotate: Math.random() * 10 - 5, opacity: 1 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                className="absolute inset-0"
+                initial={{ scale: 0.5, rotate: -15 }}
+                animate={{ scale: 1, rotate: Math.random() * 10 - 5 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 22 }}
               >
-                <GameCard card={topDiscard} size="md" />
+                <GameCard card={topDiscard} size="lg" />
               </motion.div>
             ) : (
-              <div className="w-16 h-24 rounded-[10px] border-2 border-dashed border-white/20 flex items-center justify-center">
-                <span className="text-white/30 text-2xl">🗑</span>
+              <div className="w-20 h-28 border-2 border-dashed border-white/20 rounded-[10px] flex items-center justify-center bg-black/10">
+                <span className="text-white/30 text-2xl">🗑️</span>
               </div>
             )}
-          </AnimatePresence>
-          <span className="text-xs text-white/60 mt-1">🗑 Çöp</span>
+          </div>
+          <span className="text-xs text-white/60 mt-1">🗑 {t.discardPile}</span>
         </motion.div>
       </div>
     </div>

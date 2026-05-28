@@ -11,6 +11,28 @@ import {
   type PowerType,
 } from '../engine/gameEngine';
 
+// ─── Hamle logu ──────────────────────────────────────────────
+export type LogAction =
+  | 'draw_deck' | 'draw_discard'
+  | 'swap' | 'discard'
+  | 'power_peek_own' | 'power_peek_other' | 'power_blind_swap' | 'power_spy_swap' | 'power_skip'
+  | 'cambio' | 'stick_ok' | 'stick_fail' | 'stick_opponent_ok';
+
+export interface GameLogEntry {
+  id: string;
+  timestamp: number;
+  playerName: string;
+  action: LogAction;
+  detail?: string;
+}
+
+export interface LeaderboardEntry {
+  playerId: string;
+  nickname: string;
+  handScores: number[];
+  totalScore: number;
+}
+
 // ─── State tipleri ───────────────────────────────────────────
 export interface KnownCard {
   playerId: string;
@@ -31,20 +53,32 @@ interface GameStore {
   cambioCaller: number | null;
   remainingTurns: number;
   roomCode: string;
+  giveCardTarget?: number;
 
   // ── Güç kullanımı
   activePower: PowerType | null;
   peekTarget: { playerId: string; position: number } | null;
+  swappingCards: { card1: Card; card2: Card } | null;
 
   // ── Hafıza (bilinen kartlar)
   knownCards: KnownCard[];
+  peekState: 'dealing' | 'starting' | 'select' | 'highlight' | 'reveal' | null;
+  peekSelectedPositions: { playerId: string; pos: number }[];
+
+  // ── Hamle logu
+  gameLog: GameLogEntry[];
 
   // ── Sonuç
-  finalScores: { seat: number; score: number; calledCambio: boolean }[];
+  finalScores: { seat: number; score: number; calledCambio: boolean; baseScore?: number; cambioModifier?: number }[];
   winner: number | null;
+  leaderboard: LeaderboardEntry[];
+
+  // ── Chat
+  chatMessages: { id: string; senderId: string; senderName: string; text: string; timestamp: number }[];
 
   // ── Peek phase
   peekPhaseEndTime: number | null;
+  transitionPeekState: (newState: 'dealing' | 'starting' | 'select' | 'highlight' | 'reveal' | null) => void;
 
   // ── Aksiyonlar
   initGame: (myNickname: string, opponents: string[]) => void;
@@ -52,14 +86,17 @@ interface GameStore {
   endPeekPhase: () => void;
   drawFromDeck: () => void;
   drawFromDiscard: () => void;
-  swapCard: (position: number) => void;
-  discardDrawn: () => void;
-  usePower: (power: PowerType, targetSeat: number, targetPosition: number, swapWithPosition?: number) => void;
-  skipPower: () => void;
-  stickCard: (myPosition: number, discardCardId: string) => void;
+  swapCard: (position: number, initiatorSeat?: number) => void;
+  discardDrawn: (initiatorSeat?: number) => void;
+  usePower: (power: PowerType, targetSeat: number, targetPosition: number, swapWithPosition?: number, isLocalUser?: boolean, initiatorSeat?: number) => void;
+  skipPower: (initiatorSeat?: number) => void;
+  stickCard: (targetSeat: number, targetPosition: number, discardCardId: string, initiatorSeat: number) => void;
+  giveCardToOpponent: (myPosition: number, initiatorSeat: number) => void;
   callCambio: () => void;
   endGame: () => void;
   addKnownCard: (known: KnownCard) => void;
+  pushLog: (entry: Omit<GameLogEntry, 'id' | 'timestamp'>) => void;
+  addChatMessage: (msg: { senderId: string; senderName: string; text: string }) => void;
 }
 
 // ─── Yardımcılar ─────────────────────────────────────────────
@@ -85,6 +122,10 @@ function makePlayers(myNickname: string, opponents: string[]): Player[] {
   }));
 }
 
+// ─── Log yardımcısı ──────────────────────────────────────────
+let _logId = 0;
+function mkLogId() { return `log-${++_logId}`; }
+
 // ─── Store ───────────────────────────────────────────────────
 export const useGameStore = create<GameStore>()(
   immer((set, get) => ({
@@ -100,10 +141,38 @@ export const useGameStore = create<GameStore>()(
     roomCode: 'K4F2',
     activePower: null,
     peekTarget: null,
+    swappingCards: null,
     knownCards: [],
+    gameLog: [],
     finalScores: [],
     winner: null,
+    leaderboard: [],
+
+    chatMessages: [],
+
     peekPhaseEndTime: null,
+    peekState: null,
+    peekSelectedPositions: [],
+
+    pushLog: (entry) => set(state => {
+      const newLog = {
+        ...entry,
+        id: Math.random().toString(36).substring(7),
+        timestamp: Date.now(),
+      };
+      state.gameLog.unshift(newLog);
+      if (state.gameLog.length > 50) state.gameLog.pop();
+    }),
+
+    addChatMessage: (msg) => set(state => {
+      const newMsg = {
+        ...msg,
+        id: Math.random().toString(36).substring(7),
+        timestamp: Date.now(),
+      };
+      state.chatMessages.push(newMsg);
+      if (state.chatMessages.length > 100) state.chatMessages.shift();
+    }),
 
     // ── Oyunu başlat ────────────────────────────────────────
     initGame: (myNickname, opponents) => {
@@ -125,31 +194,48 @@ export const useGameStore = create<GameStore>()(
         state.activePower = null;
         state.peekTarget = null;
         state.knownCards = [];
+        state.gameLog = [];
         state.finalScores = [];
         state.winner = null;
-        state.peekPhaseEndTime = Date.now() + 5000;
+        state.winner = null;
+        state.peekPhaseEndTime = Date.now() + 4000; // 4s dealing
+        state.peekState = 'dealing';
+        state.peekSelectedPositions = [];
       });
     },
 
     // ── Peek phase ──────────────────────────────────────────
     startPeekPhase: () => {
-      set(state => { state.phase = 'peek'; state.peekPhaseEndTime = Date.now() + 5000; });
+      set(state => { 
+        state.phase = 'peek'; 
+        state.peekPhaseEndTime = Date.now() + 4000; 
+        state.peekState = 'dealing';
+        state.peekSelectedPositions = [];
+      });
+    },
+    transitionPeekState: (newState) => {
+      set(state => {
+        if (state.phase !== 'peek') return;
+        state.peekState = newState;
+        
+        if (newState === 'starting') {
+          state.peekPhaseEndTime = Date.now() + 5000;
+        } else if (newState === 'select') {
+          // Select phase waits indefinitely (or until everyone picks), so no fixed timer.
+          state.peekPhaseEndTime = Date.now() + 15000; // 15s fallback
+        } else if (newState === 'highlight') {
+          state.peekPhaseEndTime = Date.now() + 5000;
+        } else if (newState === 'reveal') {
+          state.peekPhaseEndTime = Date.now() + 5000;
+        }
+      });
     },
     endPeekPhase: () => {
       set(state => {
         state.phase = 'draw';
         state.peekPhaseEndTime = null;
-        // Peek'te görülen kartları hafızada sakla (seat 0 = sen: 2 ön kart)
-        const me = state.players.find(p => p.seat === 0);
-        if (me) {
-          [0, 1].forEach(pos => {
-            state.knownCards.push({
-              playerId: me.id,
-              position: pos,
-              card: { ...me.cards[pos] },
-            });
-          });
-        }
+        state.peekState = null;
+        state.peekSelectedPositions = [];
       });
     },
 
@@ -162,9 +248,11 @@ export const useGameStore = create<GameStore>()(
 
       set(state => {
         const card = state.deck.shift()!;
-        state.drawnCard = { ...card, isRevealed: true };
+        state.drawnCard = { ...card, isRevealed: false }; // Sadece çeken kişi görecek
         state.drawnFrom = 'deck';
         state.phase = 'action';
+        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me.nickname, action: 'draw_deck', detail: 'Desteden kart çekti' });
+        if (state.gameLog.length > 50) state.gameLog.shift();
       });
     },
 
@@ -178,45 +266,47 @@ export const useGameStore = create<GameStore>()(
         state.drawnCard = { ...card, isRevealed: true };
         state.drawnFrom = 'discard';
         state.phase = 'action';
+        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me.nickname, action: 'draw_discard', detail: 'Çöpten kart çekti' });
+        if (state.gameLog.length > 50) state.gameLog.shift();
       });
     },
 
     // ── Takas: çekilen kartı bir pozisyonla değiştir ────────
-    swapCard: (position) => {
+    swapCard: (position, initiatorSeat) => {
       const { drawnCard, currentTurn, players, phase } = get();
       if ((phase !== 'action' && phase !== 'power') || !drawnCard) return;
-      const playerIdx = players.findIndex(p => p.seat === currentTurn);
+      const activeSeat = initiatorSeat !== undefined ? initiatorSeat : currentTurn;
+      const playerIdx = players.findIndex(p => p.seat === activeSeat);
       if (playerIdx === -1) return;
 
       set(state => {
         const player = state.players[playerIdx];
         const oldCard = player.cards[position];
-        // Eski kart çöpe gider
         state.discardPile.push({ ...oldCard, isRevealed: true });
-        // Çekilen kart eli geçer
         player.cards[position] = { ...state.drawnCard!, isRevealed: false };
         state.drawnCard = null;
         state.drawnFrom = null;
 
-        // Güç kontrolü — çöpe atılan kartın gücü var mı?
-        const power = getPower(oldCard.rank, oldCard.suit);
-        if (power) {
-          state.activePower = power;
-          state.phase = 'power';
-        } else {
-          state.phase = 'stick_window';
-        }
+        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: player.nickname, action: 'swap', detail: `ortadan çektiği kartla bir kartını değiştirdi` });
+        if (state.gameLog.length > 50) state.gameLog.shift();
+
+        state.phase = 'stick_window';
       });
     },
 
     // ── Çekilen kartı direkt çöpe at ────────────────────────
-    discardDrawn: () => {
-      const { drawnCard, phase } = get();
+    discardDrawn: (initiatorSeat) => {
+      const { drawnCard, phase, currentTurn, players } = get();
       if (phase !== 'action' || !drawnCard) return;
+      const activeSeat = initiatorSeat !== undefined ? initiatorSeat : currentTurn;
+      const me = players.find(p => p.seat === activeSeat);
 
       set(state => {
-        const power = getPower(state.drawnCard!.rank, state.drawnCard!.suit);
-        state.discardPile.push({ ...state.drawnCard!, isRevealed: true });
+        const card = state.drawnCard!;
+        const power = getPower(card.rank, card.suit);
+        state.discardPile.push({ ...card, isRevealed: true });
+        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me?.nickname ?? '?', action: 'discard', detail: `ortadan çektiği kartı çöpe attı` });
+        if (state.gameLog.length > 50) state.gameLog.shift();
         state.drawnCard = null;
         state.drawnFrom = null;
 
@@ -230,114 +320,214 @@ export const useGameStore = create<GameStore>()(
     },
 
     // ── Güç kullan ──────────────────────────────────────────
-    usePower: (power, targetSeat, targetPosition, swapWithPosition) => {
+    usePower: (power, targetSeat, targetPosition, swapWithPosition, isLocalUser = true, initiatorSeat) => {
       set(state => {
         const targetPlayer = state.players.find(p => p.seat === targetSeat);
-        const myPlayer = state.players.find(p => p.seat === state.currentTurn);
+        const activeSeat = initiatorSeat !== undefined ? initiatorSeat : state.currentTurn;
+        const myPlayer = state.players.find(p => p.seat === activeSeat);
         if (!targetPlayer || !myPlayer) return;
+
+        const powerLabels: Record<string, LogAction> = {
+          peek_own: 'power_peek_own', peek_other: 'power_peek_other',
+          blind_swap: 'power_blind_swap', spy_swap: 'power_spy_swap'
+        };
+        const powerNames: Record<string, string> = {
+          peek_own: 'kendi kartına baktı', peek_other: `${targetPlayer.nickname} adlı oyuncunun kartına baktı`,
+          blind_swap: `${targetPlayer.nickname} ile kör takas yaptı`, spy_swap: `${targetPlayer.nickname} adlı oyuncunun kartını gördü`
+        };
 
         switch (power) {
           case 'peek_own':
           case 'peek_other': {
-            // Kartı geçici olarak görünür yap (sadece UI'da)
-            state.knownCards.push({
-              playerId: targetPlayer.id,
-              position: targetPosition,
-              card: { ...targetPlayer.cards[targetPosition] },
-              expiresAt: Date.now() + 4000,
-            });
+            if (isLocalUser) {
+              state.knownCards.push({
+                playerId: targetPlayer.id,
+                position: targetPosition,
+                card: { ...targetPlayer.cards[targetPosition] },
+                expiresAt: Date.now() + 4000,
+              });
+            }
+            state.peekTarget = { playerId: targetPlayer.id, position: targetPosition };
+
             setTimeout(() => {
               useGameStore.setState(s => {
-                s.knownCards = s.knownCards.filter(
-                  k => !k.expiresAt || k.expiresAt > Date.now()
-                );
+                s.peekTarget = null;
+                s.knownCards = s.knownCards.filter(k => !k.expiresAt || k.expiresAt > Date.now());
               });
             }, 4000);
             break;
           }
           case 'blind_swap': {
-            // Kör takas: hedef kart ile kendi kartı yer değiştirir
             const myPos = swapWithPosition ?? 0;
-            const temp = myPlayer.cards[myPos];
-            myPlayer.cards[myPos] = targetPlayer.cards[targetPosition];
-            targetPlayer.cards[targetPosition] = temp;
+            const temp = { ...myPlayer.cards[myPos] };
+            const targetTemp = { ...targetPlayer.cards[targetPosition] };
+
+            // 1. Adım: Kartları hayalet (ghost) yap ve ortaya al
+            myPlayer.cards[myPos] = { ...temp, isGhost: true };
+            targetPlayer.cards[targetPosition] = { ...targetTemp, isGhost: true };
+            state.swappingCards = { card1: temp, card2: targetTemp };
+
+            // 2. Adım: 1.5 saniye sonra yerlerine yerleştir
+            setTimeout(() => {
+              useGameStore.setState(s => {
+                const sTargetPlayer = s.players.find(p => p.seat === targetSeat);
+                const sMyPlayer = s.players.find(p => p.seat === activeSeat);
+                if (sTargetPlayer && sMyPlayer) {
+                  sMyPlayer.cards[myPos] = targetTemp;
+                  sTargetPlayer.cards[targetPosition] = temp;
+                }
+                s.swappingCards = null;
+              });
+            }, 1500);
             break;
           }
           case 'spy_swap': {
-            // Gör + takas isteğe bağlı
-            state.knownCards.push({
-              playerId: targetPlayer.id,
-              position: targetPosition,
-              card: { ...targetPlayer.cards[targetPosition] },
-              expiresAt: Date.now() + 4000,
-            });
+            if (isLocalUser) {
+              state.knownCards.push({
+                playerId: targetPlayer.id,
+                position: targetPosition,
+                card: { ...targetPlayer.cards[targetPosition] },
+                expiresAt: Date.now() + 4000,
+              });
+            }
+            state.peekTarget = { playerId: targetPlayer.id, position: targetPosition };
+
             if (swapWithPosition !== undefined) {
               const myPos = swapWithPosition;
-              const temp = myPlayer.cards[myPos];
-              myPlayer.cards[myPos] = targetPlayer.cards[targetPosition];
-              targetPlayer.cards[targetPosition] = temp;
+              const temp = { ...myPlayer.cards[myPos] };
+              const targetTemp = { ...targetPlayer.cards[targetPosition] };
+
+              myPlayer.cards[myPos] = { ...temp, isGhost: true };
+              targetPlayer.cards[targetPosition] = { ...targetTemp, isGhost: true };
+              state.swappingCards = { card1: temp, card2: targetTemp };
+
+              setTimeout(() => {
+                useGameStore.setState(s => {
+                  const sTargetPlayer = s.players.find(p => p.seat === targetSeat);
+                  const sMyPlayer = s.players.find(p => p.seat === activeSeat);
+                  if (sTargetPlayer && sMyPlayer) {
+                    sMyPlayer.cards[myPos] = targetTemp;
+                    sTargetPlayer.cards[targetPosition] = temp;
+                  }
+                  s.swappingCards = null;
+                });
+              }, 1500);
             }
             setTimeout(() => {
               useGameStore.setState(s => {
-                s.knownCards = s.knownCards.filter(
-                  k => !k.expiresAt || k.expiresAt > Date.now()
-                );
+                s.peekTarget = null;
+                s.knownCards = s.knownCards.filter(k => !k.expiresAt || k.expiresAt > Date.now());
               });
             }, 4000);
             break;
           }
         }
 
+        // Eğer spy_swap ise ve henüz takas seçimi yapılmamışsa (sadece bakma aşaması), turu bitirme!
+        if (power === 'spy_swap' && swapWithPosition === undefined) {
+          return;
+        }
+
+        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: myPlayer.nickname, action: powerLabels[power] ?? 'swap', detail: powerNames[power] });
+        if (state.gameLog.length > 50) state.gameLog.shift();
         state.activePower = null;
         state.phase = 'stick_window';
       });
     },
 
     // ── Gücü geç ────────────────────────────────────────────
-    skipPower: () => {
+    skipPower: (initiatorSeat) => {
+      const { currentTurn, players } = get();
+      const activeSeat = initiatorSeat !== undefined ? initiatorSeat : currentTurn;
+      const me = players.find(p => p.seat === activeSeat);
       set(state => {
+        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me?.nickname ?? '?', action: 'power_skip', detail: 'Gücü geçti' });
+        if (state.gameLog.length > 50) state.gameLog.shift();
         state.activePower = null;
         state.phase = 'stick_window';
       });
     },
 
     // ── Yapıştırma (Stick) ──────────────────────────────────
-    stickCard: (myPosition, discardCardId) => {
+    stickCard: (targetSeat, targetPosition, discardCardId, initiatorSeat) => {
       const { discardPile, players } = get();
       const topDiscard = discardPile[discardPile.length - 1];
       if (!topDiscard || topDiscard.id !== discardCardId) return;
 
-      const me = players.find(p => p.seat === 0)!;
-      const myCard = me.cards[myPosition];
+      const initiator = players.find(p => p.seat === initiatorSeat);
+      const targetPlayer = players.find(p => p.seat === targetSeat);
+      if (!initiator || !targetPlayer) return;
+      const targetCard = targetPlayer.cards[targetPosition];
 
       set(state => {
-        const myPlayerIdx = state.players.findIndex(p => p.seat === 0);
-        if (myCard.value === topDiscard.value) {
-          // Başarılı yapıştırma: kart elden çıkar
-          state.players[myPlayerIdx].cards.splice(myPosition, 1);
-          state.discardPile.push({ ...myCard, isRevealed: true });
+        const initiatorIdx = state.players.findIndex(p => p.seat === initiatorSeat);
+        const targetIdx = state.players.findIndex(p => p.seat === targetSeat);
+
+        if (targetCard.rank === topDiscard.rank) {
+          // Başarılı yapıştırma
+          state.players[targetIdx].cards.splice(targetPosition, 1);
+          state.discardPile.push({ ...targetCard, isRevealed: true });
+
+          if (initiatorSeat === targetSeat) {
+            // Kendi kartını yapıştırdı, tur devam (stick_window veya sonraki evre)
+            state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'stick_ok', detail: `kendi kartını başarıyla yapıştırdı` });
+          } else {
+            // Başkasının kartını yapıştırdı, give_card aşamasına geç
+            state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'stick_opponent_ok', detail: `${targetPlayer.nickname} adlı oyuncunun kartını başarıyla yapıştırdı` });
+            state.phase = 'give_card';
+            state.giveCardTarget = targetSeat;
+          }
         } else {
-          // Yanlış yapıştırma: ceza kartı al
+          // Yanlış yapıştırma: Tıklayan kişi (initiator) ceza alır
           const penalty = state.deck.shift();
           if (penalty) {
-            state.players[myPlayerIdx].cards.push({ ...penalty, isPenalty: true, isRevealed: false });
+            state.players[initiatorIdx].cards.push({ ...penalty, isPenalty: true, isRevealed: false });
           }
+          state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'stick_fail', detail: `yanlış yapıştırma yaptı, ceza kartı aldı` });
         }
+        if (state.gameLog.length > 50) state.gameLog.shift();
+      });
+    },
+
+    // ── Kart Verme (Give Card) ──────────────────────────────
+    giveCardToOpponent: (myPosition, initiatorSeat) => {
+      const { phase, giveCardTarget, players } = get();
+      if (phase !== 'give_card' || giveCardTarget === undefined) return;
+
+      const initiator = players.find(p => p.seat === initiatorSeat);
+      if (!initiator) return;
+
+      set(state => {
+        const initiatorIdx = state.players.findIndex(p => p.seat === initiatorSeat);
+        const targetIdx = state.players.findIndex(p => p.seat === giveCardTarget);
+
+        const cardToGive = state.players[initiatorIdx].cards.splice(myPosition, 1)[0];
+        state.players[targetIdx].cards.push(cardToGive);
+
+        const targetPlayerName = state.players[targetIdx].nickname;
+        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'swap', detail: `kendi kartını ${targetPlayerName} adlı oyuncuya verdi` });
+        if (state.gameLog.length > 50) state.gameLog.shift();
+
+        state.phase = 'stick_window';
+        state.giveCardTarget = undefined;
       });
     },
 
     // ── Cambio çağır ────────────────────────────────────────
     callCambio: () => {
-      const { phase, currentTurn } = get();
+      const { phase, currentTurn, players } = get();
       if (phase !== 'draw') return;
+      const me = players.find(p => p.seat === currentTurn);
 
       set(state => {
         state.cambioCaller = currentTurn;
-        state.remainingTurns = 3; // diğer 3 oyuncu 1'er tur
-        // Sırayı bir sonrakine geç
+        const activePlayersCount = state.players.filter(p => p.isOnline).length;
+        state.remainingTurns = Math.max(1, activePlayersCount - 1);
         state.currentTurn = nextTurn(currentTurn, state.players);
         state.players.forEach(p => { p.isCurrentTurn = p.seat === state.currentTurn; });
         state.phase = 'draw';
+        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me?.nickname ?? '?', action: 'cambio', detail: '🎯 CAMBIO çağırdı!' });
+        if (state.gameLog.length > 50) state.gameLog.shift();
       });
     },
 
@@ -349,13 +539,57 @@ export const useGameStore = create<GameStore>()(
           player.cards.forEach(card => { card.isRevealed = true; });
         });
 
-        state.finalScores = state.players.map(p => ({
+        const baseScores = state.players.map(p => ({
           seat: p.seat,
           score: calculateHandScore(p.cards),
           calledCambio: p.seat === state.cambioCaller,
         }));
 
+        // Cambio diyen kişinin gerçekten en düşük puana sahip olup olmadığını bulalım
+        let minScore = Math.min(...baseScores.map(s => s.score));
+        
+        state.finalScores = baseScores.map(p => {
+          let finalScore = p.score;
+          let cambioModifier = 0;
+          if (p.calledCambio) {
+            const isTrulyLowest = p.score === minScore && baseScores.filter(s => s.score === minScore).length === 1;
+            
+            if (isTrulyLowest) {
+              finalScore = finalScore - 10; // Ödül (Puanı düşürülür)
+              cambioModifier = -10;
+            } else {
+              finalScore = finalScore + 10; // Ceza (Artı 10 puan eklenir)
+              cambioModifier = 10;
+            }
+          }
+          return {
+            ...p,
+            baseScore: p.score,
+            cambioModifier,
+            score: finalScore
+          };
+        });
+
         state.winner = resolveWinner(state.finalScores);
+
+        // Liderlik tablosunu güncelle
+        state.finalScores.forEach(fs => {
+          const p = state.players.find(x => x.seat === fs.seat);
+          if (!p) return;
+          const lb = state.leaderboard.find(x => x.playerId === p.id);
+          if (lb) {
+            lb.handScores.push(fs.score);
+            lb.totalScore += fs.score;
+          } else {
+            state.leaderboard.push({
+              playerId: p.id,
+              nickname: p.nickname,
+              handScores: [fs.score],
+              totalScore: fs.score,
+            });
+          }
+        });
+
         state.phase = 'results';
       });
     },
