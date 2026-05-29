@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import { useEffect, useCallback, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGameStore, advanceTurn } from '../store/useGameStore';
@@ -69,6 +69,7 @@ export function GameBoard() {
   const [cambioFlash, setCambioFlash] = useState(false);
   const [powerSelection, setPowerSelection] = useState<{ seat: number; pos: number; step: number } | null>(null);
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
+  const [stickTimeLeft, setStickTimeLeft] = useState<number | null>(null);
 
   const transitionPeekState = useGameStore(s => s.transitionPeekState);
   const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
@@ -141,11 +142,20 @@ export function GameBoard() {
 
   useEffect(() => {
     if (phase === 'stick_window') {
+      setStickTimeLeft(5);
+      const interval = setInterval(() => {
+        setStickTimeLeft(prev => {
+          if (prev === null || prev <= 1) { clearInterval(interval); return null; }
+          return prev - 1;
+        });
+      }, 1000);
       const t = setTimeout(async () => {
+        clearInterval(interval);
+        setStickTimeLeft(null);
         advanceTurn(useGameStore.getState());
         if (isOnlineMode && myTurn) await syncGameState();
       }, 5000);
-      return () => clearTimeout(t);
+      return () => { clearTimeout(t); clearInterval(interval); setStickTimeLeft(null); };
     }
   }, [phase, myTurn, isOnlineMode, syncGameState]);
 
@@ -257,7 +267,7 @@ export function GameBoard() {
   }, [phase, activePower, myTurn, lobbyInfo.seat, powerSelection, handleUsePower, doAction, discardPile, stickCard, giveCardToOpponent, swapCard]);
 
   return (
-    <div className="min-h-screen flex flex-col p-3 gap-3 relative overflow-hidden">
+    <div className="h-dvh flex flex-col p-2 gap-2 relative overflow-hidden" style={{ minHeight: '100dvh' }}>
       {!isOnlineMode && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1
                         bg-orange-900/40 border border-orange-500/30
@@ -336,7 +346,7 @@ export function GameBoard() {
         CAMBIO
       </motion.h1>
 
-      <div className="flex flex-1 gap-8 px-8 mt-16 relative z-10">
+      <div className="flex flex-1 min-h-0 gap-8 px-8 relative z-10">
         <div className="hidden lg:flex flex-col w-[320px] ml-12 shrink-0 z-50 gap-4">
           <div className="px-8 py-5 bg-black/60 border-2 border-[var(--gold)]/50 rounded-2xl flex items-center gap-4 backdrop-blur-md shadow-2xl whitespace-nowrap shrink-0">
             <span className="text-white/50 text-xs font-black uppercase tracking-[0.25em]">ODA KODU</span>
@@ -357,14 +367,15 @@ export function GameBoard() {
           </div>
         </div>
 
-        <div className="flex-1 flex flex-col gap-3">
+        <div className="flex-1 min-h-0 flex flex-col gap-2">
+          <LayoutGroup id="cards">
           <div
-            className="relative w-full rounded-[36px] flex-1 flex flex-col"
+            className="relative w-full rounded-[36px] flex-1 min-h-0 flex flex-col justify-between"
             style={{
               background: 'radial-gradient(ellipse at center, #1a7a55 0%, #0a5c40 50%, #063d2a 100%)',
               boxShadow: '0 0 60px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3)',
               border: '2px solid rgba(212,168,67,0.25)',
-              minHeight: '460px',
+              minHeight: '300px',
             }}
           >
             <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-4 w-max pointer-events-none">
@@ -395,29 +406,39 @@ export function GameBoard() {
               )}
             </AnimatePresence>
 
-            <div className="flex justify-center pt-5">
-              {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2) && (
-                <PlayerArea 
-                  player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!} 
-                  position="top"
-                  onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat, pos)} 
-                  highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat ? [powerSelection.pos] : []}
-                  drawnCard={drawnCard}
-                />
-              )}
-            </div>
+            {/* ─── Grid Layout: 3 satır × 3 sütun ─── */}
+            <div
+              className="flex-1 min-h-0 grid px-3 py-3"
+              style={{ gridTemplateRows: 'auto auto auto', gridTemplateColumns: 'auto 1fr auto', alignContent: 'space-between' }}
+            >
+              {/* Üst orta: Karşı oyuncu */}
+              <div className="col-start-2 row-start-1 flex justify-center items-start">
+                {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2) && (
+                  <PlayerArea
+                    player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!}
+                    position="top"
+                    onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat, pos)}
+                    highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat ? [powerSelection.pos] : []}
+                    drawnCard={drawnCard}
+                  />
+                )}
+              </div>
 
-            <div className="flex flex-1 items-center justify-between px-8">
-              {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1) && (
-                <PlayerArea 
-                  player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!} 
-                  position="left" 
-                  onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat, pos)}
-                  highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat ? [powerSelection.pos] : []}
-                  drawnCard={drawnCard}
-                />
-              )}
+              {/* Sol: Ahmet */}
+              <div className="col-start-1 row-start-2 flex items-center">
+                {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1) && (
+                  <PlayerArea
+                    player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!}
+                    position="left"
+                    onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat, pos)}
+                    highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat ? [powerSelection.pos] : []}
+                    drawnCard={drawnCard}
+                  />
+                )}
+              </div>
 
+              {/* Merkez: Deste + Çöp */}
+              <div className="col-start-2 row-start-2 flex items-center justify-center">
               <div className="relative flex flex-col items-center">
                 <CenterArea 
                   deckCount={deck.length} 
@@ -478,30 +499,38 @@ export function GameBoard() {
                   )}
                 </AnimatePresence>
 
-                {/* ─── Takas (Swap) Animasyonu ─── */}
+                {/* Swap tamamlandığında hafif gösterge */}
                 <AnimatePresence>
                   {swappingCards && (
-                    <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none gap-8">
-                      <GameCard card={swappingCards.card1} highlight className="!drop-shadow-[0_0_40px_rgba(212,168,67,1)] scale-125" />
-                      <GameCard card={swappingCards.card2} highlight className="!drop-shadow-[0_0_40px_rgba(212,168,67,1)] scale-125" />
-                    </div>
+                    <motion.div
+                      className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <span className="text-[var(--gold)] text-5xl font-black drop-shadow-[0_0_20px_rgba(212,168,67,0.8)]">⇄</span>
+                    </motion.div>
                   )}
                 </AnimatePresence>
               </div>
+              </div>{/* merkez div kapanışı */}
 
-              {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3) && (
-                <PlayerArea 
-                  player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!} 
-                  position="right" 
-                  onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat, pos)}
-                  highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat ? [powerSelection.pos] : []}
-                  drawnCard={drawnCard}
-                />
-              )}
-            </div>
+              {/* Sağ: Mehmet */}
+              <div className="col-start-3 row-start-2 flex items-center">
+                {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3) && (
+                  <PlayerArea
+                    player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!}
+                    position="right"
+                    onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat, pos)}
+                    highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat ? [powerSelection.pos] : []}
+                    drawnCard={drawnCard}
+                  />
+                )}
+              </div>
 
-            {/* Alt: Sen */}
-            <div className="flex flex-col items-center pb-5 gap-2">
+              {/* Alt orta: Sen */}
+              <div className="col-start-2 row-start-3 flex flex-col items-center justify-end gap-2 pb-2">
               {me && (
                 <PlayerArea
                   player={me}
@@ -519,64 +548,22 @@ export function GameBoard() {
                   onDiscardDrawn={() => doAction(discardDrawn, { type: 'DISCARD_DRAWN' })}
                 />
               )}
-            </div>
-          </div>
+              </div>{/* alt orta div kapanışı */}
+            </div>{/* grid kapanışı */}
+          </div>{/* yeşil masa kapanışı */}
+          </LayoutGroup>
 
-          {/* Alt Kontrol Çubuğu */}
-          <div className="flex items-center gap-4 flex-wrap justify-center shrink-0 py-2">
+          {/* Alt HUD — tam genişlik */}
+          <div className="shrink-0 rounded-2xl bg-black/75 backdrop-blur-md border border-white/8 shadow-2xl py-3">
             <TurnIndicator
               currentPlayerName={currentPlayer?.nickname ?? '—'}
               phase={phase}
               myTurn={myTurn}
-            />
-
-            {myTurn && phase === 'draw' && cambioCaller === null && (
-              <motion.button
-                className="px-5 py-2 bg-red-600 hover:bg-red-500 rounded-xl font-bold
-                           text-white text-sm shadow-lg border border-red-400/30"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                onClick={() => doAction(callCambio, { type: 'CALL_CAMBIO', seat: lobbyInfo.seat })}
-              >
-                🎯 CAMBIO!
-              </motion.button>
-            )}
-
-            {phase === 'cambio_round' && (
-              <motion.div
-                className="px-4 py-2 bg-red-900/40 border border-red-500/40 rounded-xl
-                           text-red-300 text-xs font-bold"
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ repeat: Infinity, duration: 1.5 }}
-              >
-                🎯 CAMBIO Turu! Kalan: {useGameStore.getState().remainingTurns} tur
-              </motion.div>
-            )}
-
-            {phase === 'results' && (
-              <motion.button
-                className="px-6 py-2 bg-[var(--gold)] text-black font-bold rounded-xl shadow-[0_0_15px_rgba(212,168,67,0.5)]"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => useGameStore.getState().initGame('Sen', ['Ahmet', 'Zeliha', 'Mehmet'])}
-              >
-                🔄 Tekrar Oyna
-              </motion.button>
-            )}
-
-            {/* 🛠 Reset — 5s geri sayımlı */}
-            <motion.button
-              className={`px-6 py-3 border rounded-xl text-xs font-mono transition-colors ${
-                resetCountdown !== null
-                  ? 'bg-red-900/60 border-red-500/60 text-red-300'
-                  : 'bg-black/50 hover:bg-black/70 border border-white/20 text-white/50'
-              }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={async () => {
-                if (resetCountdown !== null) return; // zaten sayiyor
+              timeLeft={stickTimeLeft ?? undefined}
+              cambioCaller={cambioCaller}
+              onCallCambio={() => doAction(callCambio, { type: 'CALL_CAMBIO', seat: lobbyInfo.seat })}
+              onReset={async () => {
+                if (resetCountdown !== null) return;
                 let count = 5;
                 setResetCountdown(count);
                 const interval = setInterval(() => {
@@ -594,10 +581,9 @@ export function GameBoard() {
                   }
                 }, 1000);
               }}
-              title="Oyunu sıfırla"
-            >
-              {resetCountdown !== null ? `⏳ ${resetCountdown}s’de reset...` : '🔄 Reset'}
-            </motion.button>
+              resetCountdown={resetCountdown}
+              onPlayAgain={() => useGameStore.getState().initGame('Sen', ['Ahmet', 'Zeliha', 'Mehmet'])}
+            />
           </div>
         </div>
 

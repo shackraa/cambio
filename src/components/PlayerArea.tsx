@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import type { Player, Card } from '../types/game';
 import { CardGrid } from './CardGrid';
 import { GameCard } from './GameCard';
@@ -23,7 +24,17 @@ const CARD_GAP  = 6;
 const GRID_H = XL_CARD_H;                      // 112px
 
 export function PlayerArea({ player, position, isMe, onCardClick, highlightPositions = [], drawnCard, onDiscardDrawn }: PlayerAreaProps) {
-  const cardSize = 'lg' as const;
+  const [windowH, setWindowH] = useState(typeof window !== 'undefined' ? window.innerHeight : 900);
+  useEffect(() => {
+    const fn = () => setWindowH(window.innerHeight);
+    window.addEventListener('resize', fn);
+    return () => window.removeEventListener('resize', fn);
+  }, []);
+  // Yan oyuncular (sol/sağ) dikey sıralı → daima küçük
+  const isVerticalPlayer = position === 'left' || position === 'right';
+  const cardSize = isVerticalPlayer
+    ? 'sm'
+    : (windowH < 700 ? 'sm' : 'md');
   const knownCards = useGameStore(s => s.knownCards);
   const phase     = useGameStore(s => s.phase);
   const peekState = useGameStore(s => s.peekState);
@@ -147,7 +158,7 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
 
   return (
     <motion.div
-      className={`flex items-center gap-1 relative ${isMe ? 'flex-col-reverse' : 'flex-col'}`}
+      className={`flex items-center gap-1 relative flex-col`}
       initial={{ opacity: 0, y: isMe ? 20 : -20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
@@ -196,7 +207,11 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
       <AnimatePresence>
         {player.isCurrentTurn && phase === 'action' && drawnCard && (
           <motion.div
-            className={`absolute flex items-center gap-3 z-50 ${isVertical ? (position === 'left' ? 'left-full ml-4' : 'right-full mr-4') : (position === 'top' ? 'top-full mt-4' : 'bottom-full mb-4')}`}
+            className={`absolute flex items-center gap-3 z-50 ${isVertical ? (position === 'left' ? 'left-full ml-4' : 'right-full mr-4') : 'bottom-full mb-3'}`}
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.8, y: 20 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
           >
             <GameCard card={isMe ? { ...drawnCard, isRevealed: true } : drawnCard} size={cardSize} />
             

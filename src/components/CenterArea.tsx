@@ -14,6 +14,13 @@ interface CenterAreaProps {
   myPlayerId?: string;
 }
 
+// Kart id'sinden deterministik rotasyon üret — re-render'da titreme yapmaz
+function stableRotation(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffff;
+  return ((hash % 17) - 8); // -8 ile +8 derece arası
+}
+
 export function CenterArea({
   deckCount,
   topDeckCard,
@@ -75,21 +82,24 @@ export function CenterArea({
           onClick={canDraw && topDiscard ? onDrawFromDiscard : undefined}
         >
           <div className="relative w-20 h-28">
-            {topDiscard ? (
-              <motion.div
-                key={topDiscard.id}
-                className="absolute inset-0"
-                initial={{ scale: 0.5, rotate: -15 }}
-                animate={{ scale: 1, rotate: Math.random() * 10 - 5 }}
-                transition={{ type: 'spring', stiffness: 200, damping: 22 }}
-              >
-                <GameCard card={topDiscard} size="lg" />
-              </motion.div>
-            ) : (
-              <div className="w-20 h-28 border-2 border-dashed border-white/20 rounded-[10px] flex items-center justify-center bg-black/10">
-                <span className="text-white/30 text-2xl">🗑️</span>
-              </div>
-            )}
+            <AnimatePresence mode="wait">
+              {topDiscard ? (
+                <motion.div
+                  key={topDiscard.id}
+                  className="absolute inset-0"
+                  initial={{ scale: 0.6, rotate: -20, opacity: 0 }}
+                  animate={{ scale: 1, rotate: stableRotation(topDiscard.id), opacity: 1 }}
+                  exit={{ scale: 0.6, rotate: 20, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 180, damping: 20, duration: 0.5 }}
+                >
+                  <GameCard card={topDiscard} size="lg" />
+                </motion.div>
+              ) : (
+                <div className="w-20 h-28 border-2 border-dashed border-white/20 rounded-[10px] flex items-center justify-center bg-black/10">
+                  <span className="text-white/30 text-2xl">🗑️</span>
+                </div>
+              )}
+            </AnimatePresence>
           </div>
           <span className="text-xs text-white/60 mt-1">🗑 {t.discardPile}</span>
         </motion.div>

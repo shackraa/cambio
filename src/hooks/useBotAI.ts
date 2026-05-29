@@ -64,7 +64,7 @@ export function useBotAI(isOnlineMode: boolean) {
       if (currentState.phase === 'draw') {
         // Çekme aşaması: Çöpteki karta bak, iyi bir kartsa (0-5) al, yoksa desteden çek
         const topDiscard = currentState.discardPile[currentState.discardPile.length - 1];
-        if (topDiscard && (topDiscard.value <= 5 && topDiscard.value >= -1)) {
+        if (topDiscard && topDiscard.value >= 0 && topDiscard.value <= 5) {
           currentState.drawFromDiscard();
         } else {
           currentState.drawFromDeck();
@@ -74,35 +74,36 @@ export function useBotAI(isOnlineMode: boolean) {
         // Kart elinde: Karar ver
         const card = currentState.drawnCard;
         const power = getPower(card.rank, card.suit);
-        
-        // Eğer kart iyi bir kartsa (<= 5) veya güç kullanmak istemiyorsa
+        const me = currentState.players.find(p => p.seat === botSeat);
+
+        if (!me) return;
+
+        // Eğer kart iyi bir kartsa (<= 5)
         if (card.value <= 5) {
-          // Kartı al, yüksek değerli kartlarından biriyle veya rastgele bir kartla değiştir
-          // Botlar hile yaparak (bilgiye doğrudan erişerek) en yüksek kartlarını bulur
-          const myCards = currentPlayer.cards;
+          // En yüksek değerli kartını bul
           let highestValue = -100;
           let highestIndex = 0;
-          
-          myCards.forEach((c, idx) => {
+
+          me.cards.forEach((c, idx) => {
             if (c.value > highestValue) {
               highestValue = c.value;
               highestIndex = idx;
             }
           });
 
-          // Sadece yeni kart mevcut en kötü karttan daha iyiyse takas yap
+          // Yeni kart daha iyi kartlarından birinden iyiyse takas yap
           if (card.value < highestValue) {
             currentState.swapCard(highestIndex, botSeat);
           } else {
             currentState.discardDrawn(botSeat);
           }
-        } 
+        }
         else if (power && currentState.drawnFrom === 'deck') {
           // Güç kartı ve desteden çekildi: Çöpe at ve gücü kullan
           currentState.discardDrawn(botSeat);
         }
         else {
-          // Kötü bir kart ve desteden gelmediyse veya güç kartı değilse çöpe at
+          // Kötü bir kart, çöpe at
           currentState.discardDrawn(botSeat);
         }
       }
@@ -110,13 +111,18 @@ export function useBotAI(isOnlineMode: boolean) {
         // Güç kullanma aşaması
         const power = currentState.activePower;
         const otherPlayers = currentState.players.filter(p => p.seat !== botSeat);
+        if (otherPlayers.length === 0) return;
+
+        const me = currentState.players.find(p => p.seat === botSeat);
+        if (!me) return;
+
         const randomOpponent = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
         const randomOpponentPos = Math.floor(Math.random() * randomOpponent.cards.length);
-        
+
         // Kendi en yüksek kartını bul
         let highestMyValue = -100;
         let highestMyIndex = 0;
-        currentPlayer.cards.forEach((c, idx) => {
+        me.cards.forEach((c, idx) => {
           if (c.value > highestMyValue) {
             highestMyValue = c.value;
             highestMyIndex = idx;
@@ -155,13 +161,15 @@ export function useBotAI(isOnlineMode: boolean) {
         }
       }
       
-      // Her tur sonunda, eğer eli <= 5 ise %30 ihtimalle Cambio desin
-      // (Bunu sadece draw phase'in başında veya turun bitiminde hesaplasın diye action sonrası yapabiliriz)
-      // Ancak Cambio çağırma fonksiyonu state içinde. Bot'un puanını kontrol edelim.
+      // Cambio çağırması: Her draw phase başında sıra bot'taysa check et
       if (currentState.phase === 'draw' && !currentState.cambioCaller) {
-        const myScore = currentPlayer.cards.reduce((sum, c) => sum + c.value, 0);
-        if (myScore <= 5 && Math.random() < 0.3) {
-          currentState.callCambio();
+        const me = currentState.players.find(p => p.seat === currentState.currentTurn);
+        if (me && me.seat !== 0) { // Sadece bot kontrol et
+          const myScore = me.cards.reduce((sum, c) => sum + c.value, 0);
+          // El puanı 7'den az veya çok iyi kartlar varsa Cambio de
+          if (myScore <= 7 && Math.random() < 0.5) {
+            currentState.callCambio();
+          }
         }
       }
 

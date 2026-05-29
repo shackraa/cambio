@@ -361,24 +361,9 @@ export const useGameStore = create<GameStore>()(
             const myPos = swapWithPosition ?? 0;
             const temp = { ...myPlayer.cards[myPos] };
             const targetTemp = { ...targetPlayer.cards[targetPosition] };
-
-            // 1. Adım: Kartları hayalet (ghost) yap ve ortaya al
-            myPlayer.cards[myPos] = { ...temp, isGhost: true };
-            targetPlayer.cards[targetPosition] = { ...targetTemp, isGhost: true };
-            state.swappingCards = { card1: temp, card2: targetTemp };
-
-            // 2. Adım: 1.5 saniye sonra yerlerine yerleştir
-            setTimeout(() => {
-              useGameStore.setState(s => {
-                const sTargetPlayer = s.players.find(p => p.seat === targetSeat);
-                const sMyPlayer = s.players.find(p => p.seat === activeSeat);
-                if (sTargetPlayer && sMyPlayer) {
-                  sMyPlayer.cards[myPos] = targetTemp;
-                  sTargetPlayer.cards[targetPosition] = temp;
-                }
-                s.swappingCards = null;
-              });
-            }, 1500);
+            // Doğrudan swap — LayoutGroup animasyonu halleder
+            myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false };
+            targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false };
             break;
           }
           case 'spy_swap': {
@@ -396,22 +381,9 @@ export const useGameStore = create<GameStore>()(
               const myPos = swapWithPosition;
               const temp = { ...myPlayer.cards[myPos] };
               const targetTemp = { ...targetPlayer.cards[targetPosition] };
-
-              myPlayer.cards[myPos] = { ...temp, isGhost: true };
-              targetPlayer.cards[targetPosition] = { ...targetTemp, isGhost: true };
-              state.swappingCards = { card1: temp, card2: targetTemp };
-
-              setTimeout(() => {
-                useGameStore.setState(s => {
-                  const sTargetPlayer = s.players.find(p => p.seat === targetSeat);
-                  const sMyPlayer = s.players.find(p => p.seat === activeSeat);
-                  if (sTargetPlayer && sMyPlayer) {
-                    sMyPlayer.cards[myPos] = targetTemp;
-                    sTargetPlayer.cards[targetPosition] = temp;
-                  }
-                  s.swappingCards = null;
-                });
-              }, 1500);
+              // Doğrudan swap — LayoutGroup animasyonu halleder
+              myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false };
+              targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false };
             }
             setTimeout(() => {
               useGameStore.setState(s => {

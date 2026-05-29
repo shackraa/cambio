@@ -34,12 +34,12 @@ export function CardGrid({
   return (
     <div className={gridClass}>
       {cards.map((card, i) => (
-        <motion.div 
-          key={card.id} 
+        <motion.div
+          key={card.id}
           className="relative"
-          initial={isDealing ? { opacity: 0, scale: 0.5, y: 30 } : { opacity: 1, scale: 1, y: 0 }}
+          initial={isDealing ? { opacity: 0, scale: 0.4, y: 40 } : { opacity: 1, scale: 1, y: 0 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: isDealing ? i * 0.15 : 0, type: 'spring', stiffness: 200 }}
+          transition={{ duration: 0.5, delay: isDealing ? i * 0.12 : 0, type: 'spring', stiffness: 180, damping: 22 }}
         >
           <GameCard
             card={card}
