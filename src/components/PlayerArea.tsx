@@ -7,12 +7,78 @@ import { useGameStore } from '../store/useGameStore';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 
+// ─── Çekilen kartı önce kapalı göster, sonra çevir ──────────────
+function DrawnCardDisplay({
+  drawnCard,
+  isMe,
+  cardSize,
+  drawnFrom,
+  onDiscardDrawn,
+  t,
+}: {
+  drawnCard: Card;
+  isMe?: boolean;
+  cardSize: 'sm' | 'md' | 'lg';
+  drawnFrom: 'deck' | 'discard' | null;
+  onDiscardDrawn?: () => void;
+  t: any;
+}) {
+  // Desteden çekilmişse: önce kapalı, 350ms sonra çevir
+  // Çöpten çekilmişse: zaten açık geliyor
+  const [isFlipped, setIsFlipped] = useState(drawnFrom === 'discard');
+
+  useEffect(() => {
+    if (drawnFrom === 'deck' && isMe) {
+      const timer = setTimeout(() => setIsFlipped(true), 350);
+      return () => clearTimeout(timer);
+    }
+  }, [drawnFrom, isMe]);
+
+  const displayCard = isMe
+    ? { ...drawnCard, isRevealed: isFlipped }
+    : drawnCard;
+
+  return (
+    <>
+      <GameCard card={displayCard} size={cardSize} />
+      {isMe && onDiscardDrawn && (
+        <AnimatePresence>
+          {isFlipped && (
+            <motion.div
+              className="flex flex-col gap-1.5"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.15 }}
+            >
+              <p className="text-white/50 text-[10px]">{t.drawnAction_addOrDiscard}</p>
+              <motion.button
+                className="px-3 py-1.5 bg-[var(--gold)]/20 hover:bg-[var(--gold)]/40
+                           border border-[var(--gold)]/40 rounded-xl text-[var(--gold)]
+                           text-xs font-bold"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onDiscardDrawn}
+              >
+                {t.drawnAction_discard}
+              </motion.button>
+              <span className="text-white/30 text-[9px] text-center">
+                {t.drawnAction_orClickBottom}
+              </span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
+    </>
+  );
+}
+
 interface PlayerAreaProps {
   player: Player;
   position: 'bottom' | 'top' | 'left' | 'right';
   isMe?: boolean;
   onCardClick?: (position: number) => void;
   highlightPositions?: number[];
+  swapHighlightPositions?: number[]; // takas edilen slotlar
   drawnCard?: Card | null;
   onDiscardDrawn?: () => void;
 }
@@ -23,7 +89,7 @@ const XL_CARD_H = 112;
 const CARD_GAP  = 6;
 const GRID_H = XL_CARD_H;                      // 112px
 
-export function PlayerArea({ player, position, isMe, onCardClick, highlightPositions = [], drawnCard, onDiscardDrawn }: PlayerAreaProps) {
+export function PlayerArea({ player, position, isMe, onCardClick, highlightPositions = [], swapHighlightPositions = [], drawnCard, onDiscardDrawn }: PlayerAreaProps) {
   const [windowH, setWindowH] = useState(typeof window !== 'undefined' ? window.innerHeight : 900);
   useEffect(() => {
     const fn = () => setWindowH(window.innerHeight);
@@ -39,6 +105,7 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
   const phase     = useGameStore(s => s.phase);
   const peekState = useGameStore(s => s.peekState);
   const peekTarget = useGameStore(s => s.peekTarget);
+  const drawnFrom  = useGameStore(s => s.drawnFrom);
   const finalScoreObj = useGameStore(s => phase === 'results' ? s.finalScores.find(fs => fs.seat === player.seat) : undefined);
   const isVertical = position === 'left' || position === 'right';
 
@@ -128,6 +195,7 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
             canInteract={!!onCardClick}
             onCardClick={onCardClick}
             highlightPositions={mergedHighlightPositions}
+            swapHighlightPositions={swapHighlightPositions}
             peekPositions={activePeekPositions}
             isDealing={phase === 'peek' && peekState === 'dealing'}
             isHighlighting={phase === 'peek' && peekState === 'highlight'}
@@ -148,6 +216,7 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
         canInteract={!!onCardClick}
         onCardClick={onCardClick}
         highlightPositions={mergedHighlightPositions}
+        swapHighlightPositions={swapHighlightPositions}
         peekPositions={activePeekPositions}
         isDealing={phase === 'peek' && peekState === 'dealing'}
         isHighlighting={phase === 'peek' && peekState === 'highlight'}
@@ -207,32 +276,21 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
       <AnimatePresence>
         {player.isCurrentTurn && phase === 'action' && drawnCard && (
           <motion.div
+            key={drawnCard.id}
             className={`absolute flex items-center gap-3 z-50 ${isVertical ? (position === 'left' ? 'left-full ml-4' : 'right-full mr-4') : 'bottom-full mb-3'}`}
-            initial={{ opacity: 0, scale: 0.8, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.8, y: 20 }}
-            transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+            initial={{ opacity: 0, scale: 0.5, y: isVertical ? 0 : 30, x: isVertical ? (position === 'left' ? -30 : 30) : 0 }}
+            animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
+            exit={{ opacity: 0, scale: 0.6, y: isVertical ? 0 : 20 }}
+            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
           >
-            <GameCard card={isMe ? { ...drawnCard, isRevealed: true } : drawnCard} size={cardSize} />
-            
-            {isMe && onDiscardDrawn && (
-              <div className="flex flex-col gap-1.5">
-                <p className="text-white/50 text-[10px]">{t.drawnAction_addOrDiscard}</p>
-                <motion.button
-                  className="px-3 py-1.5 bg-[var(--gold)]/20 hover:bg-[var(--gold)]/40
-                             border border-[var(--gold)]/40 rounded-xl text-[var(--gold)]
-                             text-xs font-bold"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onDiscardDrawn}
-                >
-                  {t.drawnAction_discard}
-                </motion.button>
-                <span className="text-white/30 text-[9px] text-center">
-                  {t.drawnAction_orClickBottom}
-                </span>
-              </div>
-            )}
+            <DrawnCardDisplay
+              drawnCard={drawnCard}
+              isMe={isMe}
+              cardSize={cardSize}
+              drawnFrom={drawnFrom}
+              onDiscardDrawn={onDiscardDrawn}
+              t={t}
+            />
           </motion.div>
         )}
       </AnimatePresence>

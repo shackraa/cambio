@@ -9,6 +9,7 @@ interface TurnIndicatorProps {
   timeLeft?: number;
   myTurn: boolean;
   cambioCaller: number | null;
+  turnCount: number;
   onCallCambio: () => void;
   onReset: () => void;
   resetCountdown: number | null;
@@ -31,6 +32,7 @@ export function TurnIndicator({
   timeLeft,
   myTurn,
   cambioCaller,
+  turnCount,
   onCallCambio,
   onReset,
   resetCountdown,
@@ -121,6 +123,25 @@ export function TurnIndicator({
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Tur Sayıcısı */}
+        {turnCount > 0 && phase !== 'results' && phase !== 'peek' && (
+          <div className="flex flex-col items-center leading-tight">
+            <span className="text-white/40 text-[8px] sm:text-[9px] uppercase tracking-[0.18em] font-semibold">Tur</span>
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={turnCount}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15 }}
+                className="font-black text-sm leading-tight text-white/70"
+              >
+                #{turnCount}
+              </motion.span>
+            </AnimatePresence>
+          </div>
+        )}
         <div className="hidden sm:block h-5 w-px bg-white/15" />
       </div>
 

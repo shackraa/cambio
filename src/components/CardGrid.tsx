@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { Card } from '../types/game';
 import { GameCard } from './GameCard';
 
@@ -9,6 +9,7 @@ interface CardGridProps {
   onCardClick?: (position: number) => void;
   highlightPositions?: number[];
   peekPositions?: number[];   // peek fazında göz ikonu gösterilecek pozisyonlar
+  swapHighlightPositions?: number[]; // takas edilen slotlar için altın parlama
   direction?: 'horizontal' | 'vertical';
   isDealing?: boolean;
   isHighlighting?: boolean;
@@ -22,6 +23,7 @@ export function CardGrid({
   onCardClick,
   highlightPositions = [],
   peekPositions = [],
+  swapHighlightPositions = [],
   direction = 'horizontal',
   isDealing = false,
   isHighlighting = false,
@@ -39,7 +41,7 @@ export function CardGrid({
           className="relative"
           initial={isDealing ? { opacity: 0, scale: 0.4, y: 40 } : { opacity: 1, scale: 1, y: 0 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: isDealing ? i * 0.12 : 0, type: 'spring', stiffness: 180, damping: 22 }}
+          transition={{ duration: 0.4, delay: isDealing ? i * 0.1 : 0, type: 'spring', stiffness: 250, damping: 24 }}
         >
           <GameCard
             card={card}
@@ -48,6 +50,24 @@ export function CardGrid({
             onClick={() => onCardClick?.(i)}
             highlight={highlightPositions.includes(i)}
           />
+
+          {/* Takas edilen slotun altın parlama efekti */}
+          <AnimatePresence>
+            {swapHighlightPositions.includes(i) && (
+              <motion.div
+                className="absolute inset-0 rounded-[10px] pointer-events-none z-20"
+                initial={{ opacity: 0, scale: 1.1 }}
+                animate={{ opacity: [0, 1, 0.7, 1, 0], scale: [1.1, 1.05, 1.1, 1.05, 1.1] }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.8, ease: 'easeInOut' }}
+                style={{
+                  boxShadow: '0 0 24px 8px rgba(212,168,67,1), inset 0 0 16px rgba(212,168,67,0.5)',
+                  background: 'rgba(212,168,67,0.15)',
+                  border: '2px solid rgba(212,168,67,0.9)',
+                }}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Peek fazı göstergesi (Kartın DIŞINDA ve bir okla) */}
           {peekPositions.includes(i) && (
@@ -76,7 +96,7 @@ export function CardGrid({
                 </span>
               </motion.div>
               {/* Küçük ok işareti */}
-              <div 
+              <div
                 className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent"
                 style={{
                   borderTop: playerPosition === 'bottom' ? '6px solid rgba(212,168,67,0.95)' : 'none',

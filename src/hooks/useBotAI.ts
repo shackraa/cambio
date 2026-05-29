@@ -20,22 +20,20 @@ export function useBotAI(isOnlineMode: boolean) {
     if (isOnlineMode || isGameOver) return;
 
     const state = useGameStore.getState();
-    const { players, discardPile, peekSelectedPositions, drawFromDeck, drawFromDiscard, swapCard, discardDrawn, usePower, skipPower, callCambio } = state;
-    
-    // Eğer PEEK phase ise, tüm botlar kendi kartlarını seçmeli
+    const { players, peekSelectedPositions } = state;
+
+    // ── PEEK FAZI: Tüm botlar kendi kartlarını seçmeli ──────────────
     if (phase === 'peek' && peekState === 'select') {
       const bots = players.filter(p => p.seat !== 0);
-      
+
       bots.forEach(bot => {
         const hasSelected = peekSelectedPositions.filter(pos => pos.playerId === bot.id).length >= 2;
         if (!hasSelected) {
           const timeout = setTimeout(() => {
-            // İki rastgele kartını seç
             useGameStore.setState((s) => {
               const mySelections = s.peekSelectedPositions.filter(p => p.playerId === bot.id);
               if (mySelections.length < 2) {
-                // Rastgele 2 pozisyon seç (0,1,2,3)
-                const available = [0,1,2,3].filter(pos => !mySelections.some(m => m.pos === pos));
+                const available = [0, 1, 2, 3].filter(pos => !mySelections.some(m => m.pos === pos));
                 const picked = available.sort(() => Math.random() - 0.5).slice(0, 2 - mySelections.length);
                 picked.forEach(p => {
                   s.peekSelectedPositions.push({ playerId: bot.id, pos: p });
@@ -54,36 +52,63 @@ export function useBotAI(isOnlineMode: boolean) {
     if (!currentPlayer || currentPlayer.seat === 0) return;
 
     const botSeat = currentPlayer.seat;
-    
+
     if (timerRef.current) clearTimeout(timerRef.current);
 
     timerRef.current = setTimeout(() => {
       // Aksiyonlar güncel state üzerinden alınmalı
-      const currentState = useGameStore.getState();
-      
-      if (currentState.phase === 'draw') {
-        // Çekme aşaması: Çöpteki karta bak, iyi bir kartsa (0-5) al, yoksa desteden çek
-        const topDiscard = currentState.discardPile[currentState.discardPile.length - 1];
-        if (topDiscard && topDiscard.value >= 0 && topDiscard.value <= 5) {
-          currentState.drawFromDiscard();
-        } else {
-          currentState.drawFromDeck();
-        }
-      } 
-      else if (currentState.phase === 'action' && currentState.drawnCard) {
-        // Kart elinde: Karar ver
-        const card = currentState.drawnCard;
-        const power = getPower(card.rank, card.suit);
-        const me = currentState.players.find(p => p.seat === botSeat);
+      const s = useGameStore.getState();
 
+      // ── DRAW FAZI ──────────────────────────────────────────────────
+      if (s.phase === 'draw') {
+        const me = s.players.find(p => p.seat === botSeat);
         if (!me) return;
 
-        // Eğer kart iyi bir kartsa (<= 5)
-        if (card.value <= 5) {
-          // En yüksek değerli kartını bul
+        // 1) Önce Cambio kontrolü: El puanı <= 7 ise ve henüz kimse Cambio dememiş
+        if (!s.cambioCaller) {
+          const myScore = me.cards.reduce((sum, c) => sum + c.value, 0);
+          if (myScore <= 7 && Math.random() < 0.6) {
+            s.callCambio();
+            return; // Cambio dendi, kart çekme
+          }
+        }
+
+        // 2) Cambio demediyse kart çek
+        const topDiscard = s.discardPile[s.discardPile.length - 1];
+        if (topDiscard && topDiscard.value >= 0 && topDiscard.value <= 5) {
+          s.drawFromDiscard();
+        } else {
+          s.drawFromDeck();
+        }
+        return;
+      }
+
+      // ── ACTION FAZI ───────────────────────────────────────────────
+      if (s.phase === 'action' && s.drawnCard) {
+        const card = s.drawnCard;
+        const power = getPower(card.rank, card.suit);
+        const me = s.players.find(p => p.seat === botSeat);
+        if (!me) return;
+
+        // Açık desteden çekilmişse MUTLAKA takas yap (zaten iyi bir kart seçti)
+        if (s.drawnFrom === 'discard') {
           let highestValue = -100;
           let highestIndex = 0;
+          me.cards.forEach((c, idx) => {
+            if (c.value > highestValue) {
+              highestValue = c.value;
+              highestIndex = idx;
+            }
+          });
+          s.swapCard(highestIndex, botSeat);
+          return;
+        }
 
+        // Desteden çekildiyse: Kart değerine göre karar ver
+        if (card.value <= 5) {
+          // İyi kart: En yüksek kartla değiştir (eğer daha iyiyse)
+          let highestValue = -100;
+          let highestIndex = 0;
           me.cards.forEach((c, idx) => {
             if (c.value > highestValue) {
               highestValue = c.value;
@@ -91,33 +116,37 @@ export function useBotAI(isOnlineMode: boolean) {
             }
           });
 
-          // Yeni kart daha iyi kartlarından birinden iyiyse takas yap
           if (card.value < highestValue) {
-            currentState.swapCard(highestIndex, botSeat);
+            s.swapCard(highestIndex, botSeat);
           } else {
-            currentState.discardDrawn(botSeat);
+            // Kart elimizdekilerden daha kötü: Güç varsa kullan, yoksa at
+            if (power) {
+              s.discardDrawn(botSeat); // Güç kartı → çöpe at, güç aktif olacak
+            } else {
+              s.discardDrawn(botSeat);
+            }
           }
+        } else if (power) {
+          // Güç kartı ama kötü: Çöpe at ve gücü kullan
+          s.discardDrawn(botSeat);
+        } else {
+          // Kötü kart, güç yok: Çöpe at
+          s.discardDrawn(botSeat);
         }
-        else if (power && currentState.drawnFrom === 'deck') {
-          // Güç kartı ve desteden çekildi: Çöpe at ve gücü kullan
-          currentState.discardDrawn(botSeat);
-        }
-        else {
-          // Kötü bir kart, çöpe at
-          currentState.discardDrawn(botSeat);
-        }
+        return;
       }
-      else if (currentState.phase === 'power' && currentState.activePower) {
-        // Güç kullanma aşaması
-        const power = currentState.activePower;
-        const otherPlayers = currentState.players.filter(p => p.seat !== botSeat);
+
+      // ── POWER FAZI ───────────────────────────────────────────────
+      if (s.phase === 'power' && s.activePower) {
+        const power = s.activePower;
+        const otherPlayers = s.players.filter(p => p.seat !== botSeat);
         if (otherPlayers.length === 0) return;
 
-        const me = currentState.players.find(p => p.seat === botSeat);
+        const me = s.players.find(p => p.seat === botSeat);
         if (!me) return;
 
         const randomOpponent = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
-        const randomOpponentPos = Math.floor(Math.random() * randomOpponent.cards.length);
+        const randomOpponentPos = Math.floor(Math.random() * Math.max(1, randomOpponent.cards.length));
 
         // Kendi en yüksek kartını bul
         let highestMyValue = -100;
@@ -129,7 +158,7 @@ export function useBotAI(isOnlineMode: boolean) {
           }
         });
 
-        // En düşük rakip kartını bul
+        // En düşük rakip kartını bul (bot her şeyi biliyor — AI avantajı)
         let lowestOpponentValue = 100;
         let lowestOpponentPos = 0;
         randomOpponent.cards.forEach((c, idx) => {
@@ -140,45 +169,27 @@ export function useBotAI(isOnlineMode: boolean) {
         });
 
         if (power === 'peek_own') {
-          // Rastgele bir kendi kartına bak (GUI'da bir şey olmaz ama state geçer)
-          currentState.usePower('peek_own', botSeat, Math.floor(Math.random() * 4), undefined, false, botSeat);
-        } 
-        else if (power === 'peek_other') {
-          currentState.usePower('peek_other', randomOpponent.seat, randomOpponentPos, undefined, false, botSeat);
-        }
-        else if (power === 'blind_swap') {
-          // Kendi en kötü kartını rakibin en iyi (en düşük) kartı ile değiştir
-          currentState.usePower('blind_swap', randomOpponent.seat, lowestOpponentPos, highestMyIndex, false, botSeat);
-        }
-        else if (power === 'spy_swap') {
-          // Bak ve karar ver: Rakibin kartı benim en yüksek kartımdan küçükse takas et
-          // Bot hile yaptığı için anında bilir
+          const randomMyPos = Math.floor(Math.random() * Math.max(1, me.cards.length));
+          s.usePower('peek_own', botSeat, randomMyPos, undefined, false, botSeat);
+        } else if (power === 'peek_other') {
+          s.usePower('peek_other', randomOpponent.seat, randomOpponentPos, undefined, false, botSeat);
+        } else if (power === 'blind_swap') {
+          s.usePower('blind_swap', randomOpponent.seat, lowestOpponentPos, highestMyIndex, false, botSeat);
+        } else if (power === 'spy_swap') {
           if (lowestOpponentValue < highestMyValue) {
-            currentState.usePower('spy_swap', randomOpponent.seat, lowestOpponentPos, highestMyIndex, false, botSeat);
+            s.usePower('spy_swap', randomOpponent.seat, lowestOpponentPos, highestMyIndex, false, botSeat);
           } else {
-            currentState.skipPower(botSeat);
+            s.skipPower(botSeat);
           }
         }
-      }
-      
-      // Cambio çağırması: Her draw phase başında sıra bot'taysa check et
-      if (currentState.phase === 'draw' && !currentState.cambioCaller) {
-        const me = currentState.players.find(p => p.seat === currentState.currentTurn);
-        if (me && me.seat !== 0) { // Sadece bot kontrol et
-          const myScore = me.cards.reduce((sum, c) => sum + c.value, 0);
-          // El puanı 7'den az veya çok iyi kartlar varsa Cambio de
-          if (myScore <= 7 && Math.random() < 0.5) {
-            currentState.callCambio();
-          }
-        }
+        return;
       }
 
-    }, getRandomDelay(1500, 3000));
+    }, getRandomDelay(1200, 2500));
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
 
   }, [phase, currentTurn, peekState, activePower, drawnCard, isOnlineMode, isGameOver]);
-
 }

@@ -12,6 +12,7 @@ import { GameLog } from '../components/GameLog';
 import { RulesPanel } from '../components/RulesPanel';
 import { GameBackgroundOverlay } from '../components/GameBackgroundOverlay';
 import { Leaderboard } from '../components/Leaderboard';
+import { ToastContainer } from '../components/ToastContainer';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 import { useBotAI } from '../hooks/useBotAI';
@@ -52,7 +53,9 @@ export function GameBoard() {
     peekPhaseEndTime,
     swappingCards,
     stickCard,
-    giveCardToOpponent
+    giveCardToOpponent,
+    lastSwappedPosition,
+    turnCount,
   } = useGameStore();
 
   const { sendAction, syncGameState, loadGameState, initGameInDB } = useRealtimeGame({
@@ -70,6 +73,7 @@ export function GameBoard() {
   const [powerSelection, setPowerSelection] = useState<{ seat: number; pos: number; step: number } | null>(null);
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
   const [stickTimeLeft, setStickTimeLeft] = useState<number | null>(null);
+  const [betweenHands, setBetweenHands] = useState(false);
 
   const transitionPeekState = useGameStore(s => s.transitionPeekState);
   const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
@@ -149,13 +153,18 @@ export function GameBoard() {
           return prev - 1;
         });
       }, 1000);
-      const t = setTimeout(async () => {
+      const timer = setTimeout(async () => {
         clearInterval(interval);
         setStickTimeLeft(null);
-        advanceTurn(useGameStore.getState());
-        if (isOnlineMode && myTurn) await syncGameState();
+        // Eller arası kısa geçiş göstergesi
+        setBetweenHands(true);
+        setTimeout(async () => {
+          setBetweenHands(false);
+          advanceTurn(useGameStore.getState());
+          if (isOnlineMode && myTurn) await syncGameState();
+        }, 800);
       }, 5000);
-      return () => { clearTimeout(t); clearInterval(interval); setStickTimeLeft(null); };
+      return () => { clearTimeout(timer); clearInterval(interval); setStickTimeLeft(null); };
     }
   }, [phase, myTurn, isOnlineMode, syncGameState]);
 
@@ -267,7 +276,8 @@ export function GameBoard() {
   }, [phase, activePower, myTurn, lobbyInfo.seat, powerSelection, handleUsePower, doAction, discardPile, stickCard, giveCardToOpponent, swapCard]);
 
   return (
-    <div className="h-dvh flex flex-col p-2 gap-2 relative overflow-hidden" style={{ minHeight: '100dvh' }}>
+    <div className="h-screen flex flex-col p-2 gap-2 relative overflow-hidden">
+      <ToastContainer />
       {!isOnlineMode && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1
                         bg-orange-900/40 border border-orange-500/30
@@ -275,6 +285,28 @@ export function GameBoard() {
           {t.demoMode}
         </div>
       )}
+
+      {/* Eller arası geçiş overlay */}
+      <AnimatePresence>
+        {betweenHands && (
+          <motion.div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="text-center"
+            >
+              <div className="text-[var(--gold)] text-3xl font-black tracking-widest mb-2">⏵ SİRA GEÇİYOR...⏵</div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Sağ Üst Butonlar (Dil ve Tam Ekran) */}
       <div className="absolute top-4 right-6 z-50 flex items-center gap-3">
@@ -419,6 +451,10 @@ export function GameBoard() {
                     position="top"
                     onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat, pos)}
                     highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat ? [powerSelection.pos] : []}
+                    swapHighlightPositions={
+                      lastSwappedPosition?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat
+                        ? [lastSwappedPosition.pos] : []
+                    }
                     drawnCard={drawnCard}
                   />
                 )}
@@ -432,6 +468,10 @@ export function GameBoard() {
                     position="left"
                     onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat, pos)}
                     highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat ? [powerSelection.pos] : []}
+                    swapHighlightPositions={
+                      lastSwappedPosition?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat
+                        ? [lastSwappedPosition.pos] : []
+                    }
                     drawnCard={drawnCard}
                   />
                 )}
@@ -524,6 +564,10 @@ export function GameBoard() {
                     position="right"
                     onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat, pos)}
                     highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat ? [powerSelection.pos] : []}
+                    swapHighlightPositions={
+                      lastSwappedPosition?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat
+                        ? [lastSwappedPosition.pos] : []
+                    }
                     drawnCard={drawnCard}
                   />
                 )}
@@ -539,10 +583,13 @@ export function GameBoard() {
                   onCardClick={(pos) => handleCardClick(me.seat, pos)}
                   highlightPositions={
                     phase === 'give_card'
-                      ? me.cards.map((_, i) => i) // give_card sırasında tüm kendi kartlarımız parlasın
-                      : powerSelection?.seat === me.seat 
-                        ? [powerSelection.pos] 
+                      ? me.cards.map((_, i) => i)
+                      : powerSelection?.seat === me.seat
+                        ? [powerSelection.pos]
                         : []
+                  }
+                  swapHighlightPositions={
+                    lastSwappedPosition?.seat === me.seat ? [lastSwappedPosition.pos] : []
                   }
                   drawnCard={drawnCard}
                   onDiscardDrawn={() => doAction(discardDrawn, { type: 'DISCARD_DRAWN' })}
@@ -561,6 +608,7 @@ export function GameBoard() {
               myTurn={myTurn}
               timeLeft={stickTimeLeft ?? undefined}
               cambioCaller={cambioCaller}
+              turnCount={turnCount ?? 0}
               onCallCambio={() => doAction(callCambio, { type: 'CALL_CAMBIO', seat: lobbyInfo.seat })}
               onReset={async () => {
                 if (resetCountdown !== null) return;

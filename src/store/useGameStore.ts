@@ -10,6 +10,7 @@ import {
   resolveWinner,
   type PowerType,
 } from '../engine/gameEngine';
+import { useToastStore } from './useToastStore';
 
 // ─── Hamle logu ──────────────────────────────────────────────
 export type LogAction =
@@ -54,11 +55,13 @@ interface GameStore {
   remainingTurns: number;
   roomCode: string;
   giveCardTarget?: number;
+  turnCount: number;          // toplam tur sayısı
 
   // ── Güç kullanımı
   activePower: PowerType | null;
   peekTarget: { playerId: string; position: number } | null;
   swappingCards: { card1: Card; card2: Card } | null;
+  lastSwappedPosition: { seat: number; pos: number } | null; // takas edilen slot
 
   // ── Hafıza (bilinen kartlar)
   knownCards: KnownCard[];
@@ -139,9 +142,11 @@ export const useGameStore = create<GameStore>()(
     cambioCaller: null,
     remainingTurns: 0,
     roomCode: 'K4F2',
+    turnCount: 0,
     activePower: null,
     peekTarget: null,
     swappingCards: null,
+    lastSwappedPosition: null,
     knownCards: [],
     gameLog: [],
     finalScores: [],
@@ -191,12 +196,14 @@ export const useGameStore = create<GameStore>()(
         state.drawnFrom = null;
         state.cambioCaller = null;
         state.remainingTurns = 0;
+        state.turnCount = 0;
         state.activePower = null;
         state.peekTarget = null;
+        state.swappingCards = null;
+        state.lastSwappedPosition = null;
         state.knownCards = [];
         state.gameLog = [];
         state.finalScores = [];
-        state.winner = null;
         state.winner = null;
         state.peekPhaseEndTime = Date.now() + 4000; // 4s dealing
         state.peekState = 'dealing';
@@ -287,11 +294,19 @@ export const useGameStore = create<GameStore>()(
         state.drawnCard = null;
         state.drawnFrom = null;
 
+        // Hangi slotun değiştiğini işaretle (görsel geri bildirim için)
+        state.lastSwappedPosition = { seat: activeSeat, pos: position };
+
         state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: player.nickname, action: 'swap', detail: `ortadan çektiği kartla bir kartını değiştirdi` });
         if (state.gameLog.length > 50) state.gameLog.shift();
 
         state.phase = 'stick_window';
       });
+
+      // 900ms sonra highlight temizle
+      setTimeout(() => {
+        useGameStore.setState(s => { s.lastSwappedPosition = null; });
+      }, 900);
     },
 
     // ── Çekilen kartı direkt çöpe at ────────────────────────
@@ -361,9 +376,11 @@ export const useGameStore = create<GameStore>()(
             const myPos = swapWithPosition ?? 0;
             const temp = { ...myPlayer.cards[myPos] };
             const targetTemp = { ...targetPlayer.cards[targetPosition] };
-            // Doğrudan swap — LayoutGroup animasyonu halleder
-            myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false };
-            targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false };
+            // Kartlara yeni ID ver — framer-motion ghost kalmaması için
+            myPlayer.cards[myPos] = { ...targetTemp, id: targetTemp.id + '-bs', isRevealed: false };
+            targetPlayer.cards[targetPosition] = { ...temp, id: temp.id + '-bs', isRevealed: false };
+            // Hangi slotun değiştiğini işaretle
+            state.lastSwappedPosition = { seat: activeSeat, pos: myPos };
             break;
           }
           case 'spy_swap': {
@@ -381,9 +398,11 @@ export const useGameStore = create<GameStore>()(
               const myPos = swapWithPosition;
               const temp = { ...myPlayer.cards[myPos] };
               const targetTemp = { ...targetPlayer.cards[targetPosition] };
-              // Doğrudan swap — LayoutGroup animasyonu halleder
-              myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false };
-              targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false };
+              // Kartlara yeni ID ver — framer-motion ghost kalmaması için
+              myPlayer.cards[myPos] = { ...targetTemp, id: targetTemp.id + '-ss', isRevealed: false };
+              targetPlayer.cards[targetPosition] = { ...temp, id: temp.id + '-ss', isRevealed: false };
+              // Hangi slotun değiştiğini işaretle
+              state.lastSwappedPosition = { seat: activeSeat, pos: myPos };
             }
             setTimeout(() => {
               useGameStore.setState(s => {
@@ -405,6 +424,11 @@ export const useGameStore = create<GameStore>()(
         state.activePower = null;
         state.phase = 'stick_window';
       });
+
+      // Swap highlight 900ms sonra temizle
+      setTimeout(() => {
+        useGameStore.setState(s => { s.lastSwappedPosition = null; });
+      }, 900);
     },
 
     // ── Gücü geç ────────────────────────────────────────────
@@ -453,7 +477,15 @@ export const useGameStore = create<GameStore>()(
           // Yanlış yapıştırma: Tıklayan kişi (initiator) ceza alır
           const penalty = state.deck.shift();
           if (penalty) {
-            state.players[initiatorIdx].cards.push({ ...penalty, isPenalty: true, isRevealed: false });
+            const penaltyCard = { ...penalty, isPenalty: true, isRevealed: false };
+            state.players[initiatorIdx].cards.push(penaltyCard);
+            // Toast bildirimi
+            setTimeout(() => {
+              useToastStore.getState().addToast(
+                `⚠️ ${initiator.nickname} yanlış yapıştırma yaptı! Ceza kartı aldı.`,
+                'error'
+              );
+            }, 0);
           }
           state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'stick_fail', detail: `yanlış yapıştırma yaptı, ceza kartı aldı` });
         }
@@ -586,12 +618,14 @@ export function advanceTurn(store: ReturnType<typeof useGameStore.getState>): vo
       s.currentTurn = nextTurn(currentTurn, players);
       s.players.forEach(p => { p.isCurrentTurn = p.seat === s.currentTurn; });
       s.phase = 'draw';
+      s.turnCount = (s.turnCount ?? 0) + 1;
     });
   } else {
     useGameStore.setState(s => {
       s.currentTurn = nextTurn(currentTurn, players);
       s.players.forEach(p => { p.isCurrentTurn = p.seat === s.currentTurn; });
       s.phase = 'draw';
+      s.turnCount = (s.turnCount ?? 0) + 1;
     });
   }
 }

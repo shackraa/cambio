@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRoom } from '../hooks/useRoom';
 import { useNavigate } from 'react-router-dom';
+import { GameCard } from '../components/GameCard';
 
 export function HomeScreen() {
   const [nickname, setNickname] = useState('');
@@ -21,14 +22,27 @@ export function HomeScreen() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden relative"
-         style={{
-           background: 'radial-gradient(circle at 50% 30%, #1a2416 0%, #0a0f08 100%)'
-         }}>
+    <div className="min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden relative">
       
       {/* Arka plan süslemeleri (Glowing orbs) */}
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-[var(--gold)]/5 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-green-900/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-[var(--gold)]/5 rounded-full blur-[150px] pointer-events-none" />
+
+      {/* Masa konsepti: Dağınık kartlar */}
+      <div className="absolute inset-0 pointer-events-none opacity-60">
+        <motion.div className="absolute top-[10%] left-[10%] rotate-[-15deg] scale-[1.2]" animate={{ y: [0, -10, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
+          <GameCard card={{ id: 'bg1', suit: 'hearts', rank: 'A', value: 1, isRevealed: false, isPenalty: false }} size="lg" />
+        </motion.div>
+        <motion.div className="absolute top-[60%] left-[5%] rotate-[25deg] scale-[0.9]" animate={{ y: [0, 15, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}>
+          <GameCard card={{ id: 'bg2', suit: 'spades', rank: 'K', value: 10, isRevealed: false, isPenalty: false }} size="lg" />
+        </motion.div>
+        <motion.div className="absolute top-[20%] right-[15%] rotate-[35deg] scale-[1.1]" animate={{ y: [0, -15, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}>
+          <GameCard card={{ id: 'bg3', suit: 'diamonds', rank: '7', value: 7, isRevealed: false, isPenalty: false }} size="lg" />
+        </motion.div>
+        <motion.div className="absolute bottom-[10%] right-[10%] rotate-[-20deg] scale-[1.3]" animate={{ y: [0, 10, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}>
+          <GameCard card={{ id: 'bg4', suit: 'clubs', rank: 'J', value: 10, isRevealed: false, isPenalty: false }} size="lg" />
+        </motion.div>
+      </div>
 
       {/* Ana Kapsayıcı */}
       <div className="relative z-10 w-full max-w-md flex flex-col items-center gap-12">

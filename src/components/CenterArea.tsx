@@ -87,10 +87,10 @@ export function CenterArea({
                 <motion.div
                   key={topDiscard.id}
                   className="absolute inset-0"
-                  initial={{ scale: 0.6, rotate: -20, opacity: 0 }}
-                  animate={{ scale: 1, rotate: stableRotation(topDiscard.id), opacity: 1 }}
+                  initial={{ scale: 0.4, y: -80, rotate: -25, opacity: 0 }}
+                  animate={{ scale: 1, rotate: stableRotation(topDiscard.id), opacity: 1, y: 0 }}
                   exit={{ scale: 0.6, rotate: 20, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 180, damping: 20, duration: 0.5 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 22, duration: 0.4 }}
                 >
                   <GameCard card={topDiscard} size="lg" />
                 </motion.div>
