@@ -90,17 +90,9 @@ const CARD_GAP  = 6;
 const GRID_H = XL_CARD_H;                      // 112px
 
 export function PlayerArea({ player, position, isMe, onCardClick, highlightPositions = [], swapHighlightPositions = [], drawnCard, onDiscardDrawn }: PlayerAreaProps) {
-  const [windowH, setWindowH] = useState(typeof window !== 'undefined' ? window.innerHeight : 900);
-  useEffect(() => {
-    const fn = () => setWindowH(window.innerHeight);
-    window.addEventListener('resize', fn);
-    return () => window.removeEventListener('resize', fn);
-  }, []);
-  // Yan oyuncular (sol/sağ) dikey sıralı → daima küçük
+  // Yan oyuncular (sol/sağ) dikey sıralı
   const isVerticalPlayer = position === 'left' || position === 'right';
-  const cardSize = isVerticalPlayer
-    ? 'sm'
-    : (windowH < 700 ? 'sm' : 'md');
+  const cardSize = 'lg'; // 1920x1080 sahnede sabit boyut
   const knownCards = useGameStore(s => s.knownCards);
   const phase     = useGameStore(s => s.phase);
   const peekState = useGameStore(s => s.peekState);

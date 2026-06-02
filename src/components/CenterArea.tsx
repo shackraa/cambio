@@ -108,7 +108,7 @@ export function CenterArea({
                       animate={{ opacity: 1, scale: 1, x: offset.x, y: offset.y, rotate: rotation }}
                       transition={{ ease: [0.23, 1, 0.32, 1], duration: 0.5 }}
                       style={{ 
-                        boxShadow: '0 4px 15px rgba(0,0,0,0.4)'
+                        boxShadow: idx >= discardStack.length - 3 ? '0 8px 25px rgba(0,0,0,0.6)' : 'none'
                       }} 
                     />
                   </div>

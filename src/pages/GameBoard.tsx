@@ -1,5 +1,5 @@
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useLayoutEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useGameStore, advanceTurn } from '../store/useGameStore';
 import { useRealtimeGame } from '../hooks/useRealtimeGame';
@@ -74,6 +74,19 @@ export function GameBoard() {
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
   const [stickTimeLeft, setStickTimeLeft] = useState<number | null>(null);
   const [betweenHands, setBetweenHands] = useState(false);
+
+  // Global sahne ölçeği
+  const [stageScale, setStageScale] = useState(1);
+  useLayoutEffect(() => {
+    const updateScale = () => {
+      const scaleW = window.innerWidth / 1920;
+      const scaleH = window.innerHeight / 1080;
+      setStageScale(Math.min(scaleW, scaleH));
+    };
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
 
   const transitionPeekState = useGameStore(s => s.transitionPeekState);
   const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
@@ -276,7 +289,7 @@ export function GameBoard() {
   }, [phase, activePower, myTurn, lobbyInfo.seat, powerSelection, handleUsePower, doAction, discardPile, stickCard, giveCardToOpponent, swapCard]);
 
   return (
-    <div className="h-screen flex flex-col p-2 gap-2 relative overflow-hidden">
+    <div className="h-screen w-screen flex items-center justify-center overflow-hidden bg-[#020806] relative">
       <ToastContainer />
 
       {/* Eller arası geçiş overlay */}
@@ -300,34 +313,6 @@ export function GameBoard() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Sağ Üst Butonlar (Dil ve Tam Ekran) */}
-      <div className="absolute top-4 right-6 z-50 flex items-center gap-3">
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={langStore.toggleLang}
-          className="px-4 py-3 bg-black/50 hover:bg-black/70 border-2 border-[var(--gold)]/40 rounded-full text-[var(--gold)] font-bold text-sm transition-colors shadow-2xl backdrop-blur-md cursor-pointer shrink-0 min-w-[80px]"
-        >
-          {t.chooseLanguage}
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.85, rotate: -3 }}
-          onClick={() => {
-            if (!document.fullscreenElement) {
-              document.documentElement.requestFullscreen().catch(() => {});
-            } else {
-              if (document.exitFullscreen) document.exitFullscreen();
-            }
-          }}
-          className="px-6 py-3 bg-black/50 hover:bg-black/70 border-2 border-[var(--gold)]/40 rounded-full text-[var(--gold)] font-bold text-sm flex items-center gap-3 transition-colors shadow-2xl backdrop-blur-md cursor-pointer whitespace-nowrap shrink-0 justify-center min-w-[160px]"
-          title="Tam Ekran (Aç/Kapat)"
-        >
-          <span className="tracking-widest">{t.fullScreen}</span>
-          <span className="text-xl leading-none drop-shadow-[0_0_10px_rgba(212,168,67,1)]">⛶</span>
-        </motion.button>
-      </div>
 
       <AnimatePresence>
         {cambioFlash && (
@@ -357,18 +342,55 @@ export function GameBoard() {
         )}
       </AnimatePresence>
 
-      <motion.div
-        className="flex flex-col items-center gap-1 shrink-0"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
+      {/* 1920x1080 Scalable Stage */}
+      <div 
+        className="relative origin-center shrink-0 flex flex-col p-8 gap-4"
+        style={{
+          width: '1920px',
+          height: '1080px',
+          transform: `scale(${stageScale})`
+        }}
       >
-        <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-md font-['Cinzel']">
-          CAMBIO
-        </h1>
-        <p className="text-emerald-400 text-[9px] tracking-widest uppercase font-bold">
-          THE CARD GAME
-        </p>
-      </motion.div>
+        {/* Sağ Üst Butonlar */}
+        <div className="absolute top-8 right-8 z-50 flex items-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 1.0 }}
+            onClick={langStore.toggleLang}
+            className="px-4 py-3 bg-black/50 hover:bg-black/70 border-2 border-[var(--gold)]/40 rounded-full text-[var(--gold)] font-bold text-sm transition-colors shadow-2xl backdrop-blur-md cursor-pointer shrink-0 min-w-[80px]"
+          >
+            {t.chooseLanguage}
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.85, rotate: -3 }}
+            onClick={() => {
+              if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+              } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+              }
+            }}
+            className="px-6 py-3 bg-black/50 hover:bg-black/70 border-2 border-[var(--gold)]/40 rounded-full text-[var(--gold)] font-bold text-sm flex items-center gap-3 transition-colors shadow-2xl backdrop-blur-md cursor-pointer whitespace-nowrap shrink-0 justify-center min-w-[160px]"
+            title="Tam Ekran (Aç/Kapat)"
+          >
+            <span className="tracking-widest">{t.fullScreen}</span>
+            <span className="text-xl leading-none drop-shadow-[0_0_10px_rgba(212,168,67,1)]">⛶</span>
+          </motion.button>
+        </div>
+
+        <motion.div
+          className="flex flex-col items-center gap-1 shrink-0 mt-4"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <h1 className="text-5xl font-black tracking-tight text-white drop-shadow-md font-['Cinzel']">
+            CAMBIO
+          </h1>
+          <p className="text-emerald-400 text-sm tracking-widest uppercase font-bold">
+            THE CARD GAME
+          </p>
+        </motion.div>
 
       <div className="flex flex-1 min-h-0 gap-8 px-8 relative z-10">
         <div className="hidden lg:flex flex-col w-[320px] ml-12 shrink-0 z-50 gap-4">
@@ -631,6 +653,7 @@ export function GameBoard() {
           <RulesPanel />
           <Leaderboard />
         </div>
+      </div>
       </div>
     </div>
   );
