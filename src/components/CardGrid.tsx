@@ -123,7 +123,8 @@ export function CardGrid({
             </motion.div>
           )}
         </motion.div>
-      ))}
+      );
+    })}
     </div>
   );
 }
