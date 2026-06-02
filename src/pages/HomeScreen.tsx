@@ -32,7 +32,7 @@ export function HomeScreen() {
     <div className="min-h-screen flex flex-col items-center justify-center p-6 overflow-hidden relative">
 
       {/* Ana Kapsayıcı */}
-      <div className="relative z-10 w-full max-w-[360px] flex flex-col items-center gap-8">
+      <div className="relative z-10 w-full max-w-[360px] flex flex-col items-center gap-8 transform scale-[1.35] origin-center mt-12 lg:scale-[1.4]">
         
         {/* Logo Alanı */}
         <motion.div

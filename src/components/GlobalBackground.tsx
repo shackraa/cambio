@@ -3,7 +3,7 @@ import { GameCard } from './GameCard';
 
 export function GlobalBackground() {
   return (
-    <div className="fixed inset-0 pointer-events-none z-[-1] bg-[#041C14] overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
       {/* Arka plan süslemeleri (Modern zümrüt/teal renklerle) */}
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[120px]" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-teal-600/15 rounded-full blur-[150px]" />

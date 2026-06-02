@@ -357,26 +357,25 @@ export function GameBoard() {
         )}
       </AnimatePresence>
 
-      <motion.h1
-        className="text-center font-['Cinzel'] text-2xl font-black tracking-widest shrink-0"
-        style={{
-          background: 'linear-gradient(135deg, #d4a843 0%, #f0c96c 50%, #d4a843 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          filter: 'drop-shadow(0 0 8px rgba(212,168,67,0.5))',
-        }}
+      <motion.div
+        className="flex flex-col items-center gap-1 shrink-0"
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
       >
-        CAMBIO
-      </motion.h1>
+        <h1 className="text-3xl font-black tracking-tight text-white drop-shadow-md font-['Cinzel']">
+          CAMBIO
+        </h1>
+        <p className="text-emerald-400 text-[9px] tracking-widest uppercase font-bold">
+          THE CARD GAME
+        </p>
+      </motion.div>
 
       <div className="flex flex-1 min-h-0 gap-8 px-8 relative z-10">
         <div className="hidden lg:flex flex-col w-[320px] ml-12 shrink-0 z-50 gap-4">
-          <div className="px-8 py-5 bg-black/60 border-2 border-[var(--gold)]/50 rounded-2xl flex items-center gap-4 backdrop-blur-md shadow-2xl whitespace-nowrap shrink-0">
-            <span className="text-white/50 text-xs font-black uppercase tracking-[0.25em]">ODA KODU</span>
-            <div className="h-5 w-px bg-white/30 shrink-0"></div>
-            <span className="text-[var(--gold)] text-2xl font-black tracking-widest drop-shadow-[0_0_15px_rgba(212,168,67,0.8)]">
+          <div className="px-8 py-5 bg-[#0A1F17]/80 border border-emerald-500/10 rounded-[2rem] flex items-center gap-4 backdrop-blur-2xl shadow-[0_12px_40px_rgba(0,0,0,0.5)] whitespace-nowrap shrink-0">
+            <span className="text-white/50 text-[10px] font-bold uppercase tracking-[0.15em]">ODA KODU</span>
+            <div className="h-5 w-px bg-white/10 shrink-0"></div>
+            <span className="text-emerald-400 text-2xl font-black tracking-[0.2em] drop-shadow-md">
               {code ?? 'DEMO'}
             </span>
           </div>
@@ -593,8 +592,7 @@ export function GameBoard() {
           </div>{/* yeşil masa kapanışı */}
           </LayoutGroup>
 
-          {/* Alt HUD — tam genişlik */}
-          <div className="shrink-0 rounded-2xl bg-black/75 backdrop-blur-md border border-white/8 shadow-2xl py-3">
+          <div className="shrink-0 rounded-[2rem] bg-[#0A1F17]/80 backdrop-blur-2xl border border-emerald-500/10 shadow-[0_12px_40px_rgba(0,0,0,0.5)] py-3">
             <TurnIndicator
               currentPlayerName={currentPlayer?.nickname ?? '—'}
               phase={phase}
