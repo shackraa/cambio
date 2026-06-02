@@ -396,9 +396,9 @@ export function GameBoard() {
           <div
             className="relative w-full rounded-[36px] flex-1 min-h-0 flex flex-col justify-between"
             style={{
-              background: 'radial-gradient(ellipse at center, #1a7a55 0%, #0a5c40 50%, #063d2a 100%)',
-              boxShadow: '0 0 60px rgba(0,0,0,0.6), inset 0 0 40px rgba(0,0,0,0.3)',
-              border: '2px solid rgba(212,168,67,0.25)',
+              background: 'radial-gradient(ellipse at center, #1a7a55 0%, #084d35 60%, #04261a 100%)',
+              boxShadow: '0 0 60px rgba(0,0,0,0.8), inset 0 0 150px rgba(0,0,0,0.9)',
+              border: '2px solid rgba(212,168,67,0.15)',
               minHeight: '300px',
             }}
           >

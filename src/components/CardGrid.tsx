@@ -30,19 +30,36 @@ export function CardGrid({
   playerPosition = 'bottom',
 }: CardGridProps) {
   const gridClass = direction === 'vertical'
-    ? 'flex flex-col gap-1.5 items-center'
-    : 'flex flex-row gap-1.5 justify-center';
+    ? 'flex flex-col items-center'
+    : 'flex flex-row justify-center items-center';
 
   return (
     <div className={gridClass}>
-      {cards.map((card, i) => (
-        <motion.div
-          key={card.id}
-          className="relative"
-          initial={isDealing ? { opacity: 0, scale: 0.4, y: 40 } : { opacity: 1, scale: 1, y: 0 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: isDealing ? i * 0.1 : 0, type: 'spring', stiffness: 250, damping: 24 }}
-        >
+      {cards.map((card, i) => {
+        const center = (cards.length - 1) / 2;
+        const offset = i - center;
+        
+        // Fanning math
+        const rotate = offset * 6; // Derece
+        const yOffset = Math.abs(offset) * 4; // Kavis
+        const xOffset = offset * -15; // İç içe geçme
+
+        return (
+          <motion.div
+            key={card.id}
+            className="relative"
+            initial={isDealing ? { opacity: 0, scale: 0.4, y: 100 } : false}
+            animate={{ opacity: 1, scale: 1, y: yOffset, x: xOffset, rotate }}
+            whileHover={canInteract ? { y: yOffset - 25, scale: 1.05, rotate: rotate * 0.5, zIndex: 100 } : {}}
+            transition={{ 
+              duration: 0.4, 
+              delay: isDealing ? i * 0.1 : 0, 
+              type: 'spring', 
+              stiffness: 250, 
+              damping: 24 
+            }}
+            style={{ zIndex: i }}
+          >
           <GameCard
             card={card}
             size={size}

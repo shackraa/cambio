@@ -376,9 +376,9 @@ export const useGameStore = create<GameStore>()(
             const myPos = swapWithPosition ?? 0;
             const temp = { ...myPlayer.cards[myPos] };
             const targetTemp = { ...targetPlayer.cards[targetPosition] };
-            // Kartlara yeni ID ver — framer-motion ghost kalmaması için
-            myPlayer.cards[myPos] = { ...targetTemp, id: targetTemp.id + '-bs', isRevealed: false };
-            targetPlayer.cards[targetPosition] = { ...temp, id: temp.id + '-bs', isRevealed: false };
+            // Kartlara yeni ID verme — framer-motion düzgün uçarak takas etsin diye orijinal ID'yi koru
+            myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false };
+            targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false };
             // Hangi slotun değiştiğini işaretle
             state.lastSwappedPosition = { seat: activeSeat, pos: myPos };
             break;
@@ -398,9 +398,9 @@ export const useGameStore = create<GameStore>()(
               const myPos = swapWithPosition;
               const temp = { ...myPlayer.cards[myPos] };
               const targetTemp = { ...targetPlayer.cards[targetPosition] };
-              // Kartlara yeni ID ver — framer-motion ghost kalmaması için
-              myPlayer.cards[myPos] = { ...targetTemp, id: targetTemp.id + '-ss', isRevealed: false };
-              targetPlayer.cards[targetPosition] = { ...temp, id: temp.id + '-ss', isRevealed: false };
+              // Kartlara yeni ID verme — framer-motion düzgün uçarak takas etsin diye orijinal ID'yi koru
+              myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false };
+              targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false };
               // Hangi slotun değiştiğini işaretle
               state.lastSwappedPosition = { seat: activeSeat, pos: myPos };
             }

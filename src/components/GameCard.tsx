@@ -9,6 +9,7 @@ interface CardProps {
   highlight?: boolean;
   canInteract?: boolean;
   className?: string;
+  style?: React.CSSProperties;
 }
 
 const SUIT_SYMBOL: Record<string, string> = {
@@ -25,7 +26,7 @@ function getCardScore(card: CardType): string {
   return String(card.value);
 }
 
-export function GameCard({ card, size = 'md', onClick, highlight, canInteract, className = '' }: CardProps) {
+export function GameCard({ card, size = 'md', onClick, highlight, canInteract, className = '', style }: CardProps) {
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
 
   type SizeKey = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -59,6 +60,7 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
       onClick={onClick}
       style={{
         filter: highlight ? 'drop-shadow(0 0 12px #d4a843)' : undefined,
+        ...style,
       }}
     >
       {/* Ceza Kartı Göstergesi */}
