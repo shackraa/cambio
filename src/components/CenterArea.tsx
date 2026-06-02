@@ -14,19 +14,18 @@ interface CenterAreaProps {
   myPlayerId?: string;
 }
 
-// Kart id'sinden deterministik rotasyon ve offset üret
 function stableRotation(id: string): number {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffff;
-  return ((hash % 15) - 7); // -7 ile +7 derece arası
+  return ((hash % 13) - 6); // -6 ile +6 derece arası
 }
 
 function stableOffset(id: string): { x: number, y: number } {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 17 + id.charCodeAt(i)) & 0xffff;
   return {
-    x: ((hash % 9) - 4), // -4 ile +4 px arası
-    y: (((hash >> 4) % 9) - 4),
+    x: ((hash % 25) - 12), // -12 ile +12 px arası
+    y: (((hash >> 4) % 25) - 12),
   };
 }
 
@@ -96,22 +95,26 @@ export function CenterArea({
           onClick={canDraw && topDiscard ? onDrawFromDiscard : undefined}
         >
           {discardStack.length > 0 ? (
-            discardStack.map((card, idx) => {
-              const offset = stableOffset(card.id);
-              const rotation = stableRotation(card.id);
-              return (
-                <div key={card.id} className="absolute inset-0" style={{ zIndex: idx }}>
-                  <GameCard 
-                    card={card} 
-                    size="lg" 
-                    style={{ 
-                      transform: `translate(${offset.x}px, ${offset.y}px) rotate(${rotation}deg)`,
-                      boxShadow: '0 4px 15px rgba(0,0,0,0.4)'
-                    }} 
-                  />
-                </div>
-              );
-            })
+            <div className="relative w-full h-full">
+              {discardStack.map((card, idx) => {
+                const offset = stableOffset(card.id);
+                const rotation = stableRotation(card.id);
+                return (
+                  <div key={card.id} className="absolute inset-0 origin-center" style={{ zIndex: idx }}>
+                    <GameCard 
+                      card={card} 
+                      size="lg" 
+                      initial={{ opacity: 0, scale: 1.1 }}
+                      animate={{ opacity: 1, scale: 1, x: offset.x, y: offset.y, rotate: rotation }}
+                      transition={{ ease: [0.23, 1, 0.32, 1], duration: 0.5 }}
+                      style={{ 
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.4)'
+                      }} 
+                    />
+                  </div>
+                );
+              })}
+            </div>
           ) : (
             <div className="absolute inset-0 border-2 border-dashed border-white/20 rounded-[10px] flex items-center justify-center bg-black/10">
               <span className="text-white/30 text-2xl">🗑️</span>

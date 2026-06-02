@@ -40,33 +40,27 @@ export function CardGrid({
         const offset = i - center;
         
         // Fanning math
-        const rotate = offset * 6; // Derece
-        const yOffset = Math.abs(offset) * 4; // Kavis
-        const xOffset = offset * -15; // İç içe geçme
+        const rotate = offset * 4; // Derece (azaltıldı)
+        const yOffset = Math.abs(offset) * 3; // Kavis (azaltıldı)
+        const xOffset = offset * -8; // İç içe geçme azaltıldı (boşluk %20 artırıldı)
 
         return (
-          <motion.div
-            key={card.id}
-            className="relative"
-            initial={isDealing ? { opacity: 0, scale: 0.4, y: 100 } : false}
-            animate={{ opacity: 1, scale: 1, y: yOffset, x: xOffset, rotate }}
-            whileHover={canInteract ? { y: yOffset - 25, scale: 1.05, rotate: rotate * 0.5, zIndex: 100 } : {}}
-            transition={{ 
-              duration: 0.4, 
-              delay: isDealing ? i * 0.1 : 0, 
-              type: 'spring', 
-              stiffness: 250, 
-              damping: 24 
-            }}
-            style={{ zIndex: i }}
-          >
-          <GameCard
-            card={card}
-            size={size}
-            canInteract={canInteract}
-            onClick={() => onCardClick?.(i)}
-            highlight={highlightPositions.includes(i)}
-          />
+          <div key={card.id} className="relative" style={{ zIndex: i }}>
+            <GameCard
+              card={card}
+              size={size}
+              canInteract={canInteract}
+              onClick={() => onCardClick?.(i)}
+              highlight={highlightPositions.includes(i)}
+              initial={isDealing ? { opacity: 0, scale: 0.8, y: -20 } : false}
+              animate={{ opacity: 1, scale: 1, y: yOffset, x: xOffset, rotate }}
+              whileHover={canInteract ? { y: yOffset - 25, scale: 1.05, rotate: rotate * 0.3, zIndex: 100 } : {}}
+              transition={{ 
+                duration: 0.5, 
+                delay: isDealing ? i * 0.08 : 0, 
+                ease: [0.23, 1, 0.32, 1] // Doğal yavaşlama, sekme (jitter) yok
+              }}
+            />
 
           {/* Takas edilen slotun altın parlama efekti */}
           <AnimatePresence>
@@ -122,7 +116,7 @@ export function CardGrid({
               />
             </motion.div>
           )}
-        </motion.div>
+        </div>
       );
     })}
     </div>

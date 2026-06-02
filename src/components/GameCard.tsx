@@ -2,7 +2,9 @@ import { motion } from 'framer-motion';
 import type { Card as CardType } from '../types/game';
 import { CARD_TRANSITION } from '../utils/cardTransition';
 
-interface CardProps {
+import { HTMLMotionProps } from 'framer-motion';
+
+export interface CardProps extends Omit<HTMLMotionProps<"div">, "onClick" | "className" | "style"> {
   card: CardType;
   size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   onClick?: () => void;
@@ -26,7 +28,7 @@ function getCardScore(card: CardType): string {
   return String(card.value);
 }
 
-export function GameCard({ card, size = 'md', onClick, highlight, canInteract, className = '', style }: CardProps) {
+export function GameCard({ card, size = 'md', onClick, highlight, canInteract, className = '', style, ...motionProps }: CardProps) {
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
 
   type SizeKey = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
@@ -54,9 +56,10 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
     <motion.div
       layoutId={card.id}
       layout
+      {...motionProps}
       className={`${sizes.w} ${sizes.h} shrink-0 cursor-pointer select-none relative ${canInteract ? 'hoverable-card' : ''} ${className}`}
       whileTap={canInteract ? { scale: 0.95 } : {}}
-      transition={CARD_TRANSITION}
+      transition={motionProps.transition || CARD_TRANSITION}
       onClick={onClick}
       style={{
         filter: highlight ? 'drop-shadow(0 0 12px #d4a843)' : undefined,
