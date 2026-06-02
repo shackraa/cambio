@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import type { Card as CardType } from '../types/game';
 import { CARD_TRANSITION } from '../utils/cardTransition';
 
-import { HTMLMotionProps } from 'framer-motion';
+import type { HTMLMotionProps } from 'framer-motion';
 
 export interface CardProps extends Omit<HTMLMotionProps<"div">, "onClick" | "className" | "style"> {
   card: CardType;
