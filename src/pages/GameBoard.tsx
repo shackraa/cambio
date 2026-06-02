@@ -278,13 +278,6 @@ export function GameBoard() {
   return (
     <div className="h-screen flex flex-col p-2 gap-2 relative overflow-hidden">
       <ToastContainer />
-      {!isOnlineMode && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1
-                        bg-orange-900/40 border border-orange-500/30
-                        rounded-full text-orange-300 text-xs pointer-events-none">
-          {t.demoMode}
-        </div>
-      )}
 
       {/* Eller arası geçiş overlay */}
       <AnimatePresence>
@@ -302,7 +295,7 @@ export function GameBoard() {
               exit={{ scale: 0.9, opacity: 0 }}
               className="text-center"
             >
-              <div className="text-[var(--gold)] text-3xl font-black tracking-widest mb-2">⏵ SİRA GEÇİYOR...⏵</div>
+              <div className="text-[var(--gold)] text-3xl font-black tracking-widest mb-2">{t.passingTurn}</div>
             </motion.div>
           </motion.div>
         )}
@@ -316,7 +309,7 @@ export function GameBoard() {
           onClick={langStore.toggleLang}
           className="px-4 py-3 bg-black/50 hover:bg-black/70 border-2 border-[var(--gold)]/40 rounded-full text-[var(--gold)] font-bold text-sm transition-colors shadow-2xl backdrop-blur-md cursor-pointer shrink-0 min-w-[80px]"
         >
-          {langStore.lang === 'tr' ? 'EN' : 'TR'}
+          {t.chooseLanguage}
         </motion.button>
         <motion.button
           whileHover={{ scale: 1.05 }}

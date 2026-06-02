@@ -1,11 +1,25 @@
 export const translations = {
   tr: {
+    // HomeScreen
+    hs_player_name: 'Oyuncu Adı',
+    hs_placeholder: 'Örn. Asil',
+    hs_create_room: 'YENİ ODA KUR',
+    hs_creating: 'OLUŞTURULUYOR...',
+    hs_join_room: 'ODAYA KATIL',
+    hs_with_bots: 'BOTLARLA',
+    hs_join_code: 'Katılım Kodu',
+    hs_cancel: 'İPTAL',
+    hs_sit_table: 'MASAYA OTUR',
+    hs_joining: 'KATILINIYOR...',
+    hs_rules: 'KURALLAR',
+
     // General
     fullScreen: 'TAM EKRAN',
     demoMode: '📴 Demo Modu',
     playAgain: 'Tekrar Oyna',
     reset: 'Reset',
     resetIn: (sec: number) => `${sec}s’de reset...`,
+    chooseLanguage: 'Dil Seç',
     
     // GameBoard Actions
     banner_peek_own: 'KENDİ KARTINA BAK',
@@ -49,6 +63,7 @@ export const translations = {
     
     // TurnIndicator
     turn: 'Sıra',
+    round: 'Tur',
     phase: 'Faz',
     time: 'Süre',
     yourTurn: 'Senin sıran!',
@@ -64,6 +79,7 @@ export const translations = {
     phase_cambio_round: 'Cambio Turu!',
     phase_reveal: 'Açılıyor...',
     phase_results: 'Sonuçlar',
+    passingTurn: '⏵ SIRA GEÇİYOR... ⏵',
 
     // GameBoard Cambio info
     cambioCalled: 'CAMBIO!',
@@ -119,12 +135,26 @@ export const translations = {
   },
   
   en: {
+    // HomeScreen
+    hs_player_name: 'Player Name',
+    hs_placeholder: 'e.g. Asil',
+    hs_create_room: 'CREATE NEW ROOM',
+    hs_creating: 'CREATING...',
+    hs_join_room: 'JOIN ROOM',
+    hs_with_bots: 'WITH BOTS',
+    hs_join_code: 'Join Code',
+    hs_cancel: 'CANCEL',
+    hs_sit_table: 'JOIN TABLE',
+    hs_joining: 'JOINING...',
+    hs_rules: 'RULES',
+
     // General
     fullScreen: 'FULL SCREEN',
     demoMode: '📴 Demo Mode',
     playAgain: 'Play Again',
     reset: 'Reset',
     resetIn: (sec: number) => `Reset in ${sec}s...`,
+    chooseLanguage: 'Choose Language',
     
     // GameBoard Actions
     banner_peek_own: 'PEEK AT YOUR CARD',
@@ -168,6 +198,7 @@ export const translations = {
     
     // TurnIndicator
     turn: 'Turn',
+    round: 'Round',
     phase: 'Phase',
     time: 'Time',
     yourTurn: 'Your turn!',
@@ -183,6 +214,7 @@ export const translations = {
     phase_cambio_round: 'Cambio Round!',
     phase_reveal: 'Revealing...',
     phase_results: 'Results',
+    passingTurn: '⏵ PASSING TURN... ⏵',
 
     // GameBoard Cambio info
     cambioCalled: 'CAMBIO!',
@@ -210,7 +242,7 @@ export const translations = {
     leaderboardTitle: 'Leaderboard',
     roundScores: 'Round Scores:',
     totalScore: 'Total Score:',
-    noGamesPlayed: 'No hands played yet. Results will appear here after the first hand.',
+    noGamesPlayed: 'No hands played played yet. Results will appear here after the first hand.',
     
     // Chat
     chatTitle: 'Chat',

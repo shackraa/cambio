@@ -127,7 +127,7 @@ export function TurnIndicator({
         {/* Tur Sayıcısı */}
         {turnCount > 0 && phase !== 'results' && phase !== 'peek' && (
           <div className="flex flex-col items-center leading-tight">
-            <span className="text-white/40 text-[8px] sm:text-[9px] uppercase tracking-[0.18em] font-semibold">Tur</span>
+            <span className="text-white/40 text-[8px] sm:text-[9px] uppercase tracking-[0.18em] font-semibold">{t.round || 'Tur'}</span>
             <AnimatePresence mode="wait">
               <motion.span
                 key={turnCount}
@@ -160,7 +160,7 @@ export function TurnIndicator({
               whileTap={{ scale: 0.95 }}
               onClick={onPlayAgain}
             >
-              Tekrar Oyna
+              {t.playAgain}
             </motion.button>
           )}
 
@@ -171,7 +171,7 @@ export function TurnIndicator({
               transition={{ repeat: Infinity, duration: 1.4 }}
               className="text-red-400 text-xs font-black tracking-widest uppercase"
             >
-              CAMBIO TURU
+              {t.phase_cambio_round.toUpperCase()}
             </motion.div>
           )}
 
