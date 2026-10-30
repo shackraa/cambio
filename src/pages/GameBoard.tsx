@@ -633,8 +633,7 @@ export function GameBoard() {
               <div className="col-start-2 row-start-2 flex items-center justify-center">
               <div className="relative flex flex-col items-center">
                 <CenterArea 
-                  deckCount={deck.length} 
-                  topDeckCard={deck[0]}
+                  deck={deck}
                   discardPile={discardPile}
                   canDraw={myTurn && phase === 'draw'}
                   onDrawFromDeck={() => doAction(() => drawFromDeck(), { type: 'DRAW_FROM_DECK' })}

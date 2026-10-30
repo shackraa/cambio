@@ -71,11 +71,11 @@ export function dealCards(deck: Card[]): DealResult {
   const playerHands: Card[][] = [[], [], [], []];
   const remaining = [...deck];
 
-  // 4 tur × 4 oyuncu: sırayla dağıt
+  // 4 tur × 4 oyuncu: sırayla dağıt (54 kartın her birinin ID'si oyun boyunca sabit kalır!)
   for (let round = 0; round < 4; round++) {
     for (let seat = 0; seat < 4; seat++) {
       const card = remaining.shift()!;
-      playerHands[seat].push({ ...card, id: `${card.id}-p${seat}-${round}` });
+      playerHands[seat].push({ ...card });
     }
   }
 

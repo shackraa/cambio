@@ -7,7 +7,7 @@ import { useGameStore } from '../store/useGameStore';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 
-// ─── Çekilen kartı önce kapalı göster, sonra çevir ──────────────
+// ─── Çekilen kartı önce kapalı (veya çöptense açık) uçurup getir, sonra çevir ───
 function DrawnCardDisplay({
   drawnCard,
   isMe,
@@ -23,32 +23,38 @@ function DrawnCardDisplay({
   onDiscardDrawn?: () => void;
   t: any;
 }) {
-  // Desteden çekilmişse: önce kapalı, 300ms sonra çevir
-  // Çöpten çekilmişse: zaten açık geliyor
+  // Desteden çekilmişse: önce masadan eline kapalı uçar, 350ms sonra çevrilir
+  // Çöpten çekilmişse: çöpte zaten açıktı, eline de açık olarak uçar
   const [isFlipped, setIsFlipped] = useState(drawnFrom === 'discard');
 
   useEffect(() => {
+    setIsFlipped(drawnFrom === 'discard');
     if (drawnFrom === 'deck' && isMe) {
-      const timer = setTimeout(() => setIsFlipped(true), 300);
+      const timer = setTimeout(() => setIsFlipped(true), 380);
       return () => clearTimeout(timer);
     }
-  }, [drawnFrom, isMe]);
+  }, [drawnCard.id, drawnFrom, isMe]);
 
   const displayCard = isMe
     ? { ...drawnCard, isRevealed: isFlipped }
-    : drawnCard;
+    : { ...drawnCard, isRevealed: drawnFrom === 'discard' };
 
   return (
-    <>
-      <GameCard card={displayCard} size={cardSize} />
+    <div className="flex items-center gap-3">
+      {/* GameCard kendi layoutId={drawnCard.id} değeriyle doğrudan desteden/çöpten buraya uçar! */}
+      <div className="relative z-30 drop-shadow-[0_16px_28px_rgba(0,0,0,0.75)]">
+        <GameCard card={displayCard} size={cardSize} />
+      </div>
+
       {isMe && (
         <AnimatePresence>
           {isFlipped && (
             <motion.div
-              className="flex flex-col gap-1.5 bg-black/75 backdrop-blur-md border border-[var(--gold)]/35 rounded-2xl px-3.5 py-2.5 shadow-2xl"
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
+              className="flex flex-col gap-1.5 bg-black/80 backdrop-blur-md border border-[var(--gold)]/40 rounded-2xl px-3.5 py-2.5 shadow-2xl z-30"
+              initial={{ opacity: 0, x: -12, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: -8, scale: 0.9 }}
+              transition={{ duration: 0.2 }}
             >
               {drawnFrom === 'deck' && onDiscardDrawn ? (
                 <>
@@ -76,7 +82,7 @@ function DrawnCardDisplay({
           )}
         </AnimatePresence>
       )}
-    </>
+    </div>
   );
 }
 
@@ -121,9 +127,6 @@ export function PlayerArea({
   const lang = useLangStore((s) => s.lang);
   const t = translations[lang];
 
-  // Kartların orijinal boyutunda kalmasını istiyoruz
-  const scaleFactor = 1;
-
   // Dinamik genişlik hesabı (kart sayısına göre değişir)
   const currentCardCount = Math.max(1, player.cards.length);
   const dynamicGridW = currentCardCount * XL_CARD_W + (currentCardCount - 1) * CARD_GAP;
@@ -146,6 +149,11 @@ export function PlayerArea({
   }
 
   const processedCards = player.cards.map((card, idx) => {
+    // Eğer kart kendi üzerinde isRevealed: true taşıyorsa (ör. yapıştırılırken açıldıysa veya oyun sonuysa) açık göster
+    if (card.isRevealed) {
+      return card;
+    }
+
     const known = knownCards.find(
       k => k.playerId === player.id && k.position === idx
     );
@@ -161,7 +169,7 @@ export function PlayerArea({
       }
     }
 
-    // GÜVENLİK KALKANI (Failsafe): Peek bittiyse ve knownCards'ta değilse kesinlikle kapalı olmalı!
+    // GÜVENLİK KALKANI: Diğer durumlarda kapalı
     if (phase !== 'peek' && phase !== 'results') {
       return { ...card, isRevealed: false };
     }
@@ -189,10 +197,7 @@ export function PlayerArea({
           transformOrigin: 'center center',
         }}
       >
-        <motion.div
-          animate={{ scale: scaleFactor }}
-          style={{ width: '100%', height: '100%', transformOrigin: 'center center' }}
-        >
+        <div style={{ width: '100%', height: '100%' }}>
           <CardGrid
             cards={processedCards}
             size={cardSize}
@@ -202,18 +207,15 @@ export function PlayerArea({
             highlightPositions={mergedHighlightPositions}
             swapHighlightPositions={swapHighlightPositions}
             peekPositions={activePeekPositions}
-            isDealing={phase === 'peek' && peekState === 'dealing'}
+            isDealing={false}
             isHighlighting={phase === 'peek' && peekState === 'highlight'}
             playerPosition={position}
           />
-        </motion.div>
+        </div>
       </div>
     </div>
   ) : (
-    <motion.div
-      animate={{ scale: scaleFactor }}
-      style={{ transformOrigin: position === 'top' ? 'top center' : 'bottom center' }}
-    >
+    <div>
       <CardGrid
         cards={processedCards}
         size={cardSize}
@@ -223,20 +225,15 @@ export function PlayerArea({
         highlightPositions={mergedHighlightPositions}
         swapHighlightPositions={swapHighlightPositions}
         peekPositions={activePeekPositions}
-        isDealing={phase === 'peek' && peekState === 'dealing'}
+        isDealing={false}
         isHighlighting={phase === 'peek' && peekState === 'highlight'}
         playerPosition={position}
       />
-    </motion.div>
+    </div>
   );
 
   return (
-    <motion.div
-      className={`flex items-center gap-1 relative flex-col`}
-      initial={{ opacity: 0, y: isMe ? 20 : -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
-    >
+    <div className="flex items-center gap-1 relative flex-col">
       {/* İsim rozeti ve Final Puanı — z-10 */}
       <div className="flex gap-2 items-center relative z-10">
         <div
@@ -277,33 +274,34 @@ export function PlayerArea({
         <span className="text-white/30 text-[9px]">{t.cardCount(player.cards.length)}</span>
       )}
 
-      {/* Çekilen Kart (Eğer sıra bu oyuncudaysa ve kart çekildiyse) */}
-      <AnimatePresence>
-        {player.isCurrentTurn && phase === 'action' && drawnCard && (
-          <motion.div
-            key={drawnCard.id}
-            className={`absolute flex items-center gap-3 z-50 ${isVertical ? (position === 'left' ? 'left-full ml-4' : 'right-full mr-4') : (position === 'top' ? 'top-full mt-3' : 'bottom-full mb-3')}`}
-            initial={{ opacity: 0, scale: 0.5, y: isVertical ? 0 : (position === 'top' ? -30 : 30), x: isVertical ? (position === 'left' ? -30 : 30) : 0 }}
-            animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
-            exit={{ opacity: 0, scale: 0.6, y: isVertical ? 0 : 20 }}
-            transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-          >
-            <DrawnCardDisplay
-              drawnCard={drawnCard}
-              isMe={isMe}
-              cardSize={cardSize}
-              drawnFrom={drawnFrom}
-              onDiscardDrawn={onDiscardDrawn}
-              t={t}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Çekilen Kart (Eğer sıra bu oyuncudaysa ve kart çekildiyse) — Dış sarmalayıcıda transform/scale animasyonu YOK ki GameCard kendi layoutId'si ile doğrudan desteden/çöpten buraya uçsun! */}
+      {player.isCurrentTurn && phase === 'action' && drawnCard && (
+        <div
+          className={`absolute flex items-center gap-3 z-50 ${
+            isVertical
+              ? position === 'left'
+                ? 'left-full ml-6'
+                : 'right-full mr-6'
+              : position === 'top'
+                ? 'top-full mt-4'
+                : 'bottom-full mb-4'
+          }`}
+        >
+          <DrawnCardDisplay
+            drawnCard={drawnCard}
+            isMe={isMe}
+            cardSize={cardSize}
+            drawnFrom={drawnFrom}
+            onDiscardDrawn={onDiscardDrawn}
+            t={t}
+          />
+        </div>
+      )}
 
       {/* Kartlar (Yatay veya Dikey) */}
       <div className="relative mt-2">
         {rotatedCards}
       </div>
-    </motion.div>
+    </div>
   );
 }
