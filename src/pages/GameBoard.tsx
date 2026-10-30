@@ -107,15 +107,13 @@ export function GameBoard() {
     const isFs = typeof document !== 'undefined' && Boolean(document.fullscreenElement);
     const isUltraCompact = h < 560 || w < 600;
     const isCompact = !isUltraCompact && (h < 680 || w < 960);
-    // Masaüstü ve geniş ekranlarda orijinal BÜYÜK ve dolgun 'lg' kartlar (112px) korunur!
-    const cardSizeMe: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'lg';
-    const cardSizeOpponent: 'xs' | 'sm' | 'md' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'md';
+    // Masadaki TÜM kartlar (Sen, Zeliha, Ahmet, Mehmet ve Orta Deste) tamamen eşit ve dolgun 'lg' boyuttadır!
+    const cardSize: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'lg';
     return {
       isDesktop: w >= 1024 && h >= 600,
       isCompact,
       isUltraCompact,
-      cardSizeMe,
-      cardSizeOpponent,
+      cardSize,
       hideMobileTabBar: isFs || h < 580,
     };
   });
@@ -127,14 +125,12 @@ export function GameBoard() {
       const isFs = Boolean(document.fullscreenElement);
       const isUltraCompact = h < 560 || w < 600;
       const isCompact = !isUltraCompact && (h < 680 || w < 960);
-      const cardSizeMe: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'lg';
-      const cardSizeOpponent: 'xs' | 'sm' | 'md' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'md';
+      const cardSize: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'lg';
       setLayoutMetrics({
         isDesktop: w >= 1024 && h >= 600,
         isCompact,
         isUltraCompact,
-        cardSizeMe,
-        cardSizeOpponent,
+        cardSize,
         hideMobileTabBar: isFs || h < 580,
       });
     };
@@ -149,7 +145,7 @@ export function GameBoard() {
     };
   }, []);
 
-  const { isDesktop, isCompact, isUltraCompact, cardSizeMe, cardSizeOpponent, hideMobileTabBar } = layoutMetrics;
+  const { isDesktop, isCompact, isUltraCompact, cardSize, hideMobileTabBar } = layoutMetrics;
 
   const transitionPeekState = useGameStore(s => s.transitionPeekState);
   const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
@@ -781,7 +777,7 @@ export function GameBoard() {
                     position="top"
                     compact={isCompact}
                     ultraCompact={isUltraCompact}
-                    size={cardSizeOpponent}
+                    size={cardSize}
                     canInteract={canInteractWithSeat(topPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(topPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === topPlayer.seat ? [powerSelection.pos] : []}
@@ -799,7 +795,7 @@ export function GameBoard() {
                     position="left"
                     compact={isCompact}
                     ultraCompact={isUltraCompact}
-                    size={cardSizeOpponent}
+                    size={cardSize}
                     canInteract={canInteractWithSeat(leftPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(leftPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === leftPlayer.seat ? [powerSelection.pos] : []}
@@ -823,7 +819,7 @@ export function GameBoard() {
                     discardPile={discardPile}
                     compact={isCompact}
                     ultraCompact={isUltraCompact}
-                    cardSize={cardSizeOpponent === 'xs' ? 'xs' : cardSizeOpponent === 'sm' ? 'sm' : 'md'}
+                    cardSize={cardSize}
                     canDraw={myTurn && phase === 'draw'}
                     onDrawFromDeck={() => doAction(() => drawFromDeck(), { type: 'DRAW_FROM_DECK' })}
                     onDrawFromDiscard={() => doAction(() => drawFromDiscard(), { type: 'DRAW_FROM_DISCARD' })}
@@ -910,7 +906,7 @@ export function GameBoard() {
                     position="right"
                     compact={isCompact}
                     ultraCompact={isUltraCompact}
-                    size={cardSizeOpponent}
+                    size={cardSize}
                     canInteract={canInteractWithSeat(rightPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(rightPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === rightPlayer.seat ? [powerSelection.pos] : []}
@@ -929,7 +925,7 @@ export function GameBoard() {
                   isMe
                   compact={isCompact}
                   ultraCompact={isUltraCompact}
-                  size={cardSizeMe}
+                  size={cardSize}
                   canInteract={canInteractWithSeat(me.seat)}
                   onCardClick={(pos) => handleCardClick(me.seat, pos)}
                   highlightPositions={
