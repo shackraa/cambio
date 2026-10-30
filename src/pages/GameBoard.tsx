@@ -645,17 +645,17 @@ export function GameBoard() {
 
       <div className="flex flex-1 min-h-0 gap-6 px-8 relative z-10">
         <div className="hidden lg:flex flex-col w-[320px] shrink-0 z-50 gap-4 min-h-0">
-          <div className="luxury-panel px-5 py-3 rounded-[22px] flex items-center justify-between gap-4 shrink-0">
-            <div className="flex items-center gap-2.5">
+          <div className="luxury-panel px-5 py-3.5 rounded-[22px] flex items-center justify-between gap-4 shrink-0">
+            <div className="flex items-center gap-3">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
               </span>
-              <span className="text-emerald-100/75 text-[10px] font-extrabold uppercase tracking-[0.16em]">
+              <span className="text-emerald-100/80 text-xs font-bold uppercase tracking-[0.14em]">
                 {langStore.lang === 'tr' ? 'ODA KODU' : 'ROOM CODE'}
               </span>
             </div>
-            <span className="px-3 py-1 rounded-xl bg-black/40 border border-[var(--gold)]/35 text-[var(--gold-light)] text-sm font-black font-['JetBrains_Mono'] tracking-[0.2em] shadow-inner">
+            <span className="px-3.5 py-1 rounded-xl bg-black/45 border border-[var(--gold)]/40 text-[var(--gold-light)] text-sm font-black font-['JetBrains_Mono'] tracking-[0.18em] shadow-inner">
               {code ?? 'DEMO'}
             </span>
           </div>
@@ -870,7 +870,7 @@ export function GameBoard() {
           </div>{/* yeşil masa kapanışı */}
           </LayoutGroup>
 
-          <div className="luxury-panel shrink-0 rounded-[24px] py-2">
+          <div className="luxury-panel shrink-0 rounded-[24px] px-4 py-2.5">
             <TurnIndicator
               currentPlayerName={currentPlayer?.nickname ?? '—'}
               phase={phase}

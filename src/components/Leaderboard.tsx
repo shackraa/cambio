@@ -47,10 +47,10 @@ export function Leaderboard() {
   return (
     <div className="luxury-panel flex flex-col rounded-[24px] overflow-hidden shrink-0">
       {/* Lüks Başlık */}
-      <div className="luxury-panel-header px-5 py-3.5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--gold-light)]/25 to-[var(--gold)]/10 border border-[var(--gold)]/45 flex items-center justify-center shadow-inner">
-            <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+      <div className="luxury-panel-header flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--gold-light)]/25 to-[var(--gold)]/10 border border-[var(--gold)]/45 flex items-center justify-center shadow-inner">
+            <svg className="w-4 h-4 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
               <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
               <path d="M4 22h16" />
@@ -60,15 +60,15 @@ export function Leaderboard() {
             </svg>
           </div>
           <div className="flex flex-col">
-            <h3 className="text-amber-50 font-extrabold text-xs uppercase tracking-[0.14em] font-['Cinzel']">
+            <h3 className="text-amber-50 font-extrabold text-xs uppercase tracking-[0.16em] font-['Cinzel']">
               {t.leaderboardTitle}
             </h3>
-            <span className="text-[9px] text-emerald-200/50 font-semibold">
+            <span className="text-[10px] text-emerald-200/55 font-medium mt-0.5">
               {lang === 'tr' ? 'En Düşük Skor Liderdir' : 'Lowest Score Leads'}
             </span>
           </div>
         </div>
-        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-black/35 text-[var(--gold-light)] border border-[var(--gold)]/30 font-['JetBrains_Mono']">
+        <span className="text-[10px] font-extrabold px-3 py-1 rounded-full bg-black/35 text-[var(--gold-light)] border border-[var(--gold)]/30 font-['JetBrains_Mono']">
           {roundsPlayed > 0
             ? lang === 'tr'
               ? `${roundsPlayed}. EL`
@@ -80,7 +80,7 @@ export function Leaderboard() {
       </div>
 
       {/* Sıralama Listesi */}
-      <div className="flex flex-col p-3.5 space-y-2">
+      <div className="flex flex-col px-4 py-3.5 space-y-2">
         {displayList.map((entry, index) => {
           const isFirst = index === 0 && roundsPlayed > 0;
           const playerState = players.find(p => p.id === entry.playerId);
@@ -90,7 +90,7 @@ export function Leaderboard() {
             <motion.div
               key={entry.playerId}
               layout
-              className={`flex flex-col p-2.5 rounded-2xl border transition-all ${
+              className={`flex flex-col px-3.5 py-2.5 rounded-2xl border transition-all ${
                 isFirst
                   ? 'bg-gradient-to-r from-[var(--gold)]/22 via-amber-900/20 to-black/30 border-[var(--gold)]/55 shadow-[0_6px_18px_rgba(212,168,67,0.18)]'
                   : playerState?.isCurrentTurn
@@ -98,8 +98,8 @@ export function Leaderboard() {
                     : 'bg-black/25 border-white/[0.06] hover:bg-black/35'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5 min-w-0">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
                   {/* Madalyon Sıra Rozeti */}
                   <div
                     className="w-6 h-6 rounded-lg flex items-center justify-center text-[11px] font-black font-['JetBrains_Mono'] shrink-0 shadow-sm"
@@ -112,43 +112,41 @@ export function Leaderboard() {
                     {index + 1}
                   </div>
 
-                  <div className="flex flex-col min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-white font-extrabold text-xs truncate">
-                        {entry.nickname}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-white font-bold text-xs truncate">
+                      {entry.nickname}
+                    </span>
+                    {playerState?.isCurrentTurn && (
+                      <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--gold)]/20 border border-[var(--gold)]/45 text-[9px] font-extrabold text-[var(--gold-light)] uppercase shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold-light)] animate-pulse" />
+                        {lang === 'tr' ? 'Sırada' : 'Turn'}
                       </span>
-                      {playerState?.isCurrentTurn && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.2 rounded-full bg-[var(--gold)]/20 border border-[var(--gold)]/45 text-[8px] font-extrabold text-[var(--gold-light)] uppercase">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold-light)] animate-pulse" />
-                          {lang === 'tr' ? 'Sırada' : 'Turn'}
-                        </span>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Sağ: Kart İkonları veya Toplam Puan */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {/* Eldeki kart adedi minyatür göstergesi */}
-                  <div className="flex items-center -space-x-1" title={t.cardCount(playerState?.cards.length ?? 4)}>
+                {/* Orta: Eldeki kart adedi minyatür göstergesi */}
+                <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-white/[0.03] border border-white/[0.05]" title={t.cardCount(playerState?.cards.length ?? 4)}>
+                  <div className="flex items-center gap-0.5">
                     {Array.from({ length: Math.min(6, playerState?.cards.length ?? 4) }).map((_, ci) => (
                       <div
                         key={ci}
-                        className="w-2.5 h-3.5 rounded-[2px] bg-gradient-to-b from-[#29407c] to-[#121e42] border border-[var(--gold)]/60 shadow-2xs"
+                        className="w-2.5 h-3.5 rounded-[2px] bg-gradient-to-b from-[#29407c] to-[#121e42] border border-[var(--gold)]/60"
                       />
                     ))}
                   </div>
-
-                  <span
-                    className={`font-black text-xs font-['JetBrains_Mono'] px-2.5 py-1 rounded-xl border ${
-                      isFirst
-                        ? 'bg-gradient-to-b from-[#fae19c] to-[#c79531] text-black border-amber-100 shadow-xs'
-                        : 'bg-black/40 text-[var(--gold-light)] border-[var(--gold)]/25'
-                    }`}
-                  >
-                    {entry.totalScore} pt
-                  </span>
                 </div>
+
+                {/* Sağ: Toplam Puan */}
+                <span
+                  className={`font-black text-xs font-['JetBrains_Mono'] px-3 py-1 rounded-xl border shrink-0 ${
+                    isFirst
+                      ? 'bg-gradient-to-b from-[#fae19c] to-[#c79531] text-black border-amber-100 shadow-xs'
+                      : 'bg-black/40 text-[var(--gold-light)] border-[var(--gold)]/25'
+                  }`}
+                >
+                  {entry.totalScore} pt
+                </span>
               </div>
 
               {entry.handScores.length > 0 && (

@@ -93,33 +93,35 @@ export function RulesPanel() {
   return (
     <div className="luxury-panel flex flex-col flex-1 min-h-0 rounded-[24px] overflow-hidden">
       {/* Lüks Başlık + Sekme Seçici */}
-      <div className="luxury-panel-header px-5 py-3.5 flex items-center justify-between gap-2 shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--gold-light)]/25 to-[var(--gold)]/10 border border-[var(--gold)]/45 flex items-center justify-center shadow-inner">
-            <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-            </svg>
-          </div>
-          <div className="flex flex-col">
-            <h3 className="text-amber-50 font-extrabold text-xs uppercase tracking-[0.14em] font-['Cinzel']">
-              {lang === 'tr' ? 'OYUN REHBERİ' : 'GAME GUIDE'}
-            </h3>
-            <span className="text-[9px] text-emerald-200/50 font-semibold">
-              {lang === 'tr' ? 'Kart Güçleri & Kurallar' : 'Powers & Rules'}
-            </span>
+      <div className="luxury-panel-header flex flex-col gap-3 shrink-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--gold-light)]/25 to-[var(--gold)]/10 border border-[var(--gold)]/45 flex items-center justify-center shadow-inner">
+              <svg className="w-4 h-4 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+              </svg>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-amber-50 font-extrabold text-xs uppercase tracking-[0.16em] font-['Cinzel']">
+                {lang === 'tr' ? 'OYUN REHBERİ' : 'GAME GUIDE'}
+              </h3>
+              <span className="text-[10px] text-emerald-200/55 font-medium mt-0.5">
+                {lang === 'tr' ? 'Kart Güçleri & Kurallar' : 'Powers & Rules'}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Sekme Anahtarı */}
-        <div className="flex bg-black/40 p-1 rounded-xl border border-[var(--gold)]/25 shadow-inner">
+        {/* Geniş, Ferah Sekme Anahtarı */}
+        <div className="grid grid-cols-2 bg-black/40 p-1 rounded-xl border border-[var(--gold)]/25 shadow-inner gap-1">
           <button
             type="button"
             onClick={() => setActiveTab('powers')}
-            className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+            className={`py-1.5 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'powers'
                 ? 'bg-gradient-to-b from-[#fae19c] to-[#c79531] text-black shadow-sm'
-                : 'text-emerald-100/65 hover:text-white'
+                : 'text-emerald-100/70 hover:text-white'
             }`}
           >
             {t.powersSubtitle}
@@ -127,10 +129,10 @@ export function RulesPanel() {
           <button
             type="button"
             onClick={() => setActiveTab('rules')}
-            className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
+            className={`py-1.5 px-3 rounded-lg text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'rules'
                 ? 'bg-gradient-to-b from-[#fae19c] to-[#c79531] text-black shadow-sm'
-                : 'text-emerald-100/65 hover:text-white'
+                : 'text-emerald-100/70 hover:text-white'
             }`}
           >
             {t.howToPlaySubtitle}
@@ -139,7 +141,7 @@ export function RulesPanel() {
       </div>
 
       {/* İçerik */}
-      <div className="flex-1 overflow-y-auto p-3.5 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-4 py-3.5 scrollbar-thin">
         <AnimatePresence mode="wait">
           {activeTab === 'powers' ? (
             <motion.div
@@ -161,7 +163,7 @@ export function RulesPanel() {
                 >
                   {/* Gerçek Minyatür Oyun Kartı İllüstrasyonu */}
                   <div
-                    className="w-10 h-13 rounded-lg flex flex-col items-center justify-between p-1 shrink-0 relative overflow-hidden"
+                    className="w-10 h-14 rounded-lg flex flex-col items-center justify-between p-1.5 shrink-0 relative overflow-hidden"
                     style={{
                       background: 'linear-gradient(145deg, #fffdf7 0%, #f3e5c2 100%)',
                       border: '1.5px solid rgba(212, 168, 67, 0.75)',
@@ -169,14 +171,14 @@ export function RulesPanel() {
                     }}
                   >
                     <span
-                      className={`text-[10px] font-black leading-none self-start ${
+                      className={`text-[9px] font-black leading-none self-start ${
                         row.isRed ? 'text-[#c0392b]' : 'text-[#1a1a1a]'
                       }`}
                     >
                       {row.rank}
                     </span>
                     <span
-                      className={`text-xs font-black leading-none ${
+                      className={`text-[11px] font-black leading-none ${
                         row.isRed ? 'text-[#c0392b]' : 'text-[#1a1a1a]'
                       }`}
                     >

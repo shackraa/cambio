@@ -178,30 +178,30 @@ export function GameLog() {
   return (
     <div className="luxury-panel flex flex-col h-full rounded-[24px] overflow-hidden">
       {/* Lüks Başlık */}
-      <div className="luxury-panel-header px-5 py-3.5 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--gold-light)]/25 to-[var(--gold)]/10 border border-[var(--gold)]/45 flex items-center justify-center shadow-inner">
-            <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+      <div className="luxury-panel-header flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[var(--gold-light)]/25 to-[var(--gold)]/10 border border-[var(--gold)]/45 flex items-center justify-center shadow-inner">
+            <svg className="w-4 h-4 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
               <path d="M12 8v4l3 3" />
               <circle cx="12" cy="12" r="9" />
             </svg>
           </div>
           <div className="flex flex-col">
-            <h3 className="text-amber-50 font-extrabold text-xs uppercase tracking-[0.14em] font-['Cinzel']">
+            <h3 className="text-amber-50 font-extrabold text-xs uppercase tracking-[0.16em] font-['Cinzel']">
               {t.logTitle}
             </h3>
-            <span className="text-[9px] text-emerald-200/50 font-semibold">
+            <span className="text-[10px] text-emerald-200/55 font-medium mt-0.5">
               {lang === 'tr' ? 'Canlı Masa Akışı' : 'Live Table Feed'}
             </span>
           </div>
         </div>
-        <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-black/35 text-[var(--gold-light)] border border-[var(--gold)]/30 font-['JetBrains_Mono']">
+        <span className="text-[11px] font-extrabold px-3 py-1 rounded-full bg-black/35 text-[var(--gold-light)] border border-[var(--gold)]/30 font-['JetBrains_Mono']">
           {t.logMoves(gameLog.length)}
         </span>
       </div>
 
       {/* Log Listesi */}
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-2 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-4 py-3.5 space-y-2 scrollbar-thin">
         {gameLog.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2.5 py-8 text-center px-4">
             <div className="w-11 h-11 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-[var(--gold)]/40">
