@@ -154,15 +154,15 @@
   transition: filter 0.2s ease-out;
 }
 
-/* ─── Kart yüzleri: Üst üste bindiğinde siyahlaşma yapmayan yumuşak gölge ─── */
+/* ─── Kart yüzleri: Üst üste bindiğinde siyahlaşma yapmayan, göz yormayan yumuşak kenarlar ─── */
 .card-face {
   background: var(--card-face);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 2px solid rgba(212,168,67,0.45);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.85);
+  border: 1.5px solid rgba(212,168,67,0.38);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.85);
   overflow: hidden;
 }
 
@@ -176,27 +176,27 @@
   background: linear-gradient(135deg, #fffdf7 0%, #f5ebd1 45%, #ffefc2 70%, #f7f0dc 100%);
   background-size: 200% 200%;
   animation: shineSpecialCard 3.5s ease infinite;
-  border-color: rgba(212,168,67,0.85);
+  border-color: rgba(212,168,67,0.72);
 }
 
 .red-king-card-bg {
   background: linear-gradient(135deg, #fff8eb 0%, #fde68a 50%, #fef3c7 100%);
-  border-color: rgba(245, 158, 11, 0.9);
-  box-shadow: 0 4px 14px rgba(245,158,11,0.25), inset 0 1px 0 rgba(255,255,255,0.9);
+  border-color: rgba(245, 158, 11, 0.78);
+  box-shadow: 0 4px 14px rgba(245,158,11,0.22), inset 0 1px 0 rgba(255,255,255,0.9);
 }
 
 .special-card-bg::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(212,168,67,0.05) 10px, rgba(212,168,67,0.05) 20px);
+  background: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(212,168,67,0.04) 10px, rgba(212,168,67,0.04) 20px);
   pointer-events: none;
 }
 
 .card-back {
-  background: linear-gradient(135deg, var(--card-back) 0%, #101c42 100%);
-  border: 2px solid rgba(212,168,67,0.55);
-  box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+  background: linear-gradient(135deg, var(--card-back) 0%, #111d42 100%);
+  border: 1.5px solid rgba(212,168,67,0.45);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.18);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -207,15 +207,15 @@
   content: '';
   position: absolute;
   inset: 5px;
-  border: 1px solid rgba(212,168,67,0.35);
+  border: 1px solid rgba(212,168,67,0.26);
   border-radius: 6px;
   background:
     repeating-linear-gradient(
       45deg,
       transparent,
       transparent 7px,
-      rgba(212,168,67,0.08) 7px,
-      rgba(212,168,67,0.08) 14px
+      rgba(212,168,67,0.06) 7px,
+      rgba(212,168,67,0.06) 14px
     );
 }
 

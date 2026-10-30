@@ -41,3 +41,7 @@ This is a real-time multiplayer memory and strategy card game called Cambio. It 
 - **Multiplayer Host Logic:** Do not remove or alter the `lobbyInfo.isHost` checks in the game logic. The game relies on the host to dictate state transitions (like ending the peek phase) to prevent race conditions among clients.
 - **Bot AI Dependency:** The `useBotAI.ts` hook relies on the exact string values of `phase` and `peekState`. Any refactoring of the game phases in `useGameStore.ts` must be accompanied by updates to the bot logic, otherwise offline play will break.
 - **Session Storage:** Room routing and player identity rely on `sessionStorage` (`playerId`, `seat`, `roomId`, `isHost`). Be careful not to clear this unexpectedly during gameplay.
+
+## Tools & MCP Servers
+- **Context7:** Automatically use Context7 when you need library/API documentation, code generation, setup, or configuration steps. Context7 provides up-to-date documentation from official sources without hallucinations.
+- **MarkItDown:** Automatically convert PDFs, documents, and other files to Markdown for better analysis.

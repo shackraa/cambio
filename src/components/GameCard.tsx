@@ -72,21 +72,25 @@ export function GameCard({
       layout
       {...motionProps}
       className={`${dimClass} shrink-0 select-none relative ${canInteract ? 'cursor-pointer hoverable-card' : 'cursor-default'} ${className}`}
-      whileTap={canInteract ? { scale: 0.95 } : {}}
+      whileTap={canInteract ? { scale: 0.96 } : {}}
       transition={motionProps.transition || CARD_TRANSITION}
       onClick={canInteract ? onClick : undefined}
       style={{
-        filter: highlight ? 'drop-shadow(0 0 14px rgba(212,168,67,0.95))' : undefined,
+        willChange: 'transform',
         ...style,
       }}
     >
-      {/* Seçili / Highlight Çerçevesi */}
+      {/* Seçili / Highlight Çerçevesi — Yumuşak 60 FPS Aura */}
       {highlight && (
         <motion.div
-          className="absolute -inset-1.5 rounded-[13px] border-2 border-[var(--gold)] pointer-events-none z-20"
-          animate={{ opacity: [0.65, 1, 0.65], scale: [1, 1.04, 1] }}
-          transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
-          style={{ boxShadow: '0 0 22px rgba(212,168,67,0.9), inset 0 0 10px rgba(212,168,67,0.4)' }}
+          className="absolute -inset-1 rounded-[12px] pointer-events-none z-20"
+          animate={{ opacity: [0.65, 0.95], scale: [1, 1.025] }}
+          transition={{ repeat: Infinity, repeatType: 'mirror', duration: 1.1, ease: [0.45, 0, 0.55, 1] }}
+          style={{
+            willChange: 'transform, opacity',
+            border: '1.5px solid rgba(250, 225, 156, 0.7)',
+            boxShadow: '0 0 18px 2px rgba(212,168,67,0.45), inset 0 0 8px rgba(212,168,67,0.22)',
+          }}
         />
       )}
 

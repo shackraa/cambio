@@ -44,15 +44,15 @@ export function CardGrid({
         const isSwapHighlighted = swapHighlightPositions.includes(i);
         const isPeeked = peekPositions.includes(i);
 
-        // "Bakıyor" rozeti konumu: alt oyuncuda üstte, üst oyuncuda altta, sol oyuncuda sağda, sağ oyuncuda solda
+        // "Bakıyor" rozeti konumu: kartın hemen kenarına zarifçe oturur, ortadaki yazılara veya yanındaki karta asla çarpmaz
         const badgePosClass =
           playerPosition === 'bottom'
-            ? '-top-12 left-1/2 -translate-x-1/2 flex-col'
+            ? '-top-3.5 left-1/2 -translate-x-1/2'
             : playerPosition === 'top'
-              ? '-bottom-12 left-1/2 -translate-x-1/2 flex-col-reverse'
+              ? '-bottom-3.5 left-1/2 -translate-x-1/2'
               : playerPosition === 'left'
-                ? 'left-[calc(100%+10px)] top-1/2 -translate-y-1/2 flex-row-reverse'
-                : 'right-[calc(100%+10px)] top-1/2 -translate-y-1/2 flex-row';
+                ? 'left-[calc(100%+6px)] top-1/2 -translate-y-1/2'
+                : 'right-[calc(100%+6px)] top-1/2 -translate-y-1/2';
 
         return (
           <div
@@ -67,87 +67,102 @@ export function CardGrid({
               canInteract={canInteract}
               onClick={() => onCardClick?.(i)}
               highlight={highlightPositions.includes(i)}
-              initial={isDealing ? { opacity: 0, scale: 0.75, y: -25 } : false}
+              initial={isDealing ? { opacity: 0, scale: 0.85, y: -18 } : false}
               animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
               whileHover={
                 canInteract
                   ? isSidePlayer
-                    ? { x: playerPosition === 'left' ? 12 : -12, scale: 1.05, zIndex: 100 }
-                    : { y: playerPosition === 'top' ? 12 : -14, scale: 1.06, zIndex: 100 }
+                    ? { x: playerPosition === 'left' ? 10 : -10, scale: 1.04, zIndex: 100 }
+                    : { y: playerPosition === 'top' ? 10 : -12, scale: 1.05, zIndex: 100 }
                   : {}
               }
             />
 
-            {/* Takas edilen / seçilen slotun altın ışık halkası (Önce parlar, sonra kart uçar!) */}
+            {/* Takas edilen / seçilen slotun yumuşak altın ışık halesi (Önce parlar, sonra kart uçar) */}
             <AnimatePresence>
               {isSwapHighlighted && (
                 <motion.div
-                  className="absolute -inset-1.5 rounded-[14px] pointer-events-none z-25"
-                  initial={{ opacity: 0, scale: 0.92 }}
+                  className="absolute -inset-1 rounded-[13px] pointer-events-none z-25"
+                  initial={{ opacity: 0, scale: 0.96 }}
                   animate={{
-                    opacity: [0, 1, 0.85, 1],
-                    scale: [0.95, 1.06, 1.02, 1.05],
+                    opacity: 1,
+                    scale: 1.03,
                   }}
-                  exit={{ opacity: 0, scale: 1.1 }}
-                  transition={{ duration: 0.9, ease: 'easeInOut' }}
+                  exit={{ opacity: 0, scale: 1.06 }}
+                  transition={{
+                    duration: 0.55,
+                    repeat: Infinity,
+                    repeatType: 'mirror',
+                    ease: [0.45, 0, 0.55, 1],
+                  }}
                   style={{
-                    boxShadow: '0 0 28px 8px rgba(212,168,67,0.9), inset 0 0 16px rgba(212,168,67,0.55)',
-                    background: ' radial-gradient(circle, rgba(240,201,108,0.28) 0%, rgba(212,168,67,0.08) 70%)',
-                    border: '2.5px solid #f0c96c',
+                    willChange: 'transform, opacity',
+                    boxShadow: '0 0 24px 4px rgba(240, 201, 108, 0.55), inset 0 0 12px rgba(240, 201, 108, 0.3)',
+                    background: 'radial-gradient(circle, rgba(240,201,108,0.18) 0%, rgba(212,168,67,0.04) 70%)',
+                    border: '1.5px solid rgba(250, 225, 156, 0.75)',
                   }}
                 />
               )}
             </AnimatePresence>
 
-            {/* Bakılan kartın üzerindeki zarif tarama / odak halkası */}
+            {/* Bakılan kartın üzerindeki yumuşak, keskin olmayan altın ışık halesi */}
             <AnimatePresence>
               {isPeeked && (
                 <motion.div
                   className="absolute -inset-1 rounded-[12px] pointer-events-none z-25"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  initial={{ opacity: 0, scale: 0.97 }}
+                  animate={{ opacity: [0.7, 1], scale: [1, 1.02] }}
+                  exit={{ opacity: 0, scale: 0.97 }}
+                  transition={{
+                    duration: 1.1,
+                    repeat: Infinity,
+                    repeatType: 'mirror',
+                    ease: [0.45, 0, 0.55, 1],
+                  }}
                   style={{
-                    border: '2px solid rgba(240, 201, 108, 0.9)',
-                    boxShadow: '0 0 20px rgba(212, 168, 67, 0.65)',
+                    willChange: 'transform, opacity',
+                    border: '1.5px solid rgba(250, 225, 156, 0.65)',
+                    boxShadow: '0 0 18px 2px rgba(212, 168, 67, 0.42), inset 0 0 8px rgba(240, 201, 108, 0.2)',
                   }}
                 />
               )}
             </AnimatePresence>
 
-            {/* Profesyonel "İnceleniyor / Bakıyor" Göstergesi */}
+            {/* 60 FPS Akıcı, Kompakt ve Yumuşak "İnceliyor / Peeking" Göstergesi */}
             <AnimatePresence>
               {isPeeked && (
                 <motion.div
                   className={`absolute flex items-center pointer-events-none ${badgePosClass} z-50`}
-                  initial={{ opacity: 0, scale: 0.85 }}
+                  initial={{ opacity: 0, scale: 0.88 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  transition={{ duration: 0.25 }}
+                  exit={{ opacity: 0, scale: 0.88 }}
+                  transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <motion.div
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-full whitespace-nowrap"
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full whitespace-nowrap backdrop-blur-md"
                     style={{
-                      background: 'linear-gradient(135deg, #102a20 0%, #071710 100%)',
-                      border: '1.5px solid rgba(240, 201, 108, 0.85)',
-                      boxShadow: '0 6px 20px rgba(0,0,0,0.6), 0 0 14px rgba(212,168,67,0.45)',
+                      willChange: 'transform',
+                      transform: 'translateZ(0)',
+                      background: 'linear-gradient(135deg, rgba(16, 46, 34, 0.94) 0%, rgba(7, 23, 16, 0.96) 100%)',
+                      border: '1px solid rgba(243, 212, 124, 0.65)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.38), 0 0 10px rgba(212,168,67,0.28)',
                     }}
-                    animate={{ y: [0, -2, 0] }}
-                    transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
+                    animate={{ y: -3 }}
+                    transition={{
+                      repeat: Infinity,
+                      repeatType: 'mirror',
+                      duration: 1.1,
+                      ease: [0.45, 0, 0.55, 1],
+                    }}
                   >
-                    {/* SVG Göz İkonu + Canlı Nokta */}
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--gold)]" />
-                    </span>
-                    <svg className="w-3.5 h-3.5 text-[var(--gold)] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                    <svg className="w-2.5 h-2.5 text-[var(--gold-light)] shrink-0 opacity-90" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
                       <circle cx="12" cy="12" r="3" fill="currentColor" />
                     </svg>
-                    <span className="text-[10px] font-extrabold text-amber-100 uppercase tracking-wider">
+                    <span className="text-[8.5px] font-semibold text-amber-100/95 tracking-wide leading-none">
                       {isHighlighting
-                        ? lang === 'tr' ? 'SEÇİLDİ' : 'SELECTED'
-                        : lang === 'tr' ? 'İNCELİYOR' : 'PEEKING'}
+                        ? lang === 'tr' ? 'Seçildi' : 'Selected'
+                        : lang === 'tr' ? 'İnceliyor' : 'Peeking'}
                     </span>
                   </motion.div>
                 </motion.div>

@@ -125,13 +125,12 @@ export function PlayerArea({
   
   const mergedHighlightPositions = [...highlightPositions];
 
-  // Peek fazında sadece oyuncunun SEÇTİĞİ kartlar highlight (vurgu) alır. Güç kullanımında peekTarget da eklenir.
+  // Peek fazında seçilen kartlar activePeekPositions üzerinden yumuşak aurayla gösterilir (çift çerçeve binmesini önler)
   const activePeekPositions: number[] = [];
   if (phase === 'peek') {
     const selections = peekSelectedPositions.filter(p => p.playerId === player.id);
     selections.forEach(s => {
       activePeekPositions.push(s.pos);
-      mergedHighlightPositions.push(s.pos);
     });
   }
   if (peekTarget && peekTarget.playerId === player.id) {

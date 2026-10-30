@@ -30,6 +30,10 @@ export function GameBoard() {
   const langStore = useLangStore();
   const t = translations[langStore.lang];
 
+  useEffect(() => {
+    document.documentElement.lang = langStore.lang;
+  }, [langStore.lang]);
+
   const isOnlineMode = lobbyInfo.roomId !== '';
 
   const {
@@ -682,19 +686,21 @@ export function GameBoard() {
               minHeight: '300px',
             }}
           >
-            <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-4 w-max pointer-events-none">
+            <div className="absolute top-[31.5%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-3 w-max pointer-events-none">
               <GameBackgroundOverlay myPlayerId={me?.id ?? lobbyInfo.playerId} />
             </div>
             
             <AnimatePresence>
               {phase === 'power' && activePower && (
                 <motion.div
-                  className="absolute top-[28%] left-1/2 -translate-x-1/2 z-[110] flex flex-col items-center gap-4 w-max pointer-events-none"
-                  initial={{ opacity: 0, scale: 0.8, y: -20 }}
+                  className="absolute top-[31.5%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] flex flex-col items-center gap-3 w-max pointer-events-none"
+                  initial={{ opacity: 0, scale: 0.94, y: -10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.8, y: -20 }}
+                  exit={{ opacity: 0, scale: 0.94, y: -10 }}
+                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  style={{ willChange: 'transform, opacity' }}
                 >
-                  <span className="text-[var(--gold)] text-4xl font-black tracking-widest uppercase drop-shadow-[0_0_20px_rgba(212,168,67,0.8)] text-center">
+                  <span className="px-6 py-2.5 rounded-3xl bg-emerald-950/35 backdrop-blur-md border border-[var(--gold)]/25 text-[var(--gold-light)] text-2xl font-bold tracking-[0.14em] uppercase shadow-[0_10px_30px_rgba(0,0,0,0.28)] text-center">
                     {myTurn ? (
                       <>
                         {activePower === 'peek_own' && t.banner_peek_own}
