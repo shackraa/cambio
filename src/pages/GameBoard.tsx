@@ -20,6 +20,7 @@ import { CustomizationModal } from '../components/CustomizationModal';
 import { useCustomizationStore } from '../store/useCustomizationStore';
 import { StickFeedbackBanner } from '../components/StickFeedbackBanner';
 import { formatPlayerName } from '../utils/formatPlayerName';
+import { useScreenWakeLock } from '../hooks/useScreenWakeLock';
 
 export function GameBoard() {
   const { code } = useParams<{ code: string }>();
@@ -33,6 +34,9 @@ export function GameBoard() {
 
   const langStore = useLangStore();
   const t = translations[langStore.lang];
+
+  // Oyun açıkken telefon/tablet ekranının kararmasını ve kapanmasını önle
+  useScreenWakeLock();
 
   useEffect(() => {
     document.documentElement.lang = langStore.lang;
@@ -798,14 +802,15 @@ export function GameBoard() {
                 )}
               </div>
 
-              {/* Merkez: Deste + Çöp + Bilgilendirme Bannerları */}
+              {/* Merkez: Deste + Çöp + Bilgilendirme Bannerları (Bannerlar absolute olduğu için Deste/Çöp ve masa yüksekliği 1 piksel bile oynamaz!) */}
               <div className="col-start-2 row-start-2 flex flex-col items-center justify-center relative">
-                <div className={`${isUltraCompact ? 'mb-1.5' : 'mb-3'} flex flex-col items-center gap-1.5 sm:gap-2 justify-center z-[100]`}>
-                  <StickFeedbackBanner />
-                  <GameBackgroundOverlay myPlayerId={me?.id ?? lobbyInfo.playerId} />
-                </div>
-
                 <div className="relative flex flex-col items-center">
+                  {/* Peek fazı bilgilendirme kutusu ve Görsel Yapıştırma / Ceza Rozeti: Absolute olarak destenin hemen üstünde */}
+                  <div className="absolute bottom-[calc(100%+10px)] sm:bottom-[calc(100%+14px)] left-1/2 -translate-x-1/2 w-max max-w-[90vw] flex flex-col items-center gap-1.5 sm:gap-2 justify-center z-[100] pointer-events-none">
+                    <StickFeedbackBanner />
+                    <GameBackgroundOverlay myPlayerId={me?.id ?? lobbyInfo.playerId} />
+                  </div>
+
                   <CenterArea 
                     deck={deck}
                     discardPile={discardPile}

@@ -57,8 +57,26 @@ export const CardGrid = memo(function CardGrid({
     ? SLOT_DIM_MAP[size].landscape
     : SLOT_DIM_MAP[size].portrait;
 
+  // Oyuncunun kart sayısı azalsa bile masa satır/sütun yüksekliğinin sabit kalması için minimum boyut garantisi
+  const minTrackDim =
+    direction === 'vertical'
+      ? size === 'xs'
+        ? 'min-w-15 min-h-10'
+        : size === 'sm'
+          ? 'min-w-20 min-h-14'
+          : size === 'md'
+            ? 'min-w-24 min-h-16'
+            : 'min-w-28 min-h-20'
+      : size === 'xs'
+        ? 'min-h-16 min-w-11'
+        : size === 'sm'
+          ? 'min-h-20 min-w-14'
+          : size === 'md'
+            ? 'min-h-24 min-w-16'
+            : 'min-h-28 min-w-20';
+
   return (
-    <div className={gridClass}>
+    <div className={`${gridClass} ${minTrackDim}`}>
       {Array.from({ length: totalSlots }).map((_, i) => {
         const card = cards[i];
 
