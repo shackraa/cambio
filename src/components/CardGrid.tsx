@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { memo } from 'react';
 import type { Card } from '../types/game';
 import { GameCard } from './GameCard';
 import { useLangStore } from '../store/useLangStore';
@@ -17,7 +18,7 @@ interface CardGridProps {
   playerPosition?: 'bottom' | 'top' | 'left' | 'right';
 }
 
-export function CardGrid({
+export const CardGrid = memo(function CardGrid({
   cards,
   size = 'md',
   canInteract,
@@ -48,13 +49,23 @@ export function CardGrid({
         // Kart seçildiğinde veya incelenirken gerçek masa oyunundaki gibi masanın merkezine doğru hafifçe öne çıkar
         const peekOffset = isPeeked
           ? playerPosition === 'bottom'
-            ? { x: 0, y: -5 }
+            ? { x: 0, y: -4 }
             : playerPosition === 'top'
-              ? { x: 0, y: 5 }
+              ? { x: 0, y: 4 }
               : playerPosition === 'left'
-                ? { x: 5, y: 0 }
-                : { x: -5, y: 0 }
+                ? { x: 4, y: 0 }
+                : { x: -4, y: 0 }
           : { x: 0, y: 0 };
+
+        // Etiket kartın ÜZERİNE binmesin (kart açıldığında yüzünü kapatmasın!) diye kartın hemen dış kenarına konumlandırılır:
+        const outsideBadgePos =
+          playerPosition === 'bottom'
+            ? '-top-6 inset-x-0 flex justify-center'
+            : playerPosition === 'top'
+              ? '-bottom-6 inset-x-0 flex justify-center'
+              : playerPosition === 'left'
+                ? 'left-[calc(100%+6px)] inset-y-0 flex items-center'
+                : 'right-[calc(100%+6px)] inset-y-0 flex items-center';
 
         return (
           <div
@@ -85,10 +96,10 @@ export function CardGrid({
               }
             />
 
-            {/* Takas edilen slotun yumuşak kehribar ışık halesi — Sadece isSwapHighlighted true iken render edilir (asla takılı kalmaz!) */}
+            {/* Takas edilen slotun yumuşak kehribar ışık halesi — Sadece isSwapHighlighted true iken render edilir */}
             {isSwapHighlighted && (
               <motion.div
-                className="absolute -inset-1 rounded-[12px] pointer-events-none z-25"
+                className="absolute -inset-1 rounded-[11px] pointer-events-none z-25"
                 initial={{ opacity: 0 }}
                 animate={{
                   opacity: [0.65, 1],
@@ -108,10 +119,10 @@ export function CardGrid({
               />
             )}
 
-            {/* Bakılan veya seçilen kartın üzerindeki yumuşak hale — Sadece isPeeked true iken render edilir (asla takılı kalmaz!) */}
+            {/* Bakılan veya seçilen kartın üzerindeki yumuşak hale */}
             {isPeeked && (
               <motion.div
-                className="absolute -inset-1 rounded-[12px] pointer-events-none z-25"
+                className="absolute -inset-1 rounded-[11px] pointer-events-none z-25"
                 initial={{ opacity: 0 }}
                 animate={{
                   opacity: [0.65, 0.95],
@@ -127,34 +138,24 @@ export function CardGrid({
                 }}
                 style={{
                   border: isSelectedMode
-                    ? '1.5px solid rgba(253, 246, 227, 0.78)'
-                    : '1.5px solid rgba(243, 212, 124, 0.65)',
+                    ? '1.5px solid rgba(253, 246, 227, 0.8)'
+                    : '1.5px solid rgba(243, 212, 124, 0.7)',
                   boxShadow: isSelectedMode
                     ? '0 0 14px 2px rgba(253, 246, 227, 0.3)'
-                    : '0 0 16px 2px rgba(212, 168, 67, 0.35)',
+                    : '0 0 16px 2px rgba(212, 168, 67, 0.38)',
                 }}
               />
             )}
 
-            {/* Kartın üzerine entegre Masa Oyunu "Seçili" & "İnceliyor" Sembolü */}
+            {/* Kartın ÜZERİNİ KAPATMAYAN (dış kenarında duran) "Seçili" & "İnceliyor" Göstergesi */}
             {isPeeked && (
-              <motion.div
-                className="absolute inset-x-0 bottom-1.5 sm:bottom-2 flex justify-center items-center pointer-events-none z-50"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{
-                  opacity: 1,
-                  scale: 1,
-                  x: peekOffset.x,
-                  y: peekOffset.y,
-                }}
-                transition={{ duration: 0.25 }}
-              >
+              <div className={`absolute pointer-events-none z-50 ${outsideBadgePos}`}>
                 {isSelectedMode ? (
                   <motion.div
-                    className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md whitespace-nowrap"
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full whitespace-nowrap"
                     style={{
-                      background: 'linear-gradient(180deg, rgba(253, 248, 235, 0.96) 0%, rgba(242, 228, 198, 0.96) 100%)',
-                      boxShadow: '0 3px 10px rgba(0,0,0,0.32), 0 0 0 1px rgba(180, 138, 62, 0.45)',
+                      background: 'linear-gradient(180deg, #fdf8eb 0%, #f2e4c6 100%)',
+                      boxShadow: '0 3px 10px rgba(0,0,0,0.3), 0 0 0 1px rgba(180, 138, 62, 0.5)',
                     }}
                     animate={{ y: -2 }}
                     transition={{
@@ -164,21 +165,19 @@ export function CardGrid({
                       ease: [0.45, 0, 0.55, 1],
                     }}
                   >
-                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-amber-700/15 flex items-center justify-center text-amber-800 text-[7px] sm:text-[8px] font-black leading-none">
-                      ✓
-                    </span>
-                    <span className="text-[7.5px] sm:text-[8.5px] font-bold text-[#3d280a] tracking-wide leading-none">
+                    <span className="text-amber-800 text-[8px] font-black leading-none">✓</span>
+                    <span className="text-[8.5px] font-bold text-[#3d280a] tracking-wide leading-none">
                       {lang === 'tr' ? 'Seçili' : 'Selected'}
                     </span>
                   </motion.div>
                 ) : (
                   <motion.div
-                    className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-md whitespace-nowrap backdrop-blur-md"
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full whitespace-nowrap"
                     style={{
-                      background: 'rgba(18, 42, 33, 0.85)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.32), inset 0 0 0 1px rgba(243, 212, 124, 0.38)',
+                      background: 'rgba(15, 38, 29, 0.92)',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(243, 212, 124, 0.45)',
                     }}
-                    animate={{ y: -2.5 }}
+                    animate={{ y: -2 }}
                     transition={{
                       repeat: Infinity,
                       repeatType: 'mirror',
@@ -196,16 +195,16 @@ export function CardGrid({
                       <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
                       <circle cx="12" cy="12" r="3" fill="currentColor" />
                     </svg>
-                    <span className="text-[7.5px] sm:text-[8.5px] font-medium text-[#fdf6e3]/95 tracking-wide leading-none">
+                    <span className="text-[8.5px] font-semibold text-[#fdf6e3] tracking-wide leading-none">
                       {lang === 'tr' ? 'İnceliyor' : 'Peeking'}
                     </span>
                   </motion.div>
                 )}
-              </motion.div>
+              </div>
             )}
           </div>
         );
       })}
     </div>
   );
-}
+});

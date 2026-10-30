@@ -43,25 +43,15 @@ export function useRealtimeGame({
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const store = useGameStore;
 
-  // ── Oyun state'ini DB'den yükle ──────────────────────────
+  // ── Oyun state'ini DB'den paralel (Promise.all) yükle ──────────────────────────
   const loadGameState = useCallback(async () => {
-    const { data: gs } = await supabase
-      .from('game_state')
-      .select('*')
-      .eq('room_id', roomId)
-      .single();
+    if (!roomId || roomCode === 'local') return;
 
-    const { data: allCardsData } = await supabase
-      .from('player_cards')
-      .select('*')
-      .eq('room_id', roomId)
-      .order('position');
-
-    const { data: playersData } = await supabase
-      .from('players')
-      .select('*')
-      .eq('room_id', roomId)
-      .order('seat');
+    const [{ data: gs }, { data: allCardsData }, { data: playersData }] = await Promise.all([
+      supabase.from('game_state').select('*').eq('room_id', roomId).single(),
+      supabase.from('player_cards').select('*').eq('room_id', roomId).order('position'),
+      supabase.from('players').select('*').eq('room_id', roomId).order('seat'),
+    ]);
 
     if (!gs || !allCardsData || !playersData) return;
 
@@ -294,9 +284,9 @@ export function useRealtimeGame({
     }
   }, [loadGameState]);
 
-  // ── Presence ─────────────────────────────────────────────
+  // ── Presence (Sadece gerçek online odalarda WebSocket açılır; bot modunda sunucu yorulmaz) ──
   useEffect(() => {
-    if (!roomCode) return;
+    if (!roomCode || !roomId || roomCode === 'local') return;
 
     const channel = supabase.channel(`game:${roomCode}`, {
       config: { broadcast: { self: false } },

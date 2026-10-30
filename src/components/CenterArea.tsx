@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { memo } from 'react';
 import { GameCard } from './GameCard';
 import type { Card } from '../types/game';
 import { useLangStore } from '../store/useLangStore';
@@ -27,14 +28,14 @@ function stableOffset(id: string, stackIdx: number): { x: number; y: number } {
   for (let i = 0; i < id.length; i++) hash = (hash * 17 + id.charCodeAt(i)) & 0xffff;
   const jitterX = (hash % 13) - 6;
   const jitterY = ((hash >> 4) % 13) - 6;
-  const stackLift = Math.min(stackIdx * 0.35, 7);
+  const stackLift = Math.min(stackIdx * 0.35, 6);
   return {
     x: jitterX,
     y: jitterY - stackLift,
   };
 }
 
-export function CenterArea({
+export const CenterArea = memo(function CenterArea({
   deck,
   discardPile,
   onDrawFromDeck,
@@ -50,9 +51,14 @@ export function CenterArea({
   const lang = useLangStore((s) => s.lang);
   const t = translations[lang];
 
-  // Kapalı destedeki TÜM kartları fiziksel olarak render ediyoruz (hiçbir kart DOM'dan kaybolmaz).
-  // deck[0] en üstte çekilecek olan karttır.
-  const deckReversed = [...deck].reverse();
+  // PERFORMANS OPTİMİZASYONU:
+  // Destede 38-54 kartın tamamına Framer Motion layoutId bağlamak yerine, yalnızca çekilecek olan en üstteki 4 kartı
+  // gerçek GameCard (layoutId) olarak render ediyoruz; alt katmanları ise hafif statik deste kalınlığı olarak çiziyoruz.
+  const activeDeckCards = deck.slice(0, 4).reverse();
+  const stackThicknessLayers = Math.min(Math.floor(deckCount / 8), 4);
+
+  // Çöp destesinde de yalnızca görünür olan en üstteki 6 kartı render ediyoruz
+  const visibleDiscard = discardPile.slice(-6);
 
   return (
     <div className="flex flex-col items-center gap-3 sm:gap-4 relative">
@@ -67,24 +73,35 @@ export function CenterArea({
           onClick={canDraw && deckCount > 0 ? onDrawFromDeck : undefined}
         >
           <div
-            className={`relative ${boxClass} rounded-[10px]`}
+            className={`relative ${boxClass} rounded-[9px]`}
             style={{
-              boxShadow: deckCount > 0 ? '0 14px 32px rgba(0, 0, 0, 0.38)' : 'none',
+              boxShadow: deckCount > 0 ? '0 14px 28px rgba(0, 0, 0, 0.36)' : 'none',
             }}
           >
+            {/* Deste kalınlığını gösteren hafif statik katmanlar (0 CPU maliyeti) */}
+            {Array.from({ length: stackThicknessLayers }).map((_, layerIdx) => (
+              <div
+                key={`stack-edge-${layerIdx}`}
+                className="absolute inset-0 rounded-[9px] bg-[#e8e2d5] border border-black/20 pointer-events-none"
+                style={{
+                  transform: `translate3d(${(stackThicknessLayers - layerIdx) * 1.2}px, ${(stackThicknessLayers - layerIdx) * 1.6}px, 0)`,
+                  zIndex: 0,
+                }}
+              />
+            ))}
+
             {deckCount > 0 ? (
-              deckReversed.map((card, idx) => {
-                const visualLayer = Math.min(idx, 16);
-                const offsetX = visualLayer * 0.4;
-                const offsetY = -visualLayer * 0.6;
-                const isTopCard = idx === deckReversed.length - 1;
+              activeDeckCards.map((card, idx) => {
+                const isTopCard = idx === activeDeckCards.length - 1;
+                const offsetX = idx * 0.5;
+                const offsetY = -idx * 0.8;
 
                 return (
                   <div
                     key={card.id}
                     className={`absolute inset-0 ${isTopCard ? '' : 'no-card-shadow'}`}
                     style={{
-                      zIndex: idx + 1,
+                      zIndex: idx + 2,
                       transform: `translate3d(${offsetX}px, ${offsetY}px, 0)`,
                       pointerEvents: isTopCard ? 'auto' : 'none',
                     }}
@@ -98,13 +115,15 @@ export function CenterArea({
                 );
               })
             ) : (
-              <div className="absolute inset-0 border-2 border-dashed border-white/25 rounded-[10px] flex items-center justify-center bg-emerald-950/30">
-                <span className="text-white/40 text-xs font-bold">BOŞ</span>
+              <div className="absolute inset-0 border-2 border-dashed border-white/25 rounded-[9px] flex items-center justify-center bg-emerald-950/30">
+                <span className="text-white/40 text-xs font-bold">
+                  {lang === 'tr' ? 'BOŞ' : 'EMPTY'}
+                </span>
               </div>
             )}
           </div>
           <div className="absolute -bottom-6 sm:-bottom-8 w-max text-center">
-            <span className="text-[10px] sm:text-xs font-semibold text-emerald-100/80 bg-emerald-950/60 px-2.5 sm:px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-sm">
+            <span className="text-[10px] sm:text-xs font-semibold text-emerald-100/85 bg-emerald-950/65 px-2.5 sm:px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-xs">
               📦 {t.cardCount(deckCount)}
             </span>
           </div>
@@ -121,9 +140,9 @@ export function CenterArea({
         >
           {/* Çöp kutusu zemin halkası */}
           <div
-            className="absolute inset-0 border-2 border-dashed border-[var(--gold)]/30 rounded-[10px] flex items-center justify-center bg-emerald-950/25 pointer-events-none"
+            className="absolute inset-0 border-2 border-dashed border-[var(--gold)]/30 rounded-[9px] flex items-center justify-center bg-emerald-950/25 pointer-events-none"
             style={{
-              boxShadow: discardPile.length > 0 ? '0 14px 34px rgba(0, 0, 0, 0.35)' : 'none',
+              boxShadow: discardPile.length > 0 ? '0 14px 30px rgba(0, 0, 0, 0.34)' : 'none',
             }}
           >
             {discardPile.length === 0 && (
@@ -131,12 +150,11 @@ export function CenterArea({
             )}
           </div>
 
-          {/* Çöpe atılan TÜM kartlar üst üste birikir */}
           <div className="relative w-full h-full">
-            {discardPile.map((card, idx) => {
+            {visibleDiscard.map((card, idx) => {
               const offset = stableOffset(card.id, idx);
               const rotation = stableRotation(card.id);
-              const isTop = idx === discardPile.length - 1;
+              const isTop = idx === visibleDiscard.length - 1;
               return (
                 <div
                   key={card.id}
@@ -164,7 +182,7 @@ export function CenterArea({
           </div>
 
           <div className="absolute -bottom-6 sm:-bottom-8 w-max left-1/2 -translate-x-1/2 text-center">
-            <span className="text-[10px] sm:text-xs font-semibold text-emerald-100/80 bg-emerald-950/60 px-2.5 sm:px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-sm">
+            <span className="text-[10px] sm:text-xs font-semibold text-emerald-100/85 bg-emerald-950/65 px-2.5 sm:px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-xs">
               🗑 {t.discardPile} ({discardPile.length})
             </span>
           </div>
@@ -172,4 +190,4 @@ export function CenterArea({
       </div>
     </div>
   );
-}
+});

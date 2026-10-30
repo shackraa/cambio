@@ -1,28 +1,23 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 
 export function GameBackgroundOverlay({ myPlayerId }: { myPlayerId?: string }) {
   const phase = useGameStore(s => s.phase);
-  const activePower = useGameStore(s => s.activePower);
   const peekState = useGameStore(s => s.peekState);
-  const currentTurn = useGameStore(s => s.currentTurn);
-  const players = useGameStore(s => s.players);
   const peekPhaseEndTime = useGameStore(s => s.peekPhaseEndTime);
   const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
 
   const lang = useLangStore((s) => s.lang);
   const t = translations[lang];
 
-  const currentPlayer = players.find(p => p.seat === currentTurn);
-
   let text = '';
   let subtext = '';
   let showTimer = false;
   let timerEndTime = null;
-  let timerTotalDuration = 5000;
+  const timerTotalDuration = 5000;
 
   if (phase === 'peek') {
     if (peekState === 'dealing') {
@@ -55,19 +50,26 @@ export function GameBackgroundOverlay({ myPlayerId }: { myPlayerId?: string }) {
     }
   }
 
-  // 60 FPS pürüzsüz dairesel sayaç animasyonu (requestAnimationFrame ile)
-  const [progress, setProgress] = useState(100);
+  // Sıfır React re-render ile 60/120 FPS dairesel sayaç (ref üzerinden doğrudan SVG güncellemesi)
+  const circleRef = useRef<SVGCircleElement | null>(null);
   const [seconds, setSeconds] = useState(0);
 
   useEffect(() => {
     if (!showTimer || !timerEndTime) return;
 
     let rafId: number;
+    let lastSec = -1;
     const tick = () => {
       const msLeft = Math.max(0, timerEndTime - Date.now());
       const prc = Math.max(0, Math.min(100, (msLeft / timerTotalDuration) * 100));
-      setProgress(prc);
-      setSeconds(Math.ceil(msLeft / 1000));
+      if (circleRef.current) {
+        circleRef.current.style.strokeDashoffset = String(264 - (264 * prc) / 100);
+      }
+      const nextSec = Math.ceil(msLeft / 1000);
+      if (nextSec !== lastSec) {
+        lastSec = nextSec;
+        setSeconds(nextSec);
+      }
       if (msLeft > 0) {
         rafId = requestAnimationFrame(tick);
       }
@@ -81,59 +83,57 @@ export function GameBackgroundOverlay({ myPlayerId }: { myPlayerId?: string }) {
 
   return (
     <div
-      className="pointer-events-none z-0 flex flex-col items-center justify-center w-max"
+      className="pointer-events-none z-30 flex flex-col items-center justify-center"
       lang={lang}
     >
       <AnimatePresence mode="wait">
         <motion.div
           key={text + subtext}
-          initial={{ opacity: 0, y: -10, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8, scale: 0.96 }}
-          transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-          style={{ willChange: 'transform, opacity' }}
-          className="flex flex-col items-center justify-center px-7 py-3 rounded-3xl bg-emerald-950/30 backdrop-blur-md border border-white/[0.08] shadow-[0_12px_36px_rgba(0,0,0,0.22)]"
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.28, ease: 'easeOut' }}
+          className="flex flex-col items-center justify-center px-6 py-3 rounded-2xl border border-[#e8c468]/30 shadow-[0_10px_28px_rgba(0,0,0,0.32)]"
+          style={{
+            background: 'linear-gradient(180deg, rgba(16, 50, 38, 0.95) 0%, rgba(10, 34, 25, 0.97) 100%)',
+          }}
         >
           {showTimer && (
-            <div className="relative w-14 h-14 mb-2 flex items-center justify-center">
-              <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
+            <div className="relative w-12 h-12 mb-1.5 flex items-center justify-center">
+              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
                 <circle
                   cx="50"
                   cy="50"
                   r="42"
                   fill="transparent"
-                  stroke="rgba(255,255,255,0.12)"
-                  strokeWidth="6"
+                  stroke="rgba(255,255,255,0.14)"
+                  strokeWidth="7"
                 />
                 <circle
+                  ref={circleRef}
                   cx="50"
                   cy="50"
                   r="42"
                   fill="transparent"
-                  stroke="var(--gold-light)"
-                  strokeWidth="6"
+                  stroke="#f5dfa0"
+                  strokeWidth="7"
                   strokeLinecap="round"
                   strokeDasharray="264"
-                  strokeDashoffset={264 - (264 * progress) / 100}
-                  style={{ filter: 'drop-shadow(0 0 6px rgba(212,168,67,0.45))' }}
+                  strokeDashoffset="0"
                 />
               </svg>
-              <div className="absolute text-xl font-bold text-emerald-50/90 font-['JetBrains_Mono']">
+              <div className="absolute text-base font-extrabold text-white font-['JetBrains_Mono']">
                 {seconds}
               </div>
             </div>
           )}
 
-          <h2
-            className="text-xl font-bold leading-snug text-center tracking-[0.14em] text-emerald-50/85"
-            style={{
-              textShadow: '0 2px 12px rgba(0,0,0,0.35)',
-            }}
-          >
+          {/* 4K Vektörel Keskinlikte Başlık (Subpixel bulanıklığı yapan scale ve blur kaldırıldı) */}
+          <h2 className="text-base sm:text-xl font-extrabold leading-snug text-center tracking-[0.12em] text-white">
             {text}
           </h2>
           {subtext && (
-            <p className="text-xs font-medium text-emerald-100/60 mt-1 tracking-[0.12em] text-center">
+            <p className="text-[11px] sm:text-xs font-semibold text-emerald-100/80 mt-0.5 tracking-[0.08em] text-center">
               {subtext}
             </p>
           )}

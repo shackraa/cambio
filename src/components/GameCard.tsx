@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, memo } from 'react';
 import type { Card as CardType } from '../types/game';
 import { CARD_TRANSITION } from '../utils/cardTransition';
+import { useCustomizationStore, type CardBackSkin } from '../store/useCustomizationStore';
 import type { HTMLMotionProps } from 'framer-motion';
 
 export interface CardProps extends Omit<HTMLMotionProps<"div">, "onClick" | "className" | "style"> {
@@ -13,6 +14,7 @@ export interface CardProps extends Omit<HTMLMotionProps<"div">, "onClick" | "cla
   canInteract?: boolean;
   className?: string;
   style?: React.CSSProperties;
+  overrideBackSkin?: CardBackSkin;
 }
 
 const SUIT_SYMBOL: Record<string, string> = {
@@ -23,116 +25,127 @@ const SUIT_SYMBOL: Record<string, string> = {
   joker:    '★',
 };
 
-function getCardScore(card: CardType): string {
-  if (card.rank === 'Joker') return '0';
-  if (card.rank === 'K' && (card.suit === 'hearts' || card.suit === 'diamonds')) return '-1';
-  return String(card.value);
-}
+const COURT_SYMBOL: Record<string, string> = {
+  K: '♔',
+  Q: '♕',
+  J: '♘',
+};
 
 /**
- * 4K Vektörel Keskinlikte Özel Tasarım Kart Arkası (Geometrik Pusula & Mandala Deseni)
+ * Gerçek İskambil Kağıdı Sırt Tasarımları (Klasik Kırmızı, Klasik Mavi, Kraliyet Pusulası, Zümrüt Botanik)
  */
-function OrnamentalCardBack({ isLandscape }: { isLandscape: boolean }) {
-  return (
-    <svg
-      className="w-full h-full select-none pointer-events-none"
-      viewBox={isLandscape ? '0 0 140 100' : '0 0 100 140'}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#fdf3d0" />
-          <stop offset="50%" stopColor="#e5be67" />
-          <stop offset="100%" stopColor="#b58428" />
-        </linearGradient>
-        <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#264378" stopOpacity="0.9" />
-          <stop offset="100%" stopColor="#0f1d38" stopOpacity="1" />
-        </radialGradient>
-      </defs>
+function PlayingCardBack({ skin, isLandscape }: { skin: CardBackSkin; isLandscape: boolean }) {
+  if (skin === 'classic_red' || skin === 'classic_blue') {
+    const isRedSkin = skin === 'classic_red';
+    const primaryBg = isRedSkin ? '#b91c1c' : '#1d4ed8';
+    const deepBg = isRedSkin ? '#881313' : '#172554';
+    const patternStroke = isRedSkin ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.22)';
 
-      {isLandscape ? (
-        <g transform="translate(140, 0) rotate(90)">
-          <CardBackArtwork />
-        </g>
-      ) : (
-        <CardBackArtwork />
-      )}
-    </svg>
+    return (
+      <div className="w-full h-full bg-white p-[3.5px] sm:p-[4.5px] rounded-[9px] select-none pointer-events-none flex items-center justify-center">
+        <div
+          className="w-full h-full rounded-[5px] relative overflow-hidden flex items-center justify-center"
+          style={{
+            background: `radial-gradient(circle at 50% 50%, ${primaryBg} 0%, ${deepBg} 100%)`,
+            border: '1.5px solid rgba(255,255,255,0.85)',
+            boxShadow: 'inset 0 0 0 1.5px rgba(0,0,0,0.22)',
+          }}
+        >
+          {/* Klasik İskambil Baklava (Bicycle Cross-Hatch) Dokusu */}
+          <div
+            className="absolute inset-[2px] rounded-[3px] border border-white/45"
+            style={{
+              backgroundImage: `
+                repeating-linear-gradient(45deg, ${patternStroke} 0px, ${patternStroke} 1px, transparent 1px, transparent 6px),
+                repeating-linear-gradient(-45deg, ${patternStroke} 0px, ${patternStroke} 1px, transparent 1px, transparent 6px)
+              `,
+            }}
+          />
+
+          {/* Köşe İskambil Sembolleri */}
+          <span className="absolute top-1 left-1 text-[7px] text-white/75 leading-none">♠</span>
+          <span className="absolute top-1 right-1 text-[7px] text-white/75 leading-none">♥</span>
+          <span className="absolute bottom-1 left-1 text-[7px] text-white/75 leading-none">♦</span>
+          <span className="absolute bottom-1 right-1 text-[7px] text-white/75 leading-none">♣</span>
+
+          {/* Merkez İskambil Rozeti */}
+          <div
+            className="relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full border-[1.5px] border-white/85 flex items-center justify-center shadow-xs"
+            style={{
+              background: deepBg,
+              transform: isLandscape ? 'rotate(90deg)' : undefined,
+            }}
+          >
+            <div className="w-5 h-5 sm:w-5.5 sm:h-5.5 rounded-full border border-white/45 flex items-center justify-center text-white text-[10px] sm:text-xs font-black">
+              ♠
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (skin === 'emerald_botanical') {
+    return (
+      <div className="w-full h-full bg-[#fdf8ec] p-[3.5px] sm:p-[4.5px] rounded-[9px] select-none pointer-events-none flex items-center justify-center">
+        <div
+          className="w-full h-full rounded-[5px] relative overflow-hidden flex items-center justify-center"
+          style={{
+            background: 'radial-gradient(circle at 50% 50%, #155e46 0%, #092e22 100%)',
+            border: '1.5px solid #e8c468',
+          }}
+        >
+          <div
+            className="absolute inset-[2px] rounded-[3px] border border-[#e8c468]/40"
+            style={{
+              backgroundImage: `
+                repeating-linear-gradient(60deg, rgba(232,196,104,0.16) 0px, rgba(232,196,104,0.16) 1px, transparent 1px, transparent 7px),
+                repeating-linear-gradient(-60deg, rgba(232,196,104,0.16) 0px, rgba(232,196,104,0.16) 1px, transparent 1px, transparent 7px)
+              `,
+            }}
+          />
+          <div
+            className="relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#e8c468]/80 bg-[#092e22] flex items-center justify-center text-[#f7dfa0] text-xs"
+            style={{ transform: isLandscape ? 'rotate(90deg)' : undefined }}
+          >
+            ✦
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // 'royal_compass'
+  return (
+    <div className="w-full h-full bg-[#f5ebd6] p-[3.5px] sm:p-[4.5px] rounded-[9px] select-none pointer-events-none flex items-center justify-center">
+      <div
+        className="w-full h-full rounded-[5px] relative overflow-hidden flex items-center justify-center"
+        style={{
+          background: 'radial-gradient(circle at 50% 50%, #1e3a6e 0%, #0d1b36 100%)',
+          border: '1.5px solid #e5be67',
+        }}
+      >
+        <div
+          className="absolute inset-[2px] rounded-[3px] border border-[#e5be67]/40"
+          style={{
+            backgroundImage: `
+              repeating-linear-gradient(45deg, rgba(229,190,103,0.15) 0px, rgba(229,190,103,0.15) 1px, transparent 1px, transparent 7px),
+              repeating-linear-gradient(-45deg, rgba(229,190,103,0.15) 0px, rgba(229,190,103,0.15) 1px, transparent 1px, transparent 7px)
+            `,
+          }}
+        />
+        <div
+          className="relative z-10 w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-[#e5be67]/85 bg-[#0d1b36] flex items-center justify-center text-[#fdf3d0] text-xs"
+          style={{ transform: isLandscape ? 'rotate(90deg)' : undefined }}
+        >
+          ❂
+        </div>
+      </div>
+    </div>
   );
 }
 
-function CardBackArtwork() {
-  return (
-    <>
-      {/* İç Zemin */}
-      <rect x="5" y="5" width="90" height="130" rx="6" fill="url(#centerGlow)" />
-
-      {/* Çift Çizgili Altın Filigran Çerçeve */}
-      <rect x="6.5" y="6.5" width="87" height="127" rx="5" stroke="url(#goldGrad)" strokeWidth="1.2" strokeOpacity="0.75" />
-      <rect x="10" y="10" width="80" height="120" rx="3.5" stroke="url(#goldGrad)" strokeWidth="0.7" strokeOpacity="0.45" strokeDasharray="2 2" />
-
-      {/* Arka Plan İnce Geometrik Kafes (Guilloché) */}
-      <g stroke="url(#goldGrad)" strokeOpacity="0.14" strokeWidth="0.6">
-        <line x1="10" y1="35" x2="90" y2="105" />
-        <line x1="90" y1="35" x2="10" y2="105" />
-        <line x1="10" y1="70" x2="50" y2="10" />
-        <line x1="90" y1="70" x2="50" y2="10" />
-        <line x1="10" y1="70" x2="50" y2="130" />
-        <line x1="90" y1="70" x2="50" y2="130" />
-      </g>
-
-      {/* Köşe Süslemeleri (4 Köşe Rozeti) */}
-      <g fill="url(#goldGrad)" fillOpacity="0.75">
-        <path d="M14 14 L22 14 L14 22 Z" />
-        <path d="M86 14 L78 14 L86 22 Z" />
-        <path d="M14 126 L22 126 L14 118 Z" />
-        <path d="M86 126 L78 126 L86 118 Z" />
-      </g>
-
-      {/* Üst ve Alt Simetrik Taç Yaprak Kemerleri */}
-      <path d="M32 18 Q50 28 68 18" stroke="url(#goldGrad)" strokeWidth="1" strokeOpacity="0.55" fill="none" />
-      <path d="M32 122 Q50 112 68 122" stroke="url(#goldGrad)" strokeWidth="1" strokeOpacity="0.55" fill="none" />
-      <circle cx="50" cy="18" r="2" fill="url(#goldGrad)" fillOpacity="0.8" />
-      <circle cx="50" cy="122" r="2" fill="url(#goldGrad)" fillOpacity="0.8" />
-
-      {/* Merkez Madalyon: 8 Köşeli Pusula Yıldızı & Mandala */}
-      <g transform="translate(50, 70)">
-        {/* Dış Halka */}
-        <circle r="26" stroke="url(#goldGrad)" strokeWidth="1" strokeOpacity="0.5" />
-        <circle r="22" stroke="url(#goldGrad)" strokeWidth="0.7" strokeOpacity="0.35" strokeDasharray="3 2" />
-
-        {/* Döndürülmüş Kareler (Sekizgen Yıldız Kafesi) */}
-        <rect x="-15" y="-15" width="30" height="30" rx="2" stroke="url(#goldGrad)" strokeWidth="1" strokeOpacity="0.6" />
-        <rect x="-15" y="-15" width="30" height="30" rx="2" transform="rotate(45)" stroke="url(#goldGrad)" strokeWidth="1" strokeOpacity="0.6" />
-
-        {/* 8 Köşeli Pusula Yıldızı */}
-        <polygon
-          points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5"
-          fill="url(#goldGrad)"
-          fillOpacity="0.28"
-          stroke="url(#goldGrad)"
-          strokeWidth="1.1"
-        />
-        <polygon
-          points="0,-16 3.5,-3.5 16,0 3.5,3.5 0,16 -3.5,3.5 -16,0 -3.5,-3.5"
-          transform="rotate(45)"
-          fill="url(#goldGrad)"
-          fillOpacity="0.45"
-          stroke="url(#goldGrad)"
-          strokeWidth="0.9"
-        />
-
-        {/* Merkez Mücevher Çekirdeği */}
-        <circle r="6.5" fill="#10203d" stroke="url(#goldGrad)" strokeWidth="1.2" />
-        <polygon points="0,-4 4,0 0,4 -4,0" fill="url(#goldGrad)" />
-      </g>
-    </>
-  );
-}
-
-export function GameCard({
+export const GameCard = memo(function GameCard({
   card,
   size = 'md',
   orientation = 'portrait',
@@ -141,10 +154,15 @@ export function GameCard({
   canInteract,
   className = '',
   style,
+  overrideBackSkin,
   ...motionProps
 }: CardProps) {
+  const cardBack = useCustomizationStore(s => s.cardBack);
+  const cardFront = useCustomizationStore(s => s.cardFront);
+  const activeBackSkin = overrideBackSkin ?? cardBack;
+
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
-  const isSpecial = ['J', 'Q', 'K'].includes(card.rank);
+  const isRedKing = card.rank === 'K' && isRed;
   const isPowerCard = ['7', '8', '9', '10', 'J', 'Q'].includes(card.rank) || (card.rank === 'K' && !isRed);
   const isLandscape = orientation === 'landscape';
 
@@ -163,12 +181,12 @@ export function GameCard({
 
   type SizeKey = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   const sizeMap: Record<SizeKey, { w: string; h: string; lw: string; lh: string; text: string; corner: string }> = {
-    xs:    { w: 'w-11', h: 'h-16', lw: 'w-15', lh: 'h-10', text: 'text-sm',   corner: 'text-[9px]' },
-    sm:    { w: 'w-14', h: 'h-20', lw: 'w-20', lh: 'h-14', text: 'text-base', corner: 'text-[10px]' },
-    md:    { w: 'w-16', h: 'h-24', lw: 'w-24', lh: 'h-16', text: 'text-xl',   corner: 'text-xs' },
-    lg:    { w: 'w-20', h: 'h-28', lw: 'w-28', lh: 'h-20', text: 'text-2xl',  corner: 'text-sm' },
-    xl:    { w: 'w-24', h: 'h-36', lw: 'w-36', lh: 'h-24', text: 'text-3xl',  corner: 'text-base' },
-    '2xl': { w: 'w-28', h: 'h-40', lw: 'w-40', lh: 'h-28', text: 'text-4xl',  corner: 'text-lg' },
+    xs:    { w: 'w-11', h: 'h-16', lw: 'w-15', lh: 'h-10', text: 'text-base', corner: 'text-[9px]' },
+    sm:    { w: 'w-14', h: 'h-20', lw: 'w-20', lh: 'h-14', text: 'text-lg',   corner: 'text-[10px]' },
+    md:    { w: 'w-16', h: 'h-24', lw: 'w-24', lh: 'h-16', text: 'text-2xl',  corner: 'text-xs' },
+    lg:    { w: 'w-20', h: 'h-28', lw: 'w-28', lh: 'h-20', text: 'text-3xl',  corner: 'text-sm' },
+    xl:    { w: 'w-24', h: 'h-36', lw: 'w-36', lh: 'h-24', text: 'text-4xl',  corner: 'text-base' },
+    '2xl': { w: 'w-28', h: 'h-40', lw: 'w-40', lh: 'h-28', text: 'text-5xl',  corner: 'text-lg' },
   };
   const sizes = sizeMap[size as SizeKey];
   const dimClass = isLandscape ? `${sizes.lw} ${sizes.lh}` : `${sizes.w} ${sizes.h}`;
@@ -183,6 +201,12 @@ export function GameCard({
     );
   }
 
+  const frontBgClass = isRedKing
+    ? 'red-king-card-bg'
+    : cardFront === 'vintage'
+      ? 'bg-[#fdf8ec]'
+      : 'bg-white';
+
   return (
     <motion.div
       layoutId={card.id}
@@ -194,10 +218,10 @@ export function GameCard({
       onClick={canInteract ? onClick : undefined}
       style={style}
     >
-      {/* Seçili / Highlight Çerçevesi — Sadece highlight true iken görünür */}
+      {/* Seçili / Highlight Çerçevesi */}
       {highlight && (
         <motion.div
-          className="absolute -inset-1 rounded-[12px] pointer-events-none z-20"
+          className="absolute -inset-1 rounded-[11px] pointer-events-none z-20"
           initial={{ opacity: 0 }}
           animate={{
             opacity: [0.6, 0.95],
@@ -205,7 +229,7 @@ export function GameCard({
             transition: { repeat: Infinity, repeatType: 'mirror', duration: 1.1, ease: [0.45, 0, 0.55, 1] },
           }}
           style={{
-            border: '1.5px solid rgba(250, 225, 156, 0.72)',
+            border: '1.5px solid rgba(250, 225, 156, 0.75)',
             boxShadow: '0 0 16px 2px rgba(212,168,67,0.4), inset 0 0 8px rgba(212,168,67,0.2)',
           }}
         />
@@ -233,7 +257,6 @@ export function GameCard({
         }}
       >
         {isFlipping ? (
-          /* 3D Çevirme Aşaması (850ms) */
           <div
             style={{
               width: '100%',
@@ -255,42 +278,34 @@ export function GameCard({
                 inset: 0,
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
-                borderRadius: '10px',
+                borderRadius: '9px',
               }}
             >
-              <OrnamentalCardBack isLandscape={isLandscape} />
+              <PlayingCardBack skin={activeBackSkin} isLandscape={isLandscape} />
             </div>
 
             <div
-              className={`card-face ${isSpecial ? 'special-card-bg' : ''} ${card.rank === 'K' && isRed ? 'red-king-card-bg' : ''}`}
+              className={`card-face ${frontBgClass}`}
               style={{
                 position: 'absolute',
                 inset: 0,
                 backfaceVisibility: 'hidden',
                 WebkitBackfaceVisibility: 'hidden',
                 transform: isLandscape ? 'rotateX(180deg)' : 'rotateY(180deg)',
-                borderRadius: '10px',
-                padding: '4px',
+                borderRadius: '9px',
               }}
             >
               <CardFrontContent card={card} isRed={isRed} isPowerCard={isPowerCard} sizes={sizes} />
             </div>
           </div>
         ) : (
-          /* Sabit Durum: %100 4K Vektörel Netlik (Sıfır 3D Bulanıklığı) */
           <div className="w-full h-full relative">
             {!card.isRevealed ? (
-              <div
-                className="card-back w-full h-full"
-                style={{ borderRadius: '10px' }}
-              >
-                <OrnamentalCardBack isLandscape={isLandscape} />
+              <div className="card-back w-full h-full" style={{ borderRadius: '9px' }}>
+                <PlayingCardBack skin={activeBackSkin} isLandscape={isLandscape} />
               </div>
             ) : (
-              <div
-                className={`card-face w-full h-full ${isSpecial ? 'special-card-bg' : ''} ${card.rank === 'K' && isRed ? 'red-king-card-bg' : ''}`}
-                style={{ borderRadius: '10px', padding: '4px' }}
-              >
+              <div className={`card-face w-full h-full ${frontBgClass}`} style={{ borderRadius: '9px' }}>
                 <CardFrontContent card={card} isRed={isRed} isPowerCard={isPowerCard} sizes={sizes} />
               </div>
             )}
@@ -299,7 +314,7 @@ export function GameCard({
       </div>
     </motion.div>
   );
-}
+});
 
 function CardFrontContent({
   card,
@@ -312,49 +327,70 @@ function CardFrontContent({
   isPowerCard: boolean;
   sizes: { text: string; corner: string };
 }) {
+  const isCourt = ['J', 'Q', 'K'].includes(card.rank);
+  const suitColor = isRed ? 'text-[#c81e1e]' : 'text-[#14171f]';
+
   if (card.rank === 'Joker') {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-0.5">
-        <span className="text-purple-600 text-xl sm:text-2xl">🃏</span>
-        <span className="text-purple-700 font-black text-[9px] sm:text-[10px] tracking-wider">JOKER</span>
-        <span className="text-[7px] sm:text-[8px] bg-purple-500/15 text-purple-800 rounded px-1.5 font-bold mt-0.5">
-          0 pt
-        </span>
+      <div className="relative w-full h-full flex flex-col items-center justify-center p-1.5">
+        <div className="absolute inset-[4px] rounded-[5px] border border-purple-300/70 pointer-events-none" />
+        <div className="absolute top-1.5 left-1.5 text-[7px] sm:text-[8px] font-black text-purple-800 tracking-tighter leading-none flex flex-col items-center">
+          <span>J</span>
+          <span>★</span>
+        </div>
+        <span className="text-purple-700 text-2xl sm:text-3xl leading-none">🃏</span>
+        <span className="text-purple-900 font-black text-[8px] sm:text-[9px] tracking-[0.12em] mt-0.5">JOKER</span>
+        <div className="absolute bottom-1.5 right-1.5 rotate-180 text-[7px] sm:text-[8px] font-black text-purple-800 tracking-tighter leading-none flex flex-col items-center">
+          <span>J</span>
+          <span>★</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <div className={`absolute top-1 left-1.5 leading-none flex flex-col items-center ${isRed ? 'suit-red' : 'suit-black'}`}>
-        <div className={`font-black ${sizes.corner}`}>{card.rank}</div>
-        <div className={`${sizes.corner} -mt-0.5`}>{SUIT_SYMBOL[card.suit]}</div>
+    <div className="relative w-full h-full flex items-center justify-center">
+      {/* Klasik İskambil İç Çerçeve Çizgisi */}
+      <div
+        className={`absolute inset-[4px] sm:inset-[5px] rounded-[5px] border pointer-events-none ${
+          isCourt ? 'border-amber-500/35 bg-amber-50/20' : 'border-slate-300/55'
+        }`}
+      />
+
+      {/* Sol Üst İskambil Köşe İndeksi (Sayı + Sinek/Kupa/Karo/Maça) */}
+      <div className={`absolute top-1 left-1.5 leading-none flex flex-col items-center ${suitColor}`}>
+        <span className={`font-black tracking-tighter ${sizes.corner}`}>{card.rank}</span>
+        <span className={`${sizes.corner} -mt-0.5`}>{SUIT_SYMBOL[card.suit]}</span>
       </div>
 
-      {/* Orta Sembol */}
-      <div className={`${sizes.text} ${isRed ? 'suit-red' : 'suit-black'} font-bold flex flex-col items-center justify-center`}>
-        <span>{SUIT_SYMBOL[card.suit]}</span>
-        {isPowerCard && (
-          <span className="text-[7px] uppercase tracking-wider font-extrabold px-1 rounded bg-amber-500/20 text-amber-900 border border-amber-600/30 -mt-1">
-            ⚡
-          </span>
+      {/* Sağ Üst Mini Özel Güç veya -1 Kral İşareti */}
+      {card.value < 0 ? (
+        <span className="absolute top-1.5 right-1.5 text-[7px] sm:text-[8px] font-extrabold text-amber-800 bg-amber-200/80 px-1 rounded leading-tight">
+          -1
+        </span>
+      ) : isPowerCard ? (
+        <span className="absolute top-1.5 right-1.5 text-[8px] sm:text-[9px] leading-none opacity-75" title="Power Card">
+          ⚡
+        </span>
+      ) : null}
+
+      {/* Merkez İskambil Sembolü / Kraliyet Figürü */}
+      <div className={`${suitColor} flex flex-col items-center justify-center select-none`}>
+        {isCourt ? (
+          <div className="flex flex-col items-center justify-center leading-none">
+            <span className="text-xs sm:text-sm opacity-80 -mb-0.5">{COURT_SYMBOL[card.rank]}</span>
+            <span className={sizes.text}>{SUIT_SYMBOL[card.suit]}</span>
+          </div>
+        ) : (
+          <span className={`${sizes.text} leading-none`}>{SUIT_SYMBOL[card.suit]}</span>
         )}
       </div>
 
-      <div className={`absolute bottom-1 right-1.5 leading-none rotate-180 flex flex-col items-center ${isRed ? 'suit-red' : 'suit-black'}`}>
-        <div className={`font-black ${sizes.corner}`}>{card.rank}</div>
-        <div className={`${sizes.corner} -mt-0.5`}>{SUIT_SYMBOL[card.suit]}</div>
+      {/* Sağ Alt Ters İskambil Köşe İndeksi */}
+      <div className={`absolute bottom-1 right-1.5 leading-none rotate-180 flex flex-col items-center ${suitColor}`}>
+        <span className={`font-black tracking-tighter ${sizes.corner}`}>{card.rank}</span>
+        <span className={`${sizes.corner} -mt-0.5`}>{SUIT_SYMBOL[card.suit]}</span>
       </div>
-
-      <div className="absolute bottom-1 left-1.5 flex justify-center">
-        <span className={`text-[7px] sm:text-[8px] rounded px-1 font-bold ${
-          card.value < 0
-            ? 'bg-amber-400/30 text-amber-900 border border-amber-500/40'
-            : 'bg-black/10 text-gray-700'
-        }`}>
-          {getCardScore(card)} pt
-        </span>
-      </div>
-    </>
+    </div>
   );
 }

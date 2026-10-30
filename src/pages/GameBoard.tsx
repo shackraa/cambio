@@ -16,6 +16,8 @@ import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 import { useBotAI } from '../hooks/useBotAI';
 import { SoundManager } from '../utils/SoundManager';
+import { CustomizationModal } from '../components/CustomizationModal';
+import { useCustomizationStore } from '../store/useCustomizationStore';
 
 export function GameBoard() {
   const { code } = useParams<{ code: string }>();
@@ -84,6 +86,14 @@ export function GameBoard() {
   const [showResultsModal, setShowResultsModal] = useState(true);
   const [isMuted, setIsMuted] = useState(() => SoundManager.getMuted());
   const [activeMobilePanel, setActiveMobilePanel] = useState<'log' | 'chat' | 'rules' | 'leaderboard' | null>(null);
+  const [showCustomize, setShowCustomize] = useState(false);
+  const tableTheme = useCustomizationStore(s => s.tableTheme);
+
+  const TABLE_THEME_GRADIENTS = {
+    emerald:  'radial-gradient(ellipse at center, #2b7a60 0%, #1b5643 62%, #123b2e 100%)',
+    ocean:    'radial-gradient(ellipse at center, #24608a 0%, #164060 62%, #0e2a40 100%)',
+    burgundy: 'radial-gradient(ellipse at center, #73293b 0%, #4d1a27 62%, #331019 100%)',
+  };
 
   // Mobil veya kompakt ekran tespiti (CSS scale bulanıklığı yerine doğal vektörel responsive boyutlandırma)
   const [isCompact, setIsCompact] = useState(() => window.innerWidth < 1100 || window.innerHeight < 800);
@@ -166,7 +176,8 @@ export function GameBoard() {
     if (isOnlineMode) {
       loadGameState();
     } else {
-      initGame('Sen', ['Ahmet', 'Zeliha', 'Mehmet']);
+      const savedNick = sessionStorage.getItem('nickname') || (langStore.lang === 'tr' ? 'Sen' : 'You');
+      initGame(savedNick, ['Ahmet', 'Zeliha', 'Mehmet']);
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -585,8 +596,21 @@ export function GameBoard() {
             </div>
           </motion.div>
 
-          {/* Sağ Üst Kontroller: Ses Aç/Kapat + TR/EN Dil Seçici + Tam Ekran */}
+          {/* Sağ Üst Kontroller: Kart Tasarımı + Ses Aç/Kapat + TR/EN Dil Seçici + Tam Ekran */}
           <div className="lg:absolute lg:right-2 lg:top-1/2 lg:-translate-y-1/2 z-50 flex items-center gap-1.5 sm:gap-2">
+            {/* Kart & Masa Kişiselleştirme Butonu */}
+            <button
+              type="button"
+              onClick={() => setShowCustomize(true)}
+              className="btn-emerald-3d h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              title={langStore.lang === 'tr' ? 'Kart & Masa Görünümü' : 'Customize Cards & Table'}
+            >
+              <span>🎨</span>
+              <span className="hidden md:inline text-[11px] uppercase tracking-wider">
+                {langStore.lang === 'tr' ? 'Tasarım' : 'Skins'}
+              </span>
+            </button>
+
             {/* Ses Aç / Kapat */}
             <button
               type="button"
@@ -693,47 +717,18 @@ export function GameBoard() {
         <div className="flex-1 min-h-0 flex flex-col gap-2">
           <LayoutGroup id="cards">
           <div
-            className="relative w-full rounded-[24px] sm:rounded-[34px] flex-1 min-h-0 flex flex-col justify-between"
+            className="relative w-full rounded-[24px] sm:rounded-[34px] flex-1 min-h-0 flex flex-col justify-between transition-colors duration-500"
             style={{
-              background: 'radial-gradient(ellipse at center, #2b7a60 0%, #1b5643 62%, #123b2e 100%)',
+              background: TABLE_THEME_GRADIENTS[tableTheme],
               boxShadow: '0 16px 44px rgba(0,0,0,0.34), inset 0 0 60px rgba(0,0,0,0.22)',
               border: '2.5px solid rgba(232,196,104,0.34)',
               minHeight: '260px',
             }}
           >
-            <div className="absolute top-[31.5%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-2 sm:gap-3 w-max max-w-[92%] pointer-events-none">
-              <GameBackgroundOverlay myPlayerId={me?.id ?? lobbyInfo.playerId} />
-            </div>
-            
-            <AnimatePresence>
-              {phase === 'power' && activePower && (
-                <motion.div
-                  className="absolute top-[31.5%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[110] flex flex-col items-center gap-2 sm:gap-3 w-max max-w-[92%] pointer-events-none"
-                  initial={{ opacity: 0, scale: 0.94, y: -10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.94, y: -10 }}
-                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <span className="px-4 sm:px-6 py-2 sm:py-2.5 rounded-3xl bg-emerald-950/45 backdrop-blur-md border border-[var(--gold)]/30 text-[var(--gold-light)] text-sm sm:text-xl font-bold tracking-[0.12em] uppercase shadow-[0_10px_30px_rgba(0,0,0,0.28)] text-center">
-                    {myTurn ? (
-                      <>
-                        {activePower === 'peek_own' && t.banner_peek_own}
-                        {activePower === 'peek_other' && t.banner_peek_other}
-                        {activePower === 'spy_swap' && t.banner_spy_swap}
-                        {activePower === 'blind_swap' && t.banner_blind_swap}
-                      </>
-                    ) : (
-                      t.banner_opponent_power(currentPlayer?.nickname || '')
-                    )}
-                  </span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* ─── Grid Layout: 3 satır × 3 sütun ─── */}
             <div
               className="flex-1 min-h-0 grid px-1.5 sm:px-3 py-2 sm:py-3"
-              style={{ gridTemplateRows: 'auto auto auto', gridTemplateColumns: 'auto 1fr auto', alignContent: 'space-between' }}
+              style={{ gridTemplateRows: 'auto 1fr auto', gridTemplateColumns: 'auto 1fr auto', alignContent: 'space-between' }}
             >
               {/* Üst orta: Karşı oyuncu */}
               <div className="col-start-2 row-start-1 flex justify-center items-start">
@@ -767,18 +762,23 @@ export function GameBoard() {
                 )}
               </div>
 
-              {/* Merkez: Deste + Çöp */}
-              <div className="col-start-2 row-start-2 flex items-center justify-center">
-              <div className="relative flex flex-col items-center">
-                <CenterArea 
-                  deck={deck}
-                  discardPile={discardPile}
-                  compact={isCompact}
-                  canDraw={myTurn && phase === 'draw'}
-                  onDrawFromDeck={() => doAction(() => drawFromDeck(), { type: 'DRAW_FROM_DECK' })}
-                  onDrawFromDiscard={() => doAction(() => drawFromDiscard(), { type: 'DRAW_FROM_DISCARD' })}
-                  myPlayerId={lobbyInfo.playerId}
-                />
+              {/* Merkez: Deste + Çöp + Bilgilendirme Bannerları (Grid 2. satırda olduğu için Zeliha'nın kartlarına ASLA değmez!) */}
+              <div className="col-start-2 row-start-2 flex flex-col items-center justify-center relative">
+                {/* Peek fazı bilgilendirme kutusu: Tam merkezde, 4K keskinlikte */}
+                <div className="mb-3 flex justify-center z-[100]">
+                  <GameBackgroundOverlay myPlayerId={me?.id ?? lobbyInfo.playerId} />
+                </div>
+
+                <div className="relative flex flex-col items-center">
+                  <CenterArea 
+                    deck={deck}
+                    discardPile={discardPile}
+                    compact={isCompact}
+                    canDraw={myTurn && phase === 'draw'}
+                    onDrawFromDeck={() => doAction(() => drawFromDeck(), { type: 'DRAW_FROM_DECK' })}
+                    onDrawFromDiscard={() => doAction(() => drawFromDiscard(), { type: 'DRAW_FROM_DISCARD' })}
+                    myPlayerId={lobbyInfo.playerId}
+                  />
 
                 <AnimatePresence>
                   {phase === 'power' && activePower && (
@@ -995,6 +995,9 @@ export function GameBoard() {
           <Leaderboard />
         </div>
       </div>
+
+      {/* Kişiselleştirme (Kart Sırtı & Masa Rengi) Modalı */}
+      <CustomizationModal isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
 
       {/* MOBİL ÇEKMECE (BOTTOM SHEET) MODALI */}
       <AnimatePresence>
