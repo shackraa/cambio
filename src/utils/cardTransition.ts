@@ -1,12 +1,8 @@
-// Tüm kart hareketleri için ortak transition — elle koyuluyormuş gibi pürüzsüz, fiziksel ağırlıklı ve net takip edilebilir his
+// Tüm kart hareketleri için ortak transition — insan gözünün rahatça takip edebileceği, elle koyuluyormuş gibi pürüzsüz ve ağırbaşlı fizik
 export const CARD_TRANSITION = {
   layout: {
-    type: 'spring' as const,
-    stiffness: 135,
-    damping: 22,
-    mass: 1.0,
+    type: 'tween' as const,
+    ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+    duration: 0.95,
   },
 };
-
-
-

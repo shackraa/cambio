@@ -236,7 +236,7 @@ export const useGameStore = create<GameStore>()(
         state.gameLog = [];
         state.finalScores = [];
         state.winner = null;
-        state.peekPhaseEndTime = Date.now() + 2800; // 16 kartın dağıtım süresi
+        state.peekPhaseEndTime = Date.now() + 3600; // 16 kartın dağıtım süresi
         state.peekState = 'dealing';
         state.peekSelectedPositions = [];
       });
@@ -254,7 +254,7 @@ export const useGameStore = create<GameStore>()(
             }
           });
           if (i % 2 === 0) SoundManager.playCardDraw();
-        }, 180 + i * 135);
+        }, 250 + i * 190);
         dealingTimers.push(t);
       }
     },
@@ -565,7 +565,7 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
-        // 2. AŞAMA (420ms sonra): Açılan kartı oyuncunun elinden çıkarıp çöp destesinin üstüne fiziksel olarak uçur!
+        // 2. AŞAMA (750ms sonra): Açılan kartı oyuncunun elinden çıkarıp çöp destesinin üstüne fiziksel olarak uçur!
         setTimeout(() => {
           useGameStore.setState(state => {
             const initiatorIdx = state.players.findIndex(p => p.seat === initiatorSeat);
@@ -595,10 +595,10 @@ export const useGameStore = create<GameStore>()(
             }
             if (state.gameLog.length > 50) state.gameLog.shift();
           });
-        }, 420);
+        }, 750);
       } else {
         // YANLIŞ YAPIŞTIRMA:
-        // 1. AŞAMA: Tıklanan kartı 750ms boyunca olduğu yerde aç ki oyuncu neden yanlış olduğunu kendi gözüyle görsün!
+        // 1. AŞAMA: Tıklanan kartı 1100ms boyunca olduğu yerde aç ki oyuncu neden yanlış olduğunu kendi gözüyle görsün!
         SoundManager.playError();
         set(state => {
           const tIdx = state.players.findIndex(p => p.seat === targetSeat);
@@ -623,7 +623,7 @@ export const useGameStore = create<GameStore>()(
           if (state.gameLog.length > 50) state.gameLog.shift();
         });
 
-        // 750ms sonra yanlış açılan kartı tekrar kapat
+        // 1100ms sonra yanlış açılan kartı tekrar kapat
         setTimeout(() => {
           useGameStore.setState(s => {
             const tIdx = s.players.findIndex(p => p.seat === targetSeat);
@@ -632,7 +632,7 @@ export const useGameStore = create<GameStore>()(
               if (c && s.phase !== 'results') c.isRevealed = false;
             }
           });
-        }, 750);
+        }, 1100);
       }
     },
 

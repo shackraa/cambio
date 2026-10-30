@@ -59,11 +59,11 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
       layout
       {...motionProps}
       className={`${sizes.w} ${sizes.h} shrink-0 select-none relative ${canInteract ? 'cursor-pointer hoverable-card' : 'cursor-default'} ${className}`}
-      whileTap={canInteract ? { scale: 0.94 } : {}}
+      whileTap={canInteract ? { scale: 0.95 } : {}}
       transition={motionProps.transition || CARD_TRANSITION}
       onClick={canInteract ? onClick : undefined}
       style={{
-        filter: highlight ? 'drop-shadow(0 0 14px rgba(212,168,67,0.95))' : undefined,
+        filter: highlight ? 'drop-shadow(0 0 12px rgba(212,168,67,0.9))' : undefined,
         ...style,
       }}
     >
@@ -72,18 +72,18 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
         <motion.div
           className="absolute -inset-1 rounded-[12px] border-2 border-[var(--gold)] pointer-events-none z-20"
           animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.03, 1] }}
-          transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-          style={{ boxShadow: '0 0 16px rgba(212,168,67,0.8)' }}
+          transition={{ repeat: Infinity, duration: 1.6, ease: 'easeInOut' }}
+          style={{ boxShadow: '0 0 16px rgba(212,168,67,0.75)' }}
         />
       )}
 
       {/* Ceza Kartı Göstergesi */}
       {card.isPenalty && (
         <motion.div
-          className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 bg-red-600 rounded-full text-white text-[10px] font-black border-2 border-red-300 shadow-lg z-30 pointer-events-none"
+          className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 bg-red-600 rounded-full text-white text-[10px] font-black border-2 border-red-300 shadow-md z-30 pointer-events-none"
           initial={{ scale: 0, rotate: -180 }}
-          animate={{ scale: [1, 1.3, 1], rotate: 0 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15, delay: 0.1 }}
+          animate={{ scale: [1, 1.25, 1], rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 18, delay: 0.1 }}
         >
           ⚠
         </motion.div>
@@ -98,14 +98,14 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
           perspectiveOrigin: '50% 50%',
         }}
       >
-        {/* Flip container: transform rotateY bu div'e uygulanır */}
+        {/* Flip container: insan gözünün rahat takip edebileceği 0.8s çevirme süresi */}
         <div
           style={{
             width: '100%',
             height: '100%',
             position: 'relative',
             transformStyle: 'preserve-3d',
-            transition: 'transform 0.6s cubic-bezier(0.34, 1.2, 0.64, 1)',
+            transition: 'transform 0.8s cubic-bezier(0.25, 1, 0.5, 1)',
             transform: card.isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
           }}
         >
@@ -121,8 +121,8 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
             }}
           >
             <div className="relative z-10 flex flex-col items-center justify-center">
-              <div className="w-8 h-8 rounded-full border border-[var(--gold)]/40 flex items-center justify-center bg-black/20 shadow-inner">
-                <span className="text-[var(--gold)] opacity-85 text-sm font-black font-['Cinzel']">C</span>
+              <div className="w-8 h-8 rounded-full border border-[var(--gold)]/45 flex items-center justify-center bg-black/15">
+                <span className="text-[var(--gold)] opacity-90 text-sm font-black font-['Cinzel']">C</span>
               </div>
             </div>
           </div>
@@ -142,7 +142,7 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
           >
             {card.rank === 'Joker' ? (
               <div className="flex flex-col items-center justify-center h-full gap-0.5">
-                <span className="text-purple-600 text-2xl drop-shadow-sm">🃏</span>
+                <span className="text-purple-600 text-2xl">🃏</span>
                 <span className="text-purple-700 font-black text-[10px] tracking-wider">JOKER</span>
                 <span className="text-[8px] bg-purple-500/15 text-purple-800 rounded px-1.5 font-bold mt-0.5">
                   0 pt

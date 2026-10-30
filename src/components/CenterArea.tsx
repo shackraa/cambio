@@ -17,17 +17,16 @@ interface CenterAreaProps {
 function stableRotation(id: string): number {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffff;
-  return ((hash % 15) - 7); // -7 ile +7 derece arası
+  return ((hash % 13) - 6); // -6 ile +6 derece arası
 }
 
 // Çöpteki her kartın üst üste hafif dağınık birikmesi için deterministik x/y ofseti
 function stableOffset(id: string, stackIdx: number): { x: number; y: number } {
   let hash = 0;
   for (let i = 0; i < id.length; i++) hash = (hash * 17 + id.charCodeAt(i)) & 0xffff;
-  // Üst üste biriktikçe hafif yukarı-sola kalınlık hissi + doğal dağınıklık
-  const jitterX = (hash % 17) - 8;
-  const jitterY = ((hash >> 4) % 17) - 8;
-  const stackLift = Math.min(stackIdx * 0.4, 8);
+  const jitterX = (hash % 13) - 6;
+  const jitterY = ((hash >> 4) % 13) - 6;
+  const stackLift = Math.min(stackIdx * 0.35, 7);
   return {
     x: jitterX,
     y: jitterY - stackLift,
@@ -48,12 +47,12 @@ export function CenterArea({
   const t = translations[lang];
 
   // Kapalı destedeki TÜM kartları fiziksel olarak render ediyoruz (hiçbir kart DOM'dan kaybolmaz).
-  // deck[0] en üstte çekilecek olan karttır, bu yüzden ters çevirip en üste deck[0]'ı koyuyoruz.
+  // deck[0] en üstte çekilecek olan karttır.
   const deckReversed = [...deck].reverse();
 
   return (
     <div className="flex flex-col items-center gap-4 relative">
-      <div className="flex items-center gap-12 relative z-10">
+      <div className="flex items-center gap-14 relative z-10">
         {/* ─── KAPALI DESTE (DECK) — Fiziksel Yığın ─── */}
         <motion.div
           className={`flex flex-col items-center gap-1 relative ${
@@ -63,20 +62,24 @@ export function CenterArea({
           whileTap={canDraw && deckCount > 0 ? { scale: 0.96 } : {}}
           onClick={canDraw && deckCount > 0 ? onDrawFromDeck : undefined}
         >
-          <div className="relative w-20 h-28">
+          <div
+            className="relative w-20 h-28 rounded-[10px]"
+            style={{
+              // Gölgeleri kartlara tek tek vermek yerine yığının tabanına tek bir yumuşak, geniş gölge veriyoruz!
+              boxShadow: deckCount > 0 ? '0 14px 32px rgba(0, 0, 0, 0.38)' : 'none',
+            }}
+          >
             {deckCount > 0 ? (
               deckReversed.map((card, idx) => {
-                // Alt katmanlardan en üste doğru hafif 3D yığın kalınlığı
-                const depthFromBottom = idx;
-                const visualLayer = Math.min(depthFromBottom, 18);
-                const offsetX = visualLayer * 0.45;
-                const offsetY = -visualLayer * 0.65;
+                const visualLayer = Math.min(idx, 16);
+                const offsetX = visualLayer * 0.4;
+                const offsetY = -visualLayer * 0.6;
                 const isTopCard = idx === deckReversed.length - 1;
 
                 return (
                   <div
                     key={card.id}
-                    className="absolute inset-0"
+                    className={`absolute inset-0 ${isTopCard ? '' : 'no-card-shadow'}`}
                     style={{
                       zIndex: idx + 1,
                       transform: `translate3d(${offsetX}px, ${offsetY}px, 0)`,
@@ -87,26 +90,18 @@ export function CenterArea({
                       card={{ ...card, isRevealed: false }}
                       size="lg"
                       canInteract={canDraw && isTopCard}
-                      style={{
-                        boxShadow:
-                          idx === 0
-                            ? '0 10px 24px rgba(0,0,0,0.75)'
-                            : isTopCard
-                              ? '0 4px 12px rgba(0,0,0,0.45)'
-                              : 'none',
-                      }}
                     />
                   </div>
                 );
               })
             ) : (
-              <div className="absolute inset-0 border-2 border-dashed border-white/20 rounded-[10px] flex items-center justify-center bg-black/10">
-                <span className="text-white/30 text-xs font-bold">BOŞ</span>
+              <div className="absolute inset-0 border-2 border-dashed border-white/25 rounded-[10px] flex items-center justify-center bg-emerald-950/30">
+                <span className="text-white/40 text-xs font-bold">BOŞ</span>
               </div>
             )}
           </div>
-          <div className="absolute -bottom-7 w-max text-center">
-            <span className="text-xs font-semibold text-white/70 bg-black/35 px-2.5 py-0.5 rounded-full border border-white/10">
+          <div className="absolute -bottom-8 w-max text-center">
+            <span className="text-xs font-semibold text-emerald-100/80 bg-emerald-950/60 px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-sm">
               📦 {t.cardCount(deckCount)}
             </span>
           </div>
@@ -121,14 +116,19 @@ export function CenterArea({
           whileTap={canDraw && topDiscard ? { scale: 0.96 } : {}}
           onClick={canDraw && topDiscard ? onDrawFromDiscard : undefined}
         >
-          {/* Çöp kutusu zemin halkası (her zaman görünür ki kartlar nereye atılıyor belli olsun) */}
-          <div className="absolute inset-0 border-2 border-dashed border-[var(--gold)]/25 rounded-[10px] flex items-center justify-center bg-black/15 pointer-events-none">
+          {/* Çöp kutusu zemin halkası */}
+          <div
+            className="absolute inset-0 border-2 border-dashed border-[var(--gold)]/30 rounded-[10px] flex items-center justify-center bg-emerald-950/25 pointer-events-none"
+            style={{
+              boxShadow: discardPile.length > 0 ? '0 14px 34px rgba(0, 0, 0, 0.35)' : 'none',
+            }}
+          >
             {discardPile.length === 0 && (
-              <span className="text-white/25 text-2xl">🗑️</span>
+              <span className="text-white/30 text-2xl">🗑️</span>
             )}
           </div>
 
-          {/* Çöpe atılan TÜM kartlar üst üste birikir — hiçbir kart kaybolmaz */}
+          {/* Çöpe atılan TÜM kartlar üst üste birikir — üst üste koyu gölge binmemesi için alt kartlarda no-card-shadow kullanılır */}
           <div className="relative w-full h-full">
             {discardPile.map((card, idx) => {
               const offset = stableOffset(card.id, idx);
@@ -137,7 +137,7 @@ export function CenterArea({
               return (
                 <div
                   key={card.id}
-                  className="absolute inset-0 origin-center"
+                  className={`absolute inset-0 origin-center ${isTop ? '' : 'no-card-shadow'}`}
                   style={{
                     zIndex: idx + 1,
                     pointerEvents: isTop ? 'auto' : 'none',
@@ -154,20 +154,14 @@ export function CenterArea({
                       y: offset.y,
                       rotate: rotation,
                     }}
-                    style={{
-                      boxShadow:
-                        idx >= discardPile.length - 4
-                          ? '0 8px 22px rgba(0,0,0,0.65)'
-                          : '0 2px 6px rgba(0,0,0,0.35)',
-                    }}
                   />
                 </div>
               );
             })}
           </div>
 
-          <div className="absolute -bottom-7 w-max left-1/2 -translate-x-1/2 text-center">
-            <span className="text-xs font-semibold text-white/70 bg-black/35 px-2.5 py-0.5 rounded-full border border-white/10">
+          <div className="absolute -bottom-8 w-max left-1/2 -translate-x-1/2 text-center">
+            <span className="text-xs font-semibold text-emerald-100/80 bg-emerald-950/60 px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-sm">
               🗑 {t.discardPile} ({discardPile.length})
             </span>
           </div>

@@ -2,8 +2,8 @@
 @import "tailwindcss";
 
 :root {
-  --felt-green: #0d3d2a;
-  --felt-mid:   #0a5c40;
+  --felt-green: #0a3524;
+  --felt-mid:   #0f4c35;
   --felt-light: #1a7a55;
   --gold:       #d4a843;
   --gold-light: #f0c96c;
@@ -23,15 +23,15 @@
 
 body {
   font-family: 'Inter', sans-serif;
-  background: var(--felt-green);
+  background-color: #082e1f;
   background-image:
-    radial-gradient(ellipse at 50% 50%, rgba(26,122,85,0.6) 0%, rgba(4,38,26,1) 100%),
+    radial-gradient(ellipse at 50% 50%, rgba(28, 128, 88, 0.55) 0%, rgba(10, 58, 40, 0.92) 65%, rgba(6, 36, 24, 1) 100%),
     repeating-linear-gradient(
       45deg,
       transparent,
-      transparent 10px,
-      rgba(0,0,0,0.04) 10px,
-      rgba(0,0,0,0.04) 20px
+      transparent 12px,
+      rgba(255,255,255,0.012) 12px,
+      rgba(255,255,255,0.012) 24px
     );
   min-height: 100vh;
   color: #fff;
@@ -43,7 +43,7 @@ body {
   transition: filter 0.2s ease-out;
 }
 
-/* ─── Kart yüzleri ─── */
+/* ─── Kart yüzleri: Üst üste bindiğinde siyahlaşma yapmayan yumuşak gölge ─── */
 .card-face {
   background: var(--card-face);
   display: flex;
@@ -51,7 +51,7 @@ body {
   align-items: center;
   justify-content: center;
   border: 2px solid rgba(212,168,67,0.45);
-  box-shadow: 0 6px 22px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.85);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.85);
   overflow: hidden;
 }
 
@@ -77,7 +77,7 @@ body {
 .red-king-card-bg {
   background: linear-gradient(135deg, #fff8eb 0%, #fde68a 50%, #fef3c7 100%);
   border-color: rgba(245, 158, 11, 0.9);
-  box-shadow: 0 6px 24px rgba(245,158,11,0.35), inset 0 1px 0 rgba(255,255,255,0.9);
+  box-shadow: 0 4px 14px rgba(245,158,11,0.25), inset 0 1px 0 rgba(255,255,255,0.9);
 }
 
 .special-card-bg::after {
@@ -89,9 +89,9 @@ body {
 }
 
 .card-back {
-  background: linear-gradient(135deg, var(--card-back) 0%, #0f1a3d 100%);
+  background: linear-gradient(135deg, var(--card-back) 0%, #101c42 100%);
   border: 2px solid rgba(212,168,67,0.55);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.55);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.22);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -114,11 +114,18 @@ body {
     );
 }
 
+/* Yığın içindeki alt kartlarda gölgeyi tamamen sıfırlamak için yardımcı sınıf */
+.no-card-shadow .card-back,
+.no-card-shadow .card-face {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25) !important;
+}
+
 /* ─── Kart renkleri ─── */
 .suit-red   { color: var(--red-suit); }
 .suit-black { color: var(--black-suit); }
 
 /* ─── Scrollbar ─── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 3px; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.15); }
+::-webkit-scrollbar-thumb { background: rgba(212,168,67,0.5); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--gold); }
