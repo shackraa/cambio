@@ -39,6 +39,7 @@ export interface LeaderboardEntry {
 
 // ─── State tipleri ───────────────────────────────────────────
 export interface KnownCard {
+  cardId?: string;
   playerId: string;
   position: number;
   card: Card;
@@ -71,7 +72,7 @@ interface GameStore {
 
   // ── Güç kullanımı
   activePower: PowerType | null;
-  peekTarget: { playerId: string; position: number } | null;
+  peekTarget: { playerId: string; position: number; cardId?: string } | null;
   swappingCards: { card1: Card; card2: Card } | null;
   lastSwappedPosition: { seat: number; pos: number } | null;
   lastSwappedPositions: { seat: number; pos: number }[]; // her iki takas slotunu da vurgulamak için
@@ -515,16 +516,19 @@ export const useGameStore = create<GameStore>()(
           const targetPlayer = state.players.find(p => p.seat === targetSeat);
           const myPlayer = state.players.find(p => p.seat === activeSeat);
           if (!targetPlayer || !myPlayer) return;
+          const targetCard = targetPlayer.cards[targetPosition];
+          if (!targetCard) return;
 
           if (isLocalUser) {
             state.knownCards.push({
+              cardId: targetCard.id,
               playerId: targetPlayer.id,
               position: targetPosition,
-              card: { ...targetPlayer.cards[targetPosition] },
+              card: { ...targetCard },
               expiresAt: Date.now() + 4800,
             });
           }
-          state.peekTarget = { playerId: targetPlayer.id, position: targetPosition };
+          state.peekTarget = { playerId: targetPlayer.id, position: targetPosition, cardId: targetCard.id };
           state.lastSwappedPositions = [{ seat: targetSeat, pos: targetPosition }];
 
           state.gameLog.push({
@@ -560,15 +564,18 @@ export const useGameStore = create<GameStore>()(
         set(state => {
           const targetPlayer = state.players.find(p => p.seat === targetSeat);
           if (!targetPlayer) return;
+          const targetCard = targetPlayer.cards[targetPosition];
+          if (!targetCard) return;
           if (isLocalUser) {
             state.knownCards.push({
+              cardId: targetCard.id,
               playerId: targetPlayer.id,
               position: targetPosition,
-              card: { ...targetPlayer.cards[targetPosition] },
+              card: { ...targetCard },
               expiresAt: Date.now() + 8000,
             });
           }
-          state.peekTarget = { playerId: targetPlayer.id, position: targetPosition };
+          state.peekTarget = { playerId: targetPlayer.id, position: targetPosition, cardId: targetCard.id };
           state.lastSwappedPositions = [{ seat: targetSeat, pos: targetPosition }];
         });
         return;
@@ -718,6 +725,25 @@ export const useGameStore = create<GameStore>()(
             state.lastSwappedPositions = [];
             SoundManager.playCardDrop();
 
+            // GLITCH FIX: Ortaya yapıştırılan kartın peek ve knownCards kayıtlarını temizle,
+            // ve kalan kartların pozisyon indekslerini güncelle (komşu kartın yanlışlıkla açılmasını önle)!
+            if (state.peekTarget && state.peekTarget.playerId === targetPlayer.id) {
+              if (state.peekTarget.cardId === removedCard.id || state.peekTarget.position === cardIdx) {
+                state.peekTarget = null;
+              } else if (state.peekTarget.position > cardIdx) {
+                state.peekTarget.position -= 1;
+              }
+            }
+
+            state.knownCards = state.knownCards
+              .filter(k => k.card.id !== removedCard.id && !(k.playerId === targetPlayer.id && k.position === cardIdx))
+              .map(k => {
+                if (k.playerId === targetPlayer.id && k.position > cardIdx) {
+                  return { ...k, position: k.position - 1 };
+                }
+                return k;
+              });
+
             if (initiatorSeat === targetSeat) {
               state.gameLog.push({
                 id: mkLogId(),
@@ -823,6 +849,24 @@ export const useGameStore = create<GameStore>()(
 
           const cardToGive = state.players[initiatorIdx].cards.splice(myPosition, 1)[0];
           state.players[targetIdx].cards.push({ ...cardToGive, isRevealed: false });
+
+          // GLITCH FIX: Verilen kartın peek ve knownCards kayıtlarını temizle
+          if (state.peekTarget && state.peekTarget.playerId === initiator.id) {
+            if (state.peekTarget.cardId === cardToGive.id || state.peekTarget.position === myPosition) {
+              state.peekTarget = null;
+            } else if (state.peekTarget.position > myPosition) {
+              state.peekTarget.position -= 1;
+            }
+          }
+
+          state.knownCards = state.knownCards
+            .filter(k => k.card.id !== cardToGive.id && !(k.playerId === initiator.id && k.position === myPosition))
+            .map(k => {
+              if (k.playerId === initiator.id && k.position > myPosition) {
+                return { ...k, position: k.position - 1 };
+              }
+              return k;
+            });
 
           const targetPlayerName = state.players[targetIdx].nickname;
           state.lastSwappedPositions = [{ seat: giveCardTarget!, pos: state.players[targetIdx].cards.length - 1 }];

@@ -162,7 +162,14 @@ export const PlayerArea = memo(function PlayerArea({
     });
   }
   if (peekTarget && peekTarget.playerId === player.id) {
-    activePeekPositions.push(peekTarget.position);
+    if (peekTarget.cardId) {
+      const idx = player.cards.findIndex(c => c.id === peekTarget.cardId);
+      if (idx !== -1) {
+        activePeekPositions.push(idx);
+      }
+    } else {
+      activePeekPositions.push(peekTarget.position);
+    }
   }
 
   const processedCards = player.cards.map((card, idx) => {
@@ -170,12 +177,14 @@ export const PlayerArea = memo(function PlayerArea({
       return card;
     }
 
+    // GLITCH FIX: Bilinen kart yalnızca tam aynı kart ID'si ile eşleşir.
+    // Kart eksildiğinde komşu kartların yanlışlıkla açılması veya başkasının rank'ını alması kesinlikle önlenir.
     const known = knownCards.find(
-      (k) => k.playerId === player.id && k.position === idx
+      (k) => (k.cardId ? k.cardId === card.id : k.card.id === card.id)
     );
     const isActive =
       known && (!known.expiresAt || known.expiresAt > Date.now());
-    if (isActive) {
+    if (isActive && known.card.id === card.id) {
       return {
         ...card,
         rank: known.card.rank,

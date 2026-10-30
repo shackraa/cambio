@@ -105,11 +105,11 @@ export function GameBoard() {
     const w = typeof window !== 'undefined' ? window.innerWidth : 1280;
     const h = typeof window !== 'undefined' ? window.innerHeight : 800;
     const isFs = typeof document !== 'undefined' && Boolean(document.fullscreenElement);
-    const isUltraCompact = h < 640 || w < 640;
-    const isCompact = !isUltraCompact && (h < 820 || w < 1050);
-    // 1080p ekranlarda (%125 Windows ölçeklemesinde h ~800-864px) kartların TurnIndicator'a asla taşmaması için 'md', sadece h >= 960 geniş ekranlarda 'lg'
-    const cardSizeMe: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : (h >= 960 && w >= 1400 ? 'lg' : 'md');
-    const cardSizeOpponent: 'xs' | 'sm' | 'md' = isUltraCompact ? 'xs' : isCompact ? 'xs' : (h >= 960 && w >= 1400 ? 'md' : 'sm');
+    const isUltraCompact = h < 560 || w < 600;
+    const isCompact = !isUltraCompact && (h < 680 || w < 960);
+    // Masaüstü ve geniş ekranlarda orijinal BÜYÜK ve dolgun 'lg' kartlar (112px) korunur!
+    const cardSizeMe: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'lg';
+    const cardSizeOpponent: 'xs' | 'sm' | 'md' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'md';
     return {
       isDesktop: w >= 1024 && h >= 600,
       isCompact,
@@ -125,10 +125,10 @@ export function GameBoard() {
       const w = window.innerWidth;
       const h = window.innerHeight;
       const isFs = Boolean(document.fullscreenElement);
-      const isUltraCompact = h < 640 || w < 640;
-      const isCompact = !isUltraCompact && (h < 820 || w < 1050);
-      const cardSizeMe: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : (h >= 960 && w >= 1400 ? 'lg' : 'md');
-      const cardSizeOpponent: 'xs' | 'sm' | 'md' = isUltraCompact ? 'xs' : isCompact ? 'xs' : (h >= 960 && w >= 1400 ? 'md' : 'sm');
+      const isUltraCompact = h < 560 || w < 600;
+      const isCompact = !isUltraCompact && (h < 680 || w < 960);
+      const cardSizeMe: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'lg';
+      const cardSizeOpponent: 'xs' | 'sm' | 'md' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'md';
       setLayoutMetrics({
         isDesktop: w >= 1024 && h >= 600,
         isCompact,
