@@ -95,6 +95,7 @@ interface PlayerAreaProps {
   isMe?: boolean;
   compact?: boolean;
   ultraCompact?: boolean;
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   canInteract?: boolean;
   onCardClick?: (position: number) => void;
   highlightPositions?: number[];
@@ -109,6 +110,7 @@ export const PlayerArea = memo(function PlayerArea({
   isMe,
   compact = false,
   ultraCompact = false,
+  size,
   canInteract = true,
   onCardClick,
   highlightPositions = [],
@@ -116,13 +118,17 @@ export const PlayerArea = memo(function PlayerArea({
   drawnCard,
   onDiscardDrawn,
 }: PlayerAreaProps) {
-  const cardSize: 'xs' | 'sm' | 'md' | 'lg' = ultraCompact
-    ? 'xs'
-    : compact
-      ? isMe
-        ? 'sm'
-        : 'xs'
-      : 'lg';
+  const cardSize: 'xs' | 'sm' | 'md' | 'lg' =
+    size ??
+    (ultraCompact
+      ? 'xs'
+      : compact
+        ? isMe
+          ? 'sm'
+          : 'xs'
+        : isMe
+          ? 'md'
+          : 'sm');
 
   const knownCards = useGameStore((s) => s.knownCards);
   const phase = useGameStore((s) => s.phase);
@@ -232,15 +238,17 @@ export const PlayerArea = memo(function PlayerArea({
           )}
         </div>
 
-        {/* Bu oyuncu CAMBIO dediyse isminin hemen yanında çağrı pulu görünür */}
+        {/* Bu oyuncu CAMBIO dediyse isminin hemen yanında kilitli çağrı pulu görünür */}
         <AnimatePresence>
           {isCambioCaller && phase !== 'results' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8, x: -6 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="flex items-center gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[9px] sm:text-[11px] font-extrabold tracking-wider uppercase border border-amber-200/70"
+              className="flex items-center gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[9px] sm:text-[11px] font-extrabold tracking-wider uppercase border border-amber-200/70 shadow-[0_2px_8px_rgba(234,88,12,0.4)]"
+              title="Cambio diyen oyuncunun kartları kilitlidir, dokunulamaz"
             >
+              <span className="text-[10px]">🔒</span>
               <span>CAMBIO!</span>
             </motion.div>
           )}

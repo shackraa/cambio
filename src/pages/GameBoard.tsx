@@ -12,6 +12,7 @@ import { RulesPanel } from '../components/RulesPanel';
 import { GameBackgroundOverlay } from '../components/GameBackgroundOverlay';
 import { Leaderboard } from '../components/Leaderboard';
 import { ToastContainer } from '../components/ToastContainer';
+import { useToastStore } from '../store/useToastStore';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 import { useBotAI } from '../hooks/useBotAI';
@@ -87,7 +88,6 @@ export function GameBoard() {
   const [powerSelection, setPowerSelection] = useState<{ seat: number; pos: number; step: number } | null>(null);
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
   const [stickTimeLeft, setStickTimeLeft] = useState<number | null>(null);
-  const [betweenHands, setBetweenHands] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(true);
   const [isMuted, setIsMuted] = useState(() => SoundManager.getMuted());
   const [showCustomize, setShowCustomize] = useState(false);
@@ -100,24 +100,41 @@ export function GameBoard() {
     burgundy: 'radial-gradient(ellipse at center, #73293b 0%, #4d1a27 62%, #331019 100%)',
   };
 
-  // Masaüstü / Mobil / Tam Ekran sığdırma tespiti
-  const [layoutMetrics, setLayoutMetrics] = useState(() => ({
-    isDesktop: window.innerWidth >= 1024 && window.innerHeight >= 600,
-    isCompact: window.innerWidth < 1100 || window.innerHeight < 800,
-    isUltraCompact: window.innerHeight < 640 || window.innerWidth < 640,
-    hideMobileTabBar: Boolean(document.fullscreenElement) || window.innerHeight < 580,
-  }));
+  // Masaüstü / Mobil / Tam Ekran sığdırma ve duyarlı kart boyutlandırması
+  const [layoutMetrics, setLayoutMetrics] = useState(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1280;
+    const h = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const isFs = typeof document !== 'undefined' && Boolean(document.fullscreenElement);
+    const isUltraCompact = h < 640 || w < 640;
+    const isCompact = !isUltraCompact && (h < 820 || w < 1050);
+    // 1080p ekranlarda (%125 Windows ölçeklemesinde h ~800-864px) kartların TurnIndicator'a asla taşmaması için 'md', sadece h >= 960 geniş ekranlarda 'lg'
+    const cardSizeMe: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : (h >= 960 && w >= 1400 ? 'lg' : 'md');
+    const cardSizeOpponent: 'xs' | 'sm' | 'md' = isUltraCompact ? 'xs' : isCompact ? 'xs' : (h >= 960 && w >= 1400 ? 'md' : 'sm');
+    return {
+      isDesktop: w >= 1024 && h >= 600,
+      isCompact,
+      isUltraCompact,
+      cardSizeMe,
+      cardSizeOpponent,
+      hideMobileTabBar: isFs || h < 580,
+    };
+  });
 
   useLayoutEffect(() => {
     const updateLayout = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
       const isFs = Boolean(document.fullscreenElement);
+      const isUltraCompact = h < 640 || w < 640;
+      const isCompact = !isUltraCompact && (h < 820 || w < 1050);
+      const cardSizeMe: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : (h >= 960 && w >= 1400 ? 'lg' : 'md');
+      const cardSizeOpponent: 'xs' | 'sm' | 'md' = isUltraCompact ? 'xs' : isCompact ? 'xs' : (h >= 960 && w >= 1400 ? 'md' : 'sm');
       setLayoutMetrics({
         isDesktop: w >= 1024 && h >= 600,
-        isCompact: w < 1100 || h < 800,
-        isUltraCompact: h < 640 || w < 640,
-        // Mobilde tam ekrana geçildiğinde veya kısa yatay ekranda alttaki tab bar gizlenir ki masa %100 ekrana sığsın!
+        isCompact,
+        isUltraCompact,
+        cardSizeMe,
+        cardSizeOpponent,
         hideMobileTabBar: isFs || h < 580,
       });
     };
@@ -132,7 +149,7 @@ export function GameBoard() {
     };
   }, []);
 
-  const { isDesktop, isCompact, isUltraCompact, hideMobileTabBar } = layoutMetrics;
+  const { isDesktop, isCompact, isUltraCompact, cardSizeMe, cardSizeOpponent, hideMobileTabBar } = layoutMetrics;
 
   const transitionPeekState = useGameStore(s => s.transitionPeekState);
   const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
@@ -225,13 +242,8 @@ export function GameBoard() {
       const timer = setTimeout(async () => {
         clearInterval(interval);
         setStickTimeLeft(null);
-        // Eller arası kısa geçiş göstergesi
-        setBetweenHands(true);
-        setTimeout(async () => {
-          setBetweenHands(false);
-          advanceTurn(useGameStore.getState());
-          if (isOnlineMode && myTurn) await syncGameState();
-        }, 400);
+        advanceTurn(useGameStore.getState());
+        if (isOnlineMode && myTurn) await syncGameState();
       }, 3000);
       return () => { clearTimeout(timer); clearInterval(interval); setStickTimeLeft(null); };
     }
@@ -239,11 +251,9 @@ export function GameBoard() {
 
   const doAction = useCallback((fn: () => void, event?: Parameters<typeof sendAction>[0]) => {
     fn();
+    // Online modda eylemi doğrudan gönder; gereksiz ani sync tetikleyip animasyonu dondurma
     if (isOnlineMode && event) sendAction(event);
-    if (isOnlineMode && myTurn) {
-      setTimeout(() => syncGameState(), 100);
-    }
-  }, [isOnlineMode, myTurn, sendAction, syncGameState]);
+  }, [isOnlineMode, sendAction]);
 
   const handleUsePower = useCallback((targetSeat: number, targetPos: number, swapWith?: number) => {
     if (activePower) {
@@ -257,6 +267,11 @@ export function GameBoard() {
   // Bir oyuncunun kartlarıyla şu an etkileşime girilip girilemeyeceğini hesapla (hover/click için)
   const canInteractWithSeat = useCallback((seat: number) => {
     const isMySeat = seat === lobbyInfo.seat;
+    // RESMİ KURAL: Cambio diyen oyuncunun eli kilitlidir; başkaları onun kartıyla takas yapamaz ve kartına dokunamaz
+    if (cambioCaller !== null && seat === cambioCaller && !isMySeat) {
+      return false;
+    }
+
     if (phase === 'peek') {
       return peekState === 'select' && isMySeat;
     }
@@ -276,10 +291,21 @@ export function GameBoard() {
       if (activePower === 'spy_swap') return !powerSelection ? !isMySeat : isMySeat;
     }
     return false;
-  }, [phase, peekState, lobbyInfo.seat, discardPile.length, myTurn, activePower, powerSelection]);
+  }, [phase, peekState, lobbyInfo.seat, discardPile.length, myTurn, activePower, powerSelection, cambioCaller]);
 
   // Genel kart tıklama yöneticisi
   const handleCardClick = useCallback((seat: number, pos: number) => {
+    // RESMİ KURAL: Cambio diyen oyuncunun eli kilitlidir, rakip oyuncular onun kartlarına dokunamaz/yapıştıramaz
+    if (cambioCaller !== null && seat === cambioCaller && seat !== lobbyInfo.seat) {
+      useToastStore.getState().addToast(
+        langStore.lang === 'tr'
+          ? '🔒 Cambio diyen oyuncunun kartları kilitlidir, dokunulamaz!'
+          : "🔒 Cambio caller's hand is locked!",
+        'info'
+      );
+      return;
+    }
+
     if (phase === 'peek') {
       const peekState = useGameStore.getState().peekState;
       if (peekState !== 'select') return;
@@ -387,27 +413,6 @@ export function GameBoard() {
     >
       <ToastContainer />
 
-      {/* Eller arası geçiş overlay */}
-      <AnimatePresence>
-        {betweenHands && (
-          <motion.div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-emerald-950/30 backdrop-blur-[2px] pointer-events-none"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
-          >
-            <motion.div
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.96, opacity: 0 }}
-              className="text-center"
-            >
-              <div className="text-[#fdf6e3] text-2xl font-bold tracking-widest drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]">{t.passingTurn}</div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {cambioFlash && (
@@ -755,7 +760,7 @@ export function GameBoard() {
         <div className="flex-1 min-h-0 flex flex-col gap-1.5 sm:gap-2">
           <LayoutGroup id="cards">
           <div
-            className="relative w-full rounded-[20px] sm:rounded-[34px] flex-1 min-h-0 flex flex-col justify-between transition-colors duration-500"
+            className="relative w-full rounded-[20px] sm:rounded-[34px] flex-1 min-h-0 flex flex-col justify-between transition-colors duration-500 overflow-hidden"
             style={{
               background: TABLE_THEME_GRADIENTS[tableTheme],
               boxShadow: '0 14px 36px rgba(0,0,0,0.34), inset 0 0 50px rgba(0,0,0,0.2)',
@@ -776,6 +781,7 @@ export function GameBoard() {
                     position="top"
                     compact={isCompact}
                     ultraCompact={isUltraCompact}
+                    size={cardSizeOpponent}
                     canInteract={canInteractWithSeat(topPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(topPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === topPlayer.seat ? [powerSelection.pos] : []}
@@ -793,6 +799,7 @@ export function GameBoard() {
                     position="left"
                     compact={isCompact}
                     ultraCompact={isUltraCompact}
+                    size={cardSizeOpponent}
                     canInteract={canInteractWithSeat(leftPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(leftPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === leftPlayer.seat ? [powerSelection.pos] : []}
@@ -816,6 +823,7 @@ export function GameBoard() {
                     discardPile={discardPile}
                     compact={isCompact}
                     ultraCompact={isUltraCompact}
+                    cardSize={cardSizeOpponent === 'xs' ? 'xs' : cardSizeOpponent === 'sm' ? 'sm' : 'md'}
                     canDraw={myTurn && phase === 'draw'}
                     onDrawFromDeck={() => doAction(() => drawFromDeck(), { type: 'DRAW_FROM_DECK' })}
                     onDrawFromDiscard={() => doAction(() => drawFromDiscard(), { type: 'DRAW_FROM_DISCARD' })}
@@ -902,6 +910,7 @@ export function GameBoard() {
                     position="right"
                     compact={isCompact}
                     ultraCompact={isUltraCompact}
+                    size={cardSizeOpponent}
                     canInteract={canInteractWithSeat(rightPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(rightPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === rightPlayer.seat ? [powerSelection.pos] : []}
@@ -912,7 +921,7 @@ export function GameBoard() {
               </div>
 
               {/* Alt orta: Sen */}
-              <div className={`col-start-2 row-start-3 flex flex-col items-center justify-end ${isUltraCompact ? 'gap-0.5 pb-0.5' : 'gap-1.5 sm:gap-2 pb-1 sm:pb-2'}`}>
+              <div className={`col-start-2 row-start-3 flex flex-col items-center justify-end min-h-0 shrink-0 ${isUltraCompact ? 'gap-0.5 pb-0.5' : 'gap-1.5 sm:gap-2 pb-1 sm:pb-2'}`}>
               {me && (
                 <PlayerArea
                   player={me}
@@ -920,6 +929,7 @@ export function GameBoard() {
                   isMe
                   compact={isCompact}
                   ultraCompact={isUltraCompact}
+                  size={cardSizeMe}
                   canInteract={canInteractWithSeat(me.seat)}
                   onCardClick={(pos) => handleCardClick(me.seat, pos)}
                   highlightPositions={

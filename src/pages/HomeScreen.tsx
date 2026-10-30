@@ -925,7 +925,11 @@ export function HomeScreen() {
                   className="w-full"
                 >
                   <div className="text-red-200 text-xs bg-red-500/20 border border-red-400/40 rounded-xl py-2.5 px-4 font-bold text-center">
-                    {error}
+                    {error.includes('fetch') || error.includes('Failed')
+                      ? langStore.lang === 'tr'
+                        ? 'Oda bağlantısı kurulamadı. Lütfen ağınızı kontrol edin veya "Botlarla" seçeneğini seçin.'
+                        : 'Could not connect to room. Please check network or play with Bots.'
+                      : error}
                   </div>
                 </motion.div>
               )}

@@ -125,7 +125,7 @@ function nextTurn(current: number, players: Player[]): number {
   return current;
 }
 
-function makePlayers(myNickname: string, opponents: string[]): Player[] {
+function makePlayers(myNickname: string, opponents: string[], startSeat = 0): Player[] {
   const nicks = [myNickname, ...opponents.slice(0, 3)];
   while (nicks.length < 4) nicks.push(`Oyuncu ${nicks.length + 1}`);
   return nicks.map((nickname, seat) => ({
@@ -134,7 +134,7 @@ function makePlayers(myNickname: string, opponents: string[]): Player[] {
     seat,
     score: 0,
     isOnline: true,
-    isCurrentTurn: seat === 0,
+    isCurrentTurn: seat === startSeat,
     cards: [],
   }));
 }
@@ -223,7 +223,9 @@ export const useGameStore = create<GameStore>()(
     initGame: (myNickname, opponents) => {
       clearDealingTimers();
       const shuffled = shuffleDeck(createDeck());
-      const players = makePlayers(myNickname, opponents);
+      // RESMİ KURAL / ADALET: Her elde oyun her zaman aynı koltukta başlamaz, rastgele bir oyuncu başlar
+      const startSeat = Math.floor(Math.random() * 4);
+      const players = makePlayers(myNickname, opponents, startSeat);
 
       // Başlangıçta tüm 54 kart ortadaki kapalı destede durur!
       set(state => {
@@ -231,7 +233,7 @@ export const useGameStore = create<GameStore>()(
         state.deck = shuffled;
         state.discardPile = [];
         state.players = players;
-        state.currentTurn = 0;
+        state.currentTurn = startSeat;
         state.drawnCard = null;
         state.drawnFrom = null;
         state.cambioCaller = null;
@@ -496,6 +498,16 @@ export const useGameStore = create<GameStore>()(
       if (!targetPlayerSnap || !myPlayerSnap) return;
       if (!targetPlayerSnap.cards[targetPosition]) return;
 
+      // RESMİ KURAL: Cambio diyen oyuncunun kartları kilitlenir — başka oyuncular onunla takas yapamaz
+      if (
+        (power === 'blind_swap' || power === 'spy_swap') &&
+        stateSnapshot.cambioCaller !== null &&
+        targetSeat === stateSnapshot.cambioCaller &&
+        targetSeat !== activeSeat
+      ) {
+        return;
+      }
+
       // ── 1) KENDİ KARTINA VEYA RAKİP KARTINA BAKMA (7-8 / 9-10) ──
       if (power === 'peek_own' || power === 'peek_other') {
         SoundManager.playCardFlip();
@@ -652,9 +664,12 @@ export const useGameStore = create<GameStore>()(
 
     // ── Yapıştırma (Stick) — Önce Kartı Olduğu Yerde Aç, Sonra Çöpe Uçur! ──
     stickCard: (targetSeat, targetPosition, discardCardId, initiatorSeat) => {
-      const { discardPile, players } = get();
+      const { discardPile, players, cambioCaller } = get();
       const topDiscard = discardPile[discardPile.length - 1];
       if (!topDiscard || topDiscard.id !== discardCardId) return;
+
+      // RESMİ KURAL: Cambio diyen oyuncunun kartları kilitlidir — başkası onun kartına yapıştırma yapamaz
+      if (cambioCaller !== null && targetSeat === cambioCaller && initiatorSeat !== targetSeat) return;
 
       const initiator = players.find(p => p.seat === initiatorSeat);
       const targetPlayer = players.find(p => p.seat === targetSeat);
@@ -784,8 +799,11 @@ export const useGameStore = create<GameStore>()(
 
     // ── Kart Verme (Give Card) ──────────────────────────────
     giveCardToOpponent: (myPosition, initiatorSeat) => {
-      const { phase, giveCardTarget, players } = get();
+      const { phase, giveCardTarget, players, cambioCaller } = get();
       if (phase !== 'give_card' || giveCardTarget === undefined) return;
+
+      // RESMİ KURAL: Cambio diyen oyuncunun eli kilitlidir, ceza kartı ona verilemez
+      if (cambioCaller !== null && giveCardTarget === cambioCaller) return;
 
       const initiator = players.find(p => p.seat === initiatorSeat);
       if (!initiator) return;

@@ -15,6 +15,7 @@ interface CenterAreaProps {
   myPlayerId?: string;
   compact?: boolean;
   ultraCompact?: boolean;
+  cardSize?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 // Çöpteki her kartın masaya atıldığında hafif organik bir açıyla durması için deterministik açı
@@ -45,12 +46,20 @@ export const CenterArea = memo(function CenterArea({
   canDraw,
   compact = false,
   ultraCompact = false,
+  cardSize,
 }: CenterAreaProps) {
   const deckCount = deck.length;
   const topDeckCard = deck[0] ?? null;
   const topDiscard = discardPile[discardPile.length - 1] ?? null;
-  const cardSize = ultraCompact ? 'xs' : compact ? 'sm' : 'lg';
-  const boxClass = ultraCompact ? 'w-11 h-16' : compact ? 'w-14 h-20' : 'w-20 h-28';
+  const effectiveCardSize = cardSize ?? (ultraCompact ? 'xs' : compact ? 'sm' : 'md');
+  const boxClass =
+    effectiveCardSize === 'xs'
+      ? 'w-11 h-16'
+      : effectiveCardSize === 'sm'
+        ? 'w-14 h-20'
+        : effectiveCardSize === 'md'
+          ? 'w-16 h-24'
+          : 'w-20 h-28';
 
   const lang = useLangStore((s) => s.lang);
   const cardBack = useCustomizationStore((s) => s.cardBack);
@@ -111,7 +120,7 @@ export const CenterArea = memo(function CenterArea({
               >
                 <GameCard
                   card={{ ...topDeckCard, isRevealed: false }}
-                  size={cardSize}
+                  size={effectiveCardSize}
                   canInteract={canDraw}
                 />
               </div>
@@ -169,7 +178,7 @@ export const CenterArea = memo(function CenterArea({
                 >
                   <GameCard
                     card={{ ...card, isRevealed: true }}
-                    size={cardSize}
+                    size={effectiveCardSize}
                     canInteract={canDraw && isTop}
                     animate={{
                       opacity: 1,

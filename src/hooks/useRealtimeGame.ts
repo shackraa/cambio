@@ -158,6 +158,7 @@ export function useRealtimeGame({
 
     const shuffled = shuffleDeck(createDeck());
     const { playerHands, remainingDeck } = dealCards(shuffled);
+    const randomStartSeat = Math.floor(Math.random() * 4);
 
     const players = seatPlayers.map((p, idx) => ({
       id: p.id,
@@ -165,7 +166,7 @@ export function useRealtimeGame({
       seat: p.seat,
       score: 0,
       isOnline: p.isOnline,
-      isCurrentTurn: p.seat === 0,
+      isCurrentTurn: p.seat === randomStartSeat,
       cards: playerHands[idx] ?? [],
     }));
 
@@ -173,7 +174,7 @@ export function useRealtimeGame({
       players,
       deck: remainingDeck,
       discardPile: [],
-      currentTurn: 0,
+      currentTurn: randomStartSeat,
       phase: 'peek' as const,
       drawnCard: null,
       cambioCaller: null,
@@ -340,20 +341,24 @@ export function useRealtimeGame({
 
     const unsubFull = p2pRoomManager.onFullGameState((gs) => {
       if (!gs) return;
-      useGameStore.setState((cur) => ({
-        ...cur,
-        players: gs.players ?? cur.players,
-        phase: gs.phase ?? cur.phase,
-        currentTurn: gs.currentTurn ?? cur.currentTurn,
-        discardPile: gs.discardPile ?? cur.discardPile,
-        deck: gs.deck ?? cur.deck,
-        drawnCard: gs.drawnCard !== undefined ? gs.drawnCard : cur.drawnCard,
-        cambioCaller: gs.cambioCaller !== undefined ? gs.cambioCaller : cur.cambioCaller,
-        remainingTurns: gs.remainingTurns ?? cur.remainingTurns,
-        winner: gs.winner !== undefined ? gs.winner : cur.winner,
-        finalScores: gs.finalScores ?? cur.finalScores,
-        turnCount: gs.turnCount ?? cur.turnCount,
-      }));
+      useGameStore.setState((cur) => {
+        // Eğer yerel olarak devam eden aktif bir takas veya kart hareketi varsa oyuncu el kartlarını ezme
+        const isLocalSwapAnimating = cur.lastSwappedPositions.length > 0 || cur.swappingCards !== null;
+        return {
+          ...cur,
+          players: isLocalSwapAnimating ? cur.players : (gs.players ?? cur.players),
+          phase: gs.phase ?? cur.phase,
+          currentTurn: gs.currentTurn ?? cur.currentTurn,
+          discardPile: gs.discardPile ?? cur.discardPile,
+          deck: gs.deck ?? cur.deck,
+          drawnCard: gs.drawnCard !== undefined ? gs.drawnCard : cur.drawnCard,
+          cambioCaller: gs.cambioCaller !== undefined ? gs.cambioCaller : cur.cambioCaller,
+          remainingTurns: gs.remainingTurns ?? cur.remainingTurns,
+          winner: gs.winner !== undefined ? gs.winner : cur.winner,
+          finalScores: gs.finalScores ?? cur.finalScores,
+          turnCount: gs.turnCount ?? cur.turnCount,
+        };
+      });
     });
 
     return () => {
