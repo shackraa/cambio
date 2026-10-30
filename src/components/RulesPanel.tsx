@@ -15,105 +15,111 @@ export function RulesPanel() {
   const CARD_POWERS = [
     {
       id: 'red_king',
-      cards: 'K ♥♦',
+      rank: 'K',
+      suit: '♥♦',
+      isRed: true,
       value: '−1 pt',
       title: t.note_valuable,
-      desc: lang === 'tr' ? 'Oyundaki en düşük puanlı kart' : 'Lowest point card in the deck',
-      accent: '#fbbf24',
+      desc: lang === 'tr' ? 'Oyundaki en değerli kart, puanı düşürür' : 'Best card in the game, subtracts 1 pt',
+      badgeColor: '#fbbf24',
       activeMatch: false,
     },
     {
       id: 'joker',
-      cards: 'JOKER',
+      rank: '★',
+      suit: 'JKR',
+      isRed: false,
       value: '0 pt',
       title: t.note_zero,
-      desc: lang === 'tr' ? 'Hiç puan eklemez' : 'Adds zero points to hand',
-      accent: '#c084fc',
-      activeMatch: false,
-    },
-    {
-      id: 'low',
-      cards: 'A – 6',
-      value: '1–6 pt',
-      title: lang === 'tr' ? 'Standart Kartlar' : 'Standard Cards',
-      desc: lang === 'tr' ? 'Sayı değeri kadar puan yazar' : 'Worth their face value',
-      accent: '#94a3b8',
+      desc: lang === 'tr' ? 'El puanına hiç yük bindirmez' : 'Zero points, safe to keep',
+      badgeColor: '#c084fc',
       activeMatch: false,
     },
     {
       id: 'peek_own',
-      cards: '7 – 8',
+      rank: '7·8',
+      suit: '♠♥',
+      isRed: false,
       value: '7–8 pt',
       title: t.power_7_8,
-      desc: lang === 'tr' ? 'Desteden çekip çöpe atınca aktif' : 'Draw from deck & discard to use',
-      accent: '#a78bfa',
+      desc: lang === 'tr' ? 'Desteden çekip çöpe atınca 1 kartına bak' : 'Discard from deck to peek 1 own card',
+      badgeColor: '#a78bfa',
       activeMatch: phase === 'power' && activePower === 'peek_own',
     },
     {
       id: 'peek_other',
-      cards: '9 – 10',
+      rank: '9·10',
+      suit: '♣♦',
+      isRed: true,
       value: '9–10 pt',
       title: t.power_9_10,
-      desc: lang === 'tr' ? 'Desteden çekip çöpe atınca aktif' : 'Draw from deck & discard to use',
-      accent: '#34d399',
+      desc: lang === 'tr' ? 'Desteden çekip çöpe atınca rakip kartına bak' : 'Discard from deck to peek opponent card',
+      badgeColor: '#34d399',
       activeMatch: phase === 'power' && activePower === 'peek_other',
     },
     {
       id: 'blind_swap',
-      cards: 'J – Q',
+      rank: 'J·Q',
+      suit: '♠♦',
+      isRed: false,
       value: '10 pt',
       title: t.power_J_Q,
-      desc: lang === 'tr' ? 'Bakmadan iki kartın yerini değiştir' : 'Swap 2 cards without looking',
-      accent: '#fb923c',
+      desc: lang === 'tr' ? 'Bakmadan kendi kartınla rakip kartını değiştir' : 'Swap your card with an opponent blindly',
+      badgeColor: '#fb923c',
       activeMatch: phase === 'power' && activePower === 'blind_swap',
     },
     {
       id: 'spy_swap',
-      cards: 'K ♠♣',
+      rank: 'K',
+      suit: '♠♣',
+      isRed: false,
       value: '10 pt',
       title: t.power_K_black,
-      desc: lang === 'tr' ? 'Önce rakip kartı gör, istersen takasla' : 'Look at opponent card, then swap',
-      accent: '#f87171',
+      desc: lang === 'tr' ? 'Önce rakip kartını gör, istersen takasla' : 'Look at opponent card first, then swap',
+      badgeColor: '#f87171',
       activeMatch: phase === 'power' && activePower === 'spy_swap',
     },
   ];
 
   const RULES = [
-    { step: '01', title: lang === 'tr' ? 'Amaç' : 'Objective', text: t.rule_1 },
-    { step: '02', title: lang === 'tr' ? 'İlk Bakış' : 'Initial Peek', text: t.rule_2 },
-    { step: '03', title: lang === 'tr' ? 'Sıra Akışı' : 'Turn Action', text: t.rule_3 },
-    { step: '04', title: lang === 'tr' ? 'Yapıştırma' : 'Sticking Cards', text: t.rule_5 },
-    { step: '05', title: lang === 'tr' ? 'Hatalı Yapıştırma' : 'Wrong Stick', text: t.rule_6 },
-    { step: '06', title: 'CAMBIO', text: t.rule_4 },
+    { step: '01', title: lang === 'tr' ? 'En Düşük Puan Kazanır' : 'Lowest Score Wins', text: t.rule_1 },
+    { step: '02', title: lang === 'tr' ? 'İlk 2 Kartı Ezberle' : 'Memorize 2 Cards', text: t.rule_2 },
+    { step: '03', title: lang === 'tr' ? 'Çek, Değiştir veya At' : 'Draw, Swap or Discard', text: t.rule_3 },
+    { step: '04', title: lang === 'tr' ? 'Aynı Kartı Yapıştır' : 'Stick Matching Cards', text: t.rule_5 },
+    { step: '05', title: lang === 'tr' ? 'Ceza Kartına Dikkat' : 'Watch Out for Penalties', text: t.rule_6 },
+    { step: '06', title: 'CAMBIO!', text: t.rule_4 },
   ];
 
   return (
-    <div
-      className="flex flex-col flex-1 min-h-0 rounded-2xl overflow-hidden"
-      style={{
-        background: 'rgba(8, 36, 25, 0.88)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.28)',
-      }}
-    >
-      {/* Başlık + Sekme Geçişi */}
-      <div className="px-4 py-3 flex items-center justify-between gap-2 shrink-0 border-b border-white/[0.08] bg-white/[0.02]">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)]" />
-          <h3 className="text-white/90 font-bold text-xs uppercase tracking-[0.12em]">
-            {lang === 'tr' ? 'REHBER' : 'GUIDE'}
-          </h3>
+    <div className="luxury-panel flex flex-col flex-1 min-h-0 rounded-[24px] overflow-hidden">
+      {/* Lüks Başlık + Sekme Seçici */}
+      <div className="luxury-panel-header px-5 py-3.5 flex items-center justify-between gap-2 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--gold-light)]/25 to-[var(--gold)]/10 border border-[var(--gold)]/45 flex items-center justify-center shadow-inner">
+            <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+            </svg>
+          </div>
+          <div className="flex flex-col">
+            <h3 className="text-amber-50 font-extrabold text-xs uppercase tracking-[0.14em] font-['Cinzel']">
+              {lang === 'tr' ? 'OYUN REHBERİ' : 'GAME GUIDE'}
+            </h3>
+            <span className="text-[9px] text-emerald-200/50 font-semibold">
+              {lang === 'tr' ? 'Kart Güçleri & Kurallar' : 'Powers & Rules'}
+            </span>
+          </div>
         </div>
 
-        {/* Sekme Butonları */}
-        <div className="flex bg-black/30 p-0.5 rounded-lg border border-white/[0.08]">
+        {/* Sekme Anahtarı */}
+        <div className="flex bg-black/40 p-1 rounded-xl border border-[var(--gold)]/25 shadow-inner">
           <button
             type="button"
             onClick={() => setActiveTab('powers')}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'powers'
-                ? 'bg-[var(--gold)] text-black'
-                : 'text-white/60 hover:text-white'
+                ? 'bg-gradient-to-b from-[#fae19c] to-[#c79531] text-black shadow-sm'
+                : 'text-emerald-100/65 hover:text-white'
             }`}
           >
             {t.powersSubtitle}
@@ -121,10 +127,10 @@ export function RulesPanel() {
           <button
             type="button"
             onClick={() => setActiveTab('rules')}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+            className={`px-3 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider transition-all cursor-pointer ${
               activeTab === 'rules'
-                ? 'bg-[var(--gold)] text-black'
-                : 'text-white/60 hover:text-white'
+                ? 'bg-gradient-to-b from-[#fae19c] to-[#c79531] text-black shadow-sm'
+                : 'text-emerald-100/65 hover:text-white'
             }`}
           >
             {t.howToPlaySubtitle}
@@ -133,49 +139,74 @@ export function RulesPanel() {
       </div>
 
       {/* İçerik */}
-      <div className="flex-1 overflow-y-auto p-3 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto p-3.5 scrollbar-thin">
         <AnimatePresence mode="wait">
           {activeTab === 'powers' ? (
             <motion.div
               key="powers"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="space-y-1.5"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-2"
             >
               {CARD_POWERS.map((row) => (
                 <div
                   key={row.id}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all border ${
+                  className={`flex items-center gap-3 p-2.5 rounded-2xl transition-all border ${
                     row.activeMatch
-                      ? 'bg-[var(--gold)]/15 border-[var(--gold)] shadow-[0_0_16px_rgba(212,168,67,0.3)]'
-                      : 'bg-white/[0.03] hover:bg-white/[0.06] border-white/[0.06]'
+                      ? 'bg-gradient-to-r from-[var(--gold)]/25 to-emerald-900/50 border-[var(--gold)] shadow-[0_0_22px_rgba(212,168,67,0.35)] scale-[1.01]'
+                      : 'bg-black/25 hover:bg-black/35 border-white/[0.07]'
                   }`}
                 >
-                  {/* Kart Sembol Kutusu */}
+                  {/* Gerçek Minyatür Oyun Kartı İllüstrasyonu */}
                   <div
-                    className="w-13 h-9 rounded-lg flex items-center justify-center shrink-0 font-black text-xs tracking-tight border"
+                    className="w-10 h-13 rounded-lg flex flex-col items-center justify-between p-1 shrink-0 relative overflow-hidden"
                     style={{
-                      backgroundColor: row.accent + '15',
-                      borderColor: row.accent + '40',
-                      color: row.accent,
+                      background: 'linear-gradient(145deg, #fffdf7 0%, #f3e5c2 100%)',
+                      border: '1.5px solid rgba(212, 168, 67, 0.75)',
+                      boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
                     }}
                   >
-                    {row.cards}
+                    <span
+                      className={`text-[10px] font-black leading-none self-start ${
+                        row.isRed ? 'text-[#c0392b]' : 'text-[#1a1a1a]'
+                      }`}
+                    >
+                      {row.rank}
+                    </span>
+                    <span
+                      className={`text-xs font-black leading-none ${
+                        row.isRed ? 'text-[#c0392b]' : 'text-[#1a1a1a]'
+                      }`}
+                    >
+                      {row.suit}
+                    </span>
+                    <span
+                      className="text-[7px] font-black px-1 rounded bg-black/10 text-black/75 font-['JetBrains_Mono']"
+                    >
+                      {row.value.replace(' pt', '')}
+                    </span>
                   </div>
 
                   {/* Açıklama */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-white truncate">
+                      <span className="text-xs font-extrabold text-amber-50 truncate">
                         {row.title}
                       </span>
-                      <span className="text-[10px] font-bold text-white/55 font-mono shrink-0">
+                      <span
+                        className="text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 font-['JetBrains_Mono']"
+                        style={{
+                          backgroundColor: `${row.badgeColor}20`,
+                          color: row.badgeColor,
+                          border: `1px solid ${row.badgeColor}45`,
+                        }}
+                      >
                         {row.value}
                       </span>
                     </div>
-                    <p className="text-[10px] text-white/45 truncate mt-0.5">
+                    <p className="text-[11px] text-emerald-100/65 leading-snug mt-0.5 font-medium">
                       {row.desc}
                     </p>
                   </div>
@@ -185,25 +216,25 @@ export function RulesPanel() {
           ) : (
             <motion.div
               key="rules"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
               className="space-y-2"
             >
               {RULES.map((rule) => (
                 <div
                   key={rule.step}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]"
+                  className="flex items-start gap-3 p-3 rounded-2xl bg-black/25 hover:bg-black/35 border border-white/[0.07] transition-colors"
                 >
-                  <span className="text-[11px] font-black font-mono text-[var(--gold)] bg-[var(--gold)]/15 border border-[var(--gold)]/30 rounded-md px-1.5 py-0.5 shrink-0 mt-0.5">
+                  <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[#fae19c]/25 to-[#b88728]/15 border border-[var(--gold)]/45 flex items-center justify-center text-[11px] font-black font-['JetBrains_Mono'] text-[var(--gold-light)] shrink-0 mt-0.5 shadow-inner">
                     {rule.step}
-                  </span>
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-white">
+                    <div className="text-xs font-extrabold text-amber-50">
                       {rule.title}
                     </div>
-                    <p className="text-[11px] text-white/65 leading-relaxed mt-0.5">
+                    <p className="text-[11px] text-emerald-100/70 leading-relaxed mt-0.5 font-medium">
                       {rule.text}
                     </p>
                   </div>

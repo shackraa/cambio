@@ -9,6 +9,10 @@ function formatTime(ts: number): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+function getInitials(name: string): string {
+  return (name || 'O').slice(0, 2).toUpperCase();
+}
+
 export function ChatPanel({
   sendAction,
   myPlayerId,
@@ -28,8 +32,8 @@ export function ChatPanel({
 
   const quickMessages =
     lang === 'tr'
-      ? ['İyi oyunlar!', 'Harika hamle', 'Eyvah!', 'Cambio geliyor']
-      : ['Good game!', 'Nice move', 'uh oh!', 'Cambio soon'];
+      ? ['İyi şanslar!', 'Güzel hamle', 'Eyvah!', 'Cambio geliyor']
+      : ['Good luck!', 'Nice move', 'Uh oh!', 'Cambio soon'];
 
   const sendMessage = (messageText: string) => {
     if (!messageText.trim()) return;
@@ -54,32 +58,44 @@ export function ChatPanel({
   }, [chatMessages.length]);
 
   return (
-    <div
-      className="flex flex-col h-full rounded-2xl overflow-hidden"
-      style={{
-        background: 'rgba(8, 36, 25, 0.88)',
-        border: '1px solid rgba(255, 255, 255, 0.1)',
-        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.28)',
-      }}
-    >
-      {/* Başlık */}
-      <div className="px-4 py-3 flex items-center justify-between shrink-0 border-b border-white/[0.08] bg-white/[0.02]">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)]" />
-          <h3 className="text-white/90 font-bold text-xs uppercase tracking-[0.12em]">
-            {t.chatTitle}
-          </h3>
+    <div className="luxury-panel flex flex-col h-full rounded-[24px] overflow-hidden">
+      {/* Lüks Başlık */}
+      <div className="luxury-panel-header px-5 py-3.5 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-[var(--gold-light)]/25 to-[var(--gold)]/10 border border-[var(--gold)]/45 flex items-center justify-center shadow-inner">
+            <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+          </div>
+          <div className="flex flex-col">
+            <h3 className="text-amber-50 font-extrabold text-xs uppercase tracking-[0.14em] font-['Cinzel']">
+              {t.chatTitle}
+            </h3>
+            <span className="text-[9px] text-emerald-200/50 font-semibold">
+              {lang === 'tr' ? 'Masa İçi İletişim' : 'Table Lounge Chat'}
+            </span>
+          </div>
         </div>
-        <span className="text-[10px] font-semibold text-white/40">
-          {chatMessages.length}
-        </span>
+        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/35 border border-emerald-400/25">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+          <span className="text-[10px] font-bold text-emerald-200 font-['JetBrains_Mono']">
+            {chatMessages.length}
+          </span>
+        </div>
       </div>
 
       {/* Mesaj Listesi */}
-      <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-2.5 scrollbar-thin">
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3 scrollbar-thin">
         {chatMessages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-white/25 text-xs">
-            <p>{t.chatPlaceholder}</p>
+          <div className="h-full flex flex-col items-center justify-center text-center px-4 gap-2">
+            <div className="w-11 h-11 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-[var(--gold)]/40">
+              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+              </svg>
+            </div>
+            <p className="text-emerald-100/50 text-xs font-semibold">
+              {lang === 'tr' ? 'Sohbeti başlatmak için aşağıdan bir mesaj seçin' : 'Pick a quick message below to start chatting'}
+            </p>
           </div>
         ) : (
           <AnimatePresence initial={false}>
@@ -88,27 +104,40 @@ export function ChatPanel({
               return (
                 <motion.div
                   key={msg.id}
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                  initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.22 }}
+                  className={`flex items-end gap-2 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
                 >
-                  <div className="flex items-center gap-1.5 mb-0.5 px-1">
-                    <span className="text-[10px] text-white/50 font-semibold">
-                      {msg.senderName}
-                    </span>
-                    <span className="text-[9px] text-white/25 font-mono">
-                      {formatTime(msg.timestamp)}
-                    </span>
-                  </div>
+                  {/* Oyuncu Avatar Rozeti */}
                   <div
-                    className={`px-3 py-2 rounded-xl max-w-[90%] text-xs font-medium leading-relaxed break-words whitespace-pre-wrap border ${
+                    className={`w-7 h-7 rounded-xl flex items-center justify-center text-[10px] font-black shrink-0 border shadow-sm ${
                       isMe
-                        ? 'bg-[var(--gold)]/20 text-white border-[var(--gold)]/35 rounded-tr-xs'
-                        : 'bg-white/[0.06] text-white/90 border-white/[0.08] rounded-tl-xs'
+                        ? 'bg-gradient-to-br from-[#fae19c] to-[#b88728] text-black border-amber-200'
+                        : 'bg-emerald-900/80 text-emerald-100 border-emerald-400/30'
                     }`}
                   >
-                    {msg.text}
+                    {getInitials(msg.senderName)}
+                  </div>
+
+                  <div className={`flex flex-col max-w-[78%] ${isMe ? 'items-end' : 'items-start'}`}>
+                    <div className="flex items-center gap-1.5 mb-1 px-1">
+                      <span className="text-[10px] text-emerald-100/65 font-bold">
+                        {msg.senderName}
+                      </span>
+                      <span className="text-[9px] text-emerald-200/35 font-['JetBrains_Mono']">
+                        {formatTime(msg.timestamp)}
+                      </span>
+                    </div>
+                    <div
+                      className={`px-3.5 py-2 rounded-2xl text-xs font-semibold leading-relaxed break-words whitespace-pre-wrap shadow-md ${
+                        isMe
+                          ? 'bg-gradient-to-br from-[var(--gold)]/30 to-amber-900/40 text-amber-50 border border-[var(--gold)]/45 rounded-br-xs'
+                          : 'bg-black/35 text-emerald-50 border border-white/10 rounded-bl-xs'
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -118,36 +147,36 @@ export function ChatPanel({
         <div ref={bottomRef} />
       </div>
 
-      {/* Hızlı Mesaj Seçenekleri */}
-      <div className="px-3 py-1.5 border-t border-white/[0.06] bg-white/[0.01] flex items-center gap-1.5 overflow-x-auto shrink-0">
+      {/* Hızlı Mesaj Kapsülleri */}
+      <div className="px-3 py-2 border-t border-[var(--gold)]/15 bg-black/20 flex items-center gap-1.5 overflow-x-auto shrink-0 scrollbar-none">
         {quickMessages.map((label) => (
           <button
             key={label}
             type="button"
             onClick={() => sendMessage(label)}
-            className="py-1 px-2.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.12] border border-white/[0.08] text-[10px] font-semibold text-white/75 hover:text-white transition-colors whitespace-nowrap cursor-pointer active:scale-95"
+            className="py-1 px-2.5 rounded-full bg-emerald-950/80 hover:bg-[var(--gold)]/20 border border-[var(--gold)]/25 hover:border-[var(--gold)]/60 text-[10px] font-bold text-amber-100/85 hover:text-white transition-all whitespace-nowrap cursor-pointer active:scale-95 shadow-xs"
           >
             {label}
           </button>
         ))}
       </div>
 
-      {/* Mesaj Gönderme Formu */}
+      {/* Mesaj Gönderme Alanı */}
       <form
         onSubmit={handleSubmit}
-        className="px-3 py-2.5 bg-white/[0.02] border-t border-white/[0.08] flex gap-2 shrink-0 items-center"
+        className="p-3 bg-black/30 border-t border-white/[0.08] flex gap-2 shrink-0 items-center"
       >
         <input
           type="text"
           value={text}
           onChange={e => setText(e.target.value)}
           placeholder={t.chatPlaceholder}
-          className="flex-1 bg-white/[0.06] border border-white/[0.1] rounded-xl px-3 py-2 text-xs text-white placeholder-white/30 focus:outline-none focus:border-[var(--gold)]/60 transition-colors"
+          className="flex-1 bg-black/40 border border-[var(--gold)]/25 rounded-xl px-3.5 py-2 text-xs text-white placeholder-emerald-100/35 focus:outline-none focus:border-[var(--gold)] transition-all shadow-inner"
         />
         <button
           type="submit"
           disabled={!text.trim()}
-          className="bg-[var(--gold)] hover:bg-[var(--gold-light)] text-black font-bold px-3.5 py-2 rounded-xl disabled:opacity-35 transition-all active:scale-95 text-xs cursor-pointer"
+          className="btn-gold-3d font-extrabold px-4 py-2 rounded-xl disabled:opacity-35 disabled:pointer-events-none text-xs uppercase tracking-wider cursor-pointer"
         >
           {t.chatSend}
         </button>

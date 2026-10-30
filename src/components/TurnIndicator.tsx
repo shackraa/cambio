@@ -16,14 +16,14 @@ interface TurnIndicatorProps {
   onPlayAgain?: () => void;
 }
 
-const PHASE_COLORS: Partial<Record<GamePhase, string>> = {
-  draw:         'text-[var(--gold)]',
-  action:       'text-emerald-300',
-  stick_window: 'text-sky-300',
-  power:        'text-purple-300',
-  give_card:    'text-amber-300',
-  cambio_round: 'text-red-400',
-  results:      'text-[var(--gold)]',
+const PHASE_BADGE_STYLES: Partial<Record<GamePhase, { bg: string; border: string; text: string; dot: string }>> = {
+  draw:         { bg: 'rgba(212, 168, 67, 0.16)', border: 'rgba(243, 212, 124, 0.45)', text: '#fae19c', dot: '#f3d47c' },
+  action:       { bg: 'rgba(16, 185, 129, 0.18)', border: 'rgba(52, 211, 153, 0.45)',  text: '#6ee7b7', dot: '#34d399' },
+  stick_window: { bg: 'rgba(56, 189, 248, 0.18)', border: 'rgba(125, 211, 252, 0.45)', text: '#7dd3fc', dot: '#38bdf8' },
+  power:        { bg: 'rgba(192, 132, 252, 0.18)', border: 'rgba(216, 180, 254, 0.45)', text: '#d8b4fe', dot: '#c084fc' },
+  give_card:    { bg: 'rgba(251, 146, 60, 0.18)',  border: 'rgba(253, 186, 116, 0.45)', text: '#fdba74', dot: '#fb923c' },
+  cambio_round: { bg: 'rgba(239, 68, 68, 0.20)',   border: 'rgba(252, 165, 165, 0.5)',  text: '#fca5a5', dot: '#ef4444' },
+  results:      { bg: 'rgba(212, 168, 67, 0.22)', border: 'rgba(243, 212, 124, 0.6)',  text: '#fae19c', dot: '#f3d47c' },
 };
 
 export function TurnIndicator({
@@ -54,42 +54,57 @@ export function TurnIndicator({
     results:      t.phase_results,
   };
 
-  const phaseColor = PHASE_COLORS[phase] ?? 'text-white/80';
+  const pStyle = PHASE_BADGE_STYLES[phase] ?? {
+    bg: 'rgba(255,255,255,0.06)',
+    border: 'rgba(255,255,255,0.15)',
+    text: '#e2e8f0',
+    dot: '#94a3b8',
+  };
 
   return (
-    <div className="flex items-center justify-between w-full px-6 min-h-[48px]">
-      {/* SOL — AKTİF SIRA ROZETİ */}
-      <div className="flex items-center gap-3 flex-1">
+    <div className="flex items-center justify-between w-full px-5 min-h-[54px] gap-4">
+      {/* ─── SOL: OYUNCU SIRASI MADALYONU ─── */}
+      <div className="flex items-center gap-3 flex-1 min-w-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPlayerName + String(myTurn)}
-            initial={{ opacity: 0, y: 4 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.2 }}
-            className={`flex items-center gap-2.5 px-4 py-1.5 rounded-xl border transition-all ${
+            initial={{ opacity: 0, x: -10, scale: 0.96 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 10, scale: 0.96 }}
+            transition={{ duration: 0.22 }}
+            className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all ${
               myTurn
-                ? 'bg-[var(--gold)]/18 border-[var(--gold)]/60 shadow-[0_0_20px_rgba(212,168,67,0.22)]'
-                : 'bg-white/[0.04] border-white/[0.08]'
+                ? 'bg-gradient-to-r from-[#fae19c]/25 via-[#d4a843]/15 to-transparent border-[#f3d47c]/65 shadow-[0_0_25px_rgba(212,168,67,0.28)]'
+                : 'bg-black/30 border-white/10'
             }`}
           >
-            <span className="relative flex h-2.5 w-2.5">
-              {myTurn && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75" />
+            {/* Dönen / Parlayan Sıra İkonu */}
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+                myTurn
+                  ? 'bg-gradient-to-br from-[#fae19c] to-[#b88728] text-black border-amber-100 shadow-[0_0_12px_rgba(243,212,124,0.6)]'
+                  : 'bg-emerald-950/80 text-emerald-200/70 border-white/10'
+              }`}
+            >
+              {myTurn ? (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2L14.8 8.5L22 9.3L16.5 14L18.2 21L12 17.3L5.8 21L7.5 14L2 9.3L9.2 8.5L12 2Z" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <circle cx="12" cy="8" r="4" />
+                  <path d="M4 20c1.5-4 14.5-4 16 0" />
+                </svg>
               )}
-              <span
-                className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                  myTurn ? 'bg-[var(--gold)]' : 'bg-white/40'
-                }`}
-              />
-            </span>
-            <div className="flex flex-col leading-none">
-              <span className="text-white/45 text-[9px] uppercase tracking-[0.16em] font-bold">
+            </div>
+
+            <div className="flex flex-col leading-tight min-w-0">
+              <span className="text-emerald-200/50 text-[9px] uppercase tracking-[0.18em] font-extrabold">
                 {t.turn}
               </span>
               <span
-                className={`font-extrabold text-sm mt-0.5 ${
-                  myTurn ? 'text-[var(--gold)]' : 'text-white/90'
+                className={`font-extrabold text-sm truncate ${
+                  myTurn ? 'text-[#fae19c] drop-shadow-[0_1px_8px_rgba(243,212,124,0.4)]' : 'text-white/90'
                 }`}
               >
                 {myTurn ? t.yourTurn : currentPlayerName}
@@ -99,43 +114,56 @@ export function TurnIndicator({
         </AnimatePresence>
       </div>
 
-      {/* ORTA — FAZ, SÜRE VE TUR SAYACI */}
-      <div className="flex items-center gap-6 justify-center">
-        <div className="flex flex-col items-center leading-tight">
-          <span className="text-white/40 text-[9px] uppercase tracking-[0.16em] font-bold">
-            {t.phase}
-          </span>
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={phase + lang}
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.18 }}
-              className={`font-extrabold text-sm mt-0.5 ${phaseColor}`}
-            >
-              {PHASE_LABELS[phase]}
-            </motion.span>
-          </AnimatePresence>
-        </div>
+      {/* ─── ORTA: OYUN FAZI KAPSÜLÜ, CANLI SÜRE HALKASI VE TUR ROZETİ ─── */}
+      <div className="flex items-center gap-3 justify-center">
+        {/* Faz Kapsülü */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={phase + lang}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.2 }}
+            className="flex items-center gap-2.5 px-4 py-2 rounded-2xl shadow-inner"
+            style={{
+              background: pStyle.bg,
+              border: `1px solid ${pStyle.border}`,
+            }}
+          >
+            <span
+              className="w-2 h-2 rounded-full animate-pulse shrink-0"
+              style={{ backgroundColor: pStyle.dot, boxShadow: `0 0 8px ${pStyle.dot}` }}
+            />
+            <div className="flex flex-col leading-none">
+              <span className="text-[8px] uppercase tracking-[0.18em] text-white/50 font-bold">
+                {t.phase}
+              </span>
+              <span className="text-xs font-extrabold tracking-wide mt-0.5" style={{ color: pStyle.text }}>
+                {PHASE_LABELS[phase]}
+              </span>
+            </div>
+          </motion.div>
+        </AnimatePresence>
 
+        {/* Geri Sayım Sayacı (Yapıştırma Penceresi vb.) */}
         <AnimatePresence>
           {timeLeft !== undefined && timeLeft > 0 && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.85 }}
+              initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.85 }}
-              className="flex flex-col items-center leading-tight pl-4 border-l border-white/10"
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/40 border border-sky-400/35"
             >
-              <span className="text-white/40 text-[9px] uppercase tracking-[0.16em] font-bold">
-                {t.time}
-              </span>
+              <svg className="w-3.5 h-3.5 text-sky-300 animate-spin" style={{ animationDuration: '3s' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
               <motion.span
                 key={timeLeft}
-                initial={{ scale: 1.2 }}
+                initial={{ scale: 1.25 }}
                 animate={{ scale: 1 }}
-                className={`font-black text-sm font-mono mt-0.5 ${
-                  timeLeft <= 1 ? 'text-red-400' : 'text-white'
+                className={`font-black text-xs font-['JetBrains_Mono'] ${
+                  timeLeft <= 1 ? 'text-red-400' : 'text-sky-200'
                 }`}
               >
                 {timeLeft}s
@@ -144,19 +172,20 @@ export function TurnIndicator({
           )}
         </AnimatePresence>
 
+        {/* Tur Sayacı */}
         {turnCount > 0 && phase !== 'results' && phase !== 'peek' && (
-          <div className="flex flex-col items-center leading-tight pl-4 border-l border-white/10">
-            <span className="text-white/40 text-[9px] uppercase tracking-[0.16em] font-bold">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/30 border border-[var(--gold)]/25">
+            <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-200/50 font-extrabold">
               {t.round}
             </span>
-            <span className="font-bold text-sm font-mono text-white/80 mt-0.5">
+            <span className="font-extrabold text-xs font-['JetBrains_Mono'] text-[var(--gold-light)]">
               #{turnCount}
             </span>
           </div>
         )}
       </div>
 
-      {/* SAĞ — CAMBIO, TEKRAR OYNA VE YENİ EL (RESET) */}
+      {/* ─── SAĞ: 3D AKSİYON BUTONLARI (CAMBIO / TEKRAR OYNA / YENİ EL) ─── */}
       <div className="flex items-center gap-3 flex-1 justify-end">
         <AnimatePresence mode="wait">
           {phase === 'results' && onPlayAgain && (
@@ -165,13 +194,13 @@ export function TurnIndicator({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="px-5 py-2 rounded-xl font-extrabold text-black text-xs uppercase tracking-wider cursor-pointer shadow-md"
-              style={{ background: 'linear-gradient(135deg, #d4a843, #f0c96c)' }}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
+              className="btn-gold-3d px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-[0.12em] cursor-pointer flex items-center gap-2"
               onClick={onPlayAgain}
             >
-              {t.playAgain}
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span>{t.playAgain}</span>
             </motion.button>
           )}
 
@@ -181,45 +210,44 @@ export function TurnIndicator({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="px-5 py-2 rounded-xl font-black text-white text-xs tracking-[0.16em] uppercase border border-amber-300/60 cursor-pointer flex items-center gap-2"
-              style={{
-                background: 'linear-gradient(135deg, #b91c1c 0%, #7f1d1d 100%)',
-                boxShadow: '0 4px 18px rgba(185, 28, 28, 0.45)',
-              }}
-              whileHover={{ scale: 1.05, boxShadow: '0 6px 24px rgba(220, 38, 38, 0.65)' }}
-              whileTap={{ scale: 0.95 }}
+              className="btn-crimson-3d px-5 py-2.5 rounded-xl font-black text-xs tracking-[0.18em] uppercase cursor-pointer flex items-center gap-2 font-['Cinzel']"
               onClick={onCallCambio}
             >
-              <span className="w-2 h-2 rounded-full bg-amber-300" />
-              <span>CAMBIO</span>
+              <span className="w-2 h-2 rounded-full bg-amber-300 shadow-[0_0_8px_#fde047]" />
+              <span>CAMBIO!</span>
             </motion.button>
           )}
         </AnimatePresence>
 
         {/* Yeni El / Sıfırla Butonu */}
-        <motion.button
-          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+        <button
+          type="button"
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold cursor-pointer ${
             resetCountdown !== null
-              ? 'bg-red-500/20 border-red-400/50 text-red-200'
-              : 'bg-white/[0.05] border-white/[0.12] text-white/75 hover:text-white hover:bg-white/[0.1] hover:border-white/25'
+              ? 'btn-crimson-3d'
+              : 'btn-emerald-3d'
           }`}
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.95 }}
           onClick={onReset}
-          title={lang === 'tr' ? 'Oyunu yeniden başlat' : 'Restart game'}
+          title={lang === 'tr' ? 'Yeni el dağıt' : 'Deal new hand'}
         >
-          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+          <svg
+            className={`w-3.5 h-3.5 text-[var(--gold-light)] ${resetCountdown !== null ? 'animate-spin' : ''}`}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.3"
+          >
             <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
             <path d="M3 3v5h5" />
           </svg>
-          <span>
+          <span className="tracking-wide">
             {resetCountdown !== null
               ? `${resetCountdown}s`
               : lang === 'tr'
                 ? 'Yeni El'
                 : 'New Hand'}
           </span>
-        </motion.button>
+        </button>
       </div>
     </div>
   );
