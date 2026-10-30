@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore, type GameLogEntry, type LogAction } from '../store/useGameStore';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
+import { formatPlayerName } from '../utils/formatPlayerName';
 
 function formatTime(ts: number): string {
   const d = new Date(ts);
@@ -120,7 +121,7 @@ function LogItem({
           <div className="flex items-center justify-between gap-1.5">
             <div className="flex items-center gap-2 min-w-0">
               <span className="font-extrabold text-[12px] text-white truncate tracking-tight">
-                {entry.playerName}
+                {formatPlayerName(entry.playerName, lang)}
               </span>
               <span
                 className="text-[9px] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wider shrink-0"

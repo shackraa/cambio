@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useGameStore } from '../store/useGameStore';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
+import { formatPlayerName } from '../utils/formatPlayerName';
 
 const RANK_STYLES = [
   {
@@ -114,7 +115,7 @@ export function Leaderboard() {
 
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-white font-bold text-xs truncate">
-                      {entry.nickname}
+                      {formatPlayerName(entry.nickname, lang)}
                     </span>
                     {playerState?.isCurrentTurn && (
                       <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-[var(--gold)]/20 border border-[var(--gold)]/45 text-[9px] font-extrabold text-[var(--gold-light)] uppercase shrink-0">

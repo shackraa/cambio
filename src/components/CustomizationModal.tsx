@@ -21,8 +21,8 @@ const PREVIEW_BACK_CARD: Card = {
 const PREVIEW_FRONT_CARD: Card = {
   id: 'preview-front',
   suit: 'hearts',
-  rank: 'K',
-  value: -1,
+  rank: 'A',
+  value: 1,
   isRevealed: true,
   isPenalty: false,
 };
@@ -34,7 +34,7 @@ export function CustomizationModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const lang = useLangStore(s => s.lang);
+  const lang = useLangStore((s) => s.lang);
   const {
     cardBack,
     cardFront,
@@ -44,46 +44,90 @@ export function CustomizationModal({
     setTableTheme,
   } = useCustomizationStore();
 
-  const BACK_OPTIONS: { id: CardBackSkin; labelTr: string; labelEn: string; tagTr: string; tagEn: string }[] = [
+  const BACK_OPTIONS: {
+    id: CardBackSkin;
+    labelTr: string;
+    labelEn: string;
+    tagTr: string;
+    tagEn: string;
+  }[] = [
     {
       id: 'classic_red',
-      labelTr: 'Klasik İskambil (Kırmızı)',
-      labelEn: 'Classic Playing Card (Red)',
-      tagTr: 'Varsayılan',
-      tagEn: 'Default',
+      labelTr: 'Klasik Kırmızı İskambil',
+      labelEn: 'Heritage Crimson Deck',
+      tagTr: 'Klasik Seri',
+      tagEn: 'Classic Deck',
     },
     {
       id: 'classic_blue',
-      labelTr: 'Klasik İskambil (Mavi)',
-      labelEn: 'Classic Playing Card (Blue)',
-      tagTr: 'Klasik',
-      tagEn: 'Classic',
+      labelTr: 'Klasik Mavi İskambil',
+      labelEn: 'Royal Club Navy',
+      tagTr: 'Klasik Seri',
+      tagEn: 'Classic Deck',
     },
     {
       id: 'royal_compass',
-      labelTr: 'Gece Pusulası',
-      labelEn: 'Midnight Compass',
-      tagTr: 'Özel Seri',
-      tagEn: 'Special',
+      labelTr: 'Monarch Altın & Gece',
+      labelEn: 'Monarchs Gold Foil',
+      tagTr: 'Premium',
+      tagEn: 'Premium',
     },
     {
       id: 'emerald_botanical',
-      labelTr: 'Zümrüt Botanik',
-      labelEn: 'Emerald Lattice',
-      tagTr: 'Özel Seri',
-      tagEn: 'Special',
+      labelTr: 'Monte Carlo Zümrüt',
+      labelEn: 'Grand Casino Emerald',
+      tagTr: 'Premium',
+      tagEn: 'Premium',
     },
   ];
 
-  const FRONT_OPTIONS: { id: CardFrontStyle; labelTr: string; labelEn: string }[] = [
-    { id: 'classic', labelTr: 'Saf Beyaz İskambil', labelEn: 'Crisp White Playing Card' },
-    { id: 'vintage', labelTr: 'Krem Parşömen', labelEn: 'Warm Vintage Cream' },
+  const FRONT_OPTIONS: {
+    id: CardFrontStyle;
+    labelTr: string;
+    labelEn: string;
+    descTr: string;
+    descEn: string;
+  }[] = [
+    {
+      id: 'classic',
+      labelTr: 'Saf Beyaz İskambil',
+      labelEn: 'Crisp Porcelain White',
+      descTr: 'Parlak beyaz turnuva kağıdı',
+      descEn: 'Bright tournament card stock',
+    },
+    {
+      id: 'vintage',
+      labelTr: 'Antik Krem Parşömen',
+      labelEn: 'Warm Vintage Parchment',
+      descTr: 'Sıcak krem & altın çerçeve dokusu',
+      descEn: 'Aged cream paper & brass trim',
+    },
   ];
 
-  const TABLE_OPTIONS: { id: TableTheme; labelTr: string; labelEn: string; previewColor: string }[] = [
-    { id: 'emerald', labelTr: 'Klasik Yeşil Çuha', labelEn: 'Classic Green Felt', previewColor: '#246b53' },
-    { id: 'ocean', labelTr: 'Okyanus Mavisi', labelEn: 'Royal Ocean Blue', previewColor: '#1e4e6e' },
-    { id: 'burgundy', labelTr: 'Bordo Kadife', labelEn: 'Velvet Burgundy', previewColor: '#5c202e' },
+  const TABLE_OPTIONS: {
+    id: TableTheme;
+    labelTr: string;
+    labelEn: string;
+    previewColor: string;
+  }[] = [
+    {
+      id: 'emerald',
+      labelTr: 'Klasik Yeşil Çuha',
+      labelEn: 'Classic Green Felt',
+      previewColor: '#246b53',
+    },
+    {
+      id: 'ocean',
+      labelTr: 'Okyanus Mavisi',
+      labelEn: 'Royal Ocean Blue',
+      previewColor: '#1e4e6e',
+    },
+    {
+      id: 'burgundy',
+      labelTr: 'Bordo Kadife',
+      labelEn: 'Velvet Burgundy',
+      previewColor: '#5c202e',
+    },
   ];
 
   return (
@@ -112,12 +156,14 @@ export function CustomizationModal({
                 </div>
                 <div>
                   <h2 className="text-sm sm:text-base font-extrabold text-white tracking-wide">
-                    {lang === 'tr' ? 'KART & MASA TASARIMI' : 'CARD & TABLE CUSTOMIZATION'}
+                    {lang === 'tr'
+                      ? 'KART & MASA TASARIMI'
+                      : 'CARD & TABLE CUSTOMIZATION'}
                   </h2>
                   <p className="text-[11px] text-emerald-100/65 font-medium">
                     {lang === 'tr'
-                      ? 'Kart görünümünü ve masa rengini kendine göre özelleştir'
-                      : 'Personalize your playing cards and table mat'}
+                      ? 'Klasik ve premium iskambil destelerini kendine göre özelleştir'
+                      : 'Personalize your classic & premium playing cards and table mat'}
                   </p>
                 </div>
               </div>
@@ -136,10 +182,12 @@ export function CustomizationModal({
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#f7e2ab]">
-                    {lang === 'tr' ? '1. Kart Sırtı Tasarımı' : '1. Card Back Design'}
+                    {lang === 'tr'
+                      ? '1. Kart Sırtı Tasarımı'
+                      : '1. Playing Card Back Design'}
                   </span>
                   <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                    {lang === 'tr' ? 'Ücretsiz Koleksiyon' : 'Free Collection'}
+                    {lang === 'tr' ? 'Klasik & Premium' : 'Classic & Premium'}
                   </span>
                 </div>
 
@@ -159,16 +207,20 @@ export function CustomizationModal({
                       >
                         <div className="pointer-events-none">
                           <GameCard
-                            card={{ ...PREVIEW_BACK_CARD, id: `preview-${opt.id}` }}
-                            size="sm"
+                            card={{
+                              ...PREVIEW_BACK_CARD,
+                              id: `preview-${opt.id}`,
+                            }}
+                            size="md"
                             overrideBackSkin={opt.id}
+                            disableLayout={true}
                           />
                         </div>
                         <div className="text-center">
                           <div className="text-[11px] font-bold text-white leading-tight">
                             {lang === 'tr' ? opt.labelTr : opt.labelEn}
                           </div>
-                          <span className="text-[9px] font-semibold text-emerald-200/60">
+                          <span className="text-[9px] font-semibold text-[#f7e2ab]/75">
                             {lang === 'tr' ? opt.tagTr : opt.tagEn}
                           </span>
                         </div>
@@ -181,7 +233,9 @@ export function CustomizationModal({
               {/* 2. KART ÖN YÜZÜ STİLİ */}
               <div>
                 <span className="block text-xs font-extrabold uppercase tracking-[0.14em] text-[#f7e2ab] mb-3">
-                  {lang === 'tr' ? '2. Kart Ön Yüzü Kağıt Rengi' : '2. Card Face Paper Style'}
+                  {lang === 'tr'
+                    ? '2. Kart Ön Yüzü Kağıt Rengi'
+                    : '2. Card Face Paper Style'}
                 </span>
                 <div className="grid grid-cols-2 gap-3">
                   {FRONT_OPTIONS.map((opt) => {
@@ -191,21 +245,31 @@ export function CustomizationModal({
                         key={opt.id}
                         type="button"
                         onClick={() => setCardFront(opt.id)}
-                        className={`flex items-center gap-3 p-3 rounded-2xl border transition-all cursor-pointer ${
+                        className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-all cursor-pointer ${
                           active
-                            ? 'bg-amber-400/15 border-[#f7e2ab]'
+                            ? 'bg-amber-400/15 border-[#f7e2ab] shadow-[0_0_18px_rgba(232,196,104,0.2)]'
                             : 'bg-black/25 border-white/10 hover:border-white/25'
                         }`}
                       >
                         <div className="pointer-events-none shrink-0">
                           <GameCard
-                            card={{ ...PREVIEW_FRONT_CARD, id: `preview-front-${opt.id}` }}
-                            size="xs"
+                            card={{
+                              ...PREVIEW_FRONT_CARD,
+                              id: `preview-front-${opt.id}`,
+                            }}
+                            size="sm"
+                            overrideFrontStyle={opt.id}
+                            disableLayout={true}
                           />
                         </div>
-                        <span className="text-xs font-bold text-white text-left">
-                          {lang === 'tr' ? opt.labelTr : opt.labelEn}
-                        </span>
+                        <div className="flex flex-col text-left">
+                          <span className="text-xs font-extrabold text-white">
+                            {lang === 'tr' ? opt.labelTr : opt.labelEn}
+                          </span>
+                          <span className="text-[10px] text-emerald-100/65 mt-0.5">
+                            {lang === 'tr' ? opt.descTr : opt.descEn}
+                          </span>
+                        </div>
                       </button>
                     );
                   })}

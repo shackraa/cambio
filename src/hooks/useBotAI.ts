@@ -3,11 +3,14 @@ import { useGameStore } from '../store/useGameStore';
 import { getPower } from '../engine/gameEngine';
 import type { GameEvent } from './useRealtimeGame';
 
-function getRandomDelay(min = 1400, max = 2400) {
+function getRandomDelay(min = 1200, max = 2100) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-function isBotPlayer(player: { id: string; seat: number }, isOnlineMode: boolean): boolean {
+function isBotPlayer(
+  player: { id: string; seat: number },
+  isOnlineMode: boolean
+): boolean {
   if (!isOnlineMode) return player.seat !== 0;
   return player.id.startsWith('bot-');
 }
@@ -23,7 +26,13 @@ export function useBotAI(
   const peekState = useGameStore((s) => s.peekState);
   const activePower = useGameStore((s) => s.activePower);
   const drawnCard = useGameStore((s) => s.drawnCard);
-  const isGameOver = useGameStore((s) => s.winner !== null || s.phase === 'results');
+  const discardTopId = useGameStore(
+    (s) => s.discardPile[s.discardPile.length - 1]?.id ?? null
+  );
+  const giveCardInitiator = useGameStore((s) => s.giveCardInitiator);
+  const isGameOver = useGameStore(
+    (s) => s.winner !== null || s.phase === 'results'
+  );
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -32,19 +41,31 @@ export function useBotAI(
     if ((isOnlineMode && !isHost) || isGameOver) return;
 
     const state = useGameStore.getState();
-    const { players, peekSelectedPositions } = state;
+    const { players, peekSelectedPositions, discardPile } = state;
     const difficulty =
-      (sessionStorage.getItem('botDifficulty') as 'casual' | 'tactical' | 'grandmaster') ||
-      'tactical';
+      (sessionStorage.getItem('botDifficulty') as
+        | 'casual'
+        | 'tactical'
+        | 'grandmaster') || 'tactical';
 
-    // ── PEEK FAZI: Tüm botlar kendi kartlarını seçmeli ──────────────
+    const broadcastBotMove = (ev: GameEvent, seat: number) => {
+      if (isOnlineMode && sendAction) {
+        sendAction(ev, seat);
+        setTimeout(() => {
+          syncGameState?.();
+        }, 120);
+      }
+    };
+
+    // ── 1) PEEK FAZI: Tüm botlar kendi kartlarını seçmeli ──────────────
     if (phase === 'peek' && peekState === 'select') {
       const bots = players.filter((p) => isBotPlayer(p, isOnlineMode));
       const timeouts: ReturnType<typeof setTimeout>[] = [];
 
       bots.forEach((bot, idx) => {
         const hasSelected =
-          peekSelectedPositions.filter((pos) => pos.playerId === bot.id).length >= 2;
+          peekSelectedPositions.filter((pos) => pos.playerId === bot.id)
+            .length >= 2;
         if (!hasSelected) {
           const timeout = setTimeout(() => {
             useGameStore.setState((s) => {
@@ -61,16 +82,123 @@ export function useBotAI(
                 picked.forEach((p) => {
                   s.peekSelectedPositions.push({ playerId: bot.id, pos: p });
                   if (isOnlineMode && sendAction) {
-                    sendAction({ type: 'PEEK_CARD_SELECT', seat: bot.seat, pos: p }, bot.seat);
+                    sendAction(
+                      { type: 'PEEK_CARD_SELECT', seat: bot.seat, pos: p },
+                      bot.seat
+                    );
                   }
                 });
               }
             });
-          }, 850 + idx * 450);
+          }, 700 + idx * 380);
           timeouts.push(timeout);
         }
       });
       return () => timeouts.forEach((t) => clearTimeout(t));
+    }
+
+    // ── 2) STICK WINDOW (ORTAYA KART YAPIŞTIRMA & KART EKSİLTME!) ─────
+    // Sıra kimde olursa olsun, ortaya atılan kartla aynı sayıda kartı olan botlar refleksle kartını ortaya yapıştırıp elinden kart eksiltir!
+    if (phase === 'stick_window' && discardPile.length > 0) {
+      const topDiscard = discardPile[discardPile.length - 1];
+      if (!topDiscard) return;
+
+      const bots = players.filter(
+        (p) => isBotPlayer(p, isOnlineMode) && p.cards.length > 0
+      );
+
+      // Elinde topDiscard.rank ile eşleşen kartı olan botları bul
+      const matchingCandidates: Array<{ botSeat: number; cardPos: number }> = [];
+      bots.forEach((bot) => {
+        const matchIdx = bot.cards.findIndex((c) => c.rank === topDiscard.rank);
+        if (matchIdx !== -1) {
+          matchingCandidates.push({ botSeat: bot.seat, cardPos: matchIdx });
+        }
+      });
+
+      if (matchingCandidates.length > 0) {
+        // Zorluk seviyesine göre botun eşleşmeyi fark edip yapıştırma ihtimali
+        const stickChance =
+          difficulty === 'grandmaster'
+            ? 0.95
+            : difficulty === 'tactical'
+              ? 0.82
+              : 0.65;
+
+        if (Math.random() <= stickChance) {
+          const chosen =
+            matchingCandidates[
+              Math.floor(Math.random() * matchingCandidates.length)
+            ];
+          const reactionMs =
+            difficulty === 'grandmaster'
+              ? getRandomDelay(800, 1250)
+              : getRandomDelay(950, 1550);
+
+          const stickTimer = setTimeout(() => {
+            const cur = useGameStore.getState();
+            const curTop = cur.discardPile[cur.discardPile.length - 1];
+            if (cur.phase !== 'stick_window' || !curTop || curTop.id !== topDiscard.id) {
+              return;
+            }
+            const botPlayer = cur.players.find((p) => p.seat === chosen.botSeat);
+            if (!botPlayer) return;
+            const currentPos = botPlayer.cards.findIndex(
+              (c) => c.rank === curTop.rank
+            );
+            if (currentPos === -1) return;
+
+            cur.stickCard(chosen.botSeat, currentPos, curTop.id, chosen.botSeat);
+            broadcastBotMove(
+              {
+                type: 'STICK_CARD',
+                targetSeat: chosen.botSeat,
+                position: currentPos,
+                discardCardId: curTop.id,
+                initiatorSeat: chosen.botSeat,
+              },
+              chosen.botSeat
+            );
+          }, reactionMs);
+
+          return () => clearTimeout(stickTimer);
+        }
+      }
+      return;
+    }
+
+    // ── 3) GIVE CARD FAZI (Bot rakibin kartını yapıştırdıysa kendi en yüksek kartını verir) ──
+    if (phase === 'give_card' && giveCardInitiator !== undefined) {
+      const initiatorPlayer = players.find((p) => p.seat === giveCardInitiator);
+      if (initiatorPlayer && isBotPlayer(initiatorPlayer, isOnlineMode)) {
+        const giveTimer = setTimeout(() => {
+          const cur = useGameStore.getState();
+          if (cur.phase !== 'give_card') return;
+          const me = cur.players.find((p) => p.seat === giveCardInitiator);
+          if (!me || me.cards.length === 0) return;
+
+          let highestVal = -100;
+          let highestIdx = 0;
+          me.cards.forEach((c, idx) => {
+            if (c.value > highestVal) {
+              highestVal = c.value;
+              highestIdx = idx;
+            }
+          });
+
+          cur.giveCardToOpponent(highestIdx, giveCardInitiator);
+          broadcastBotMove(
+            {
+              type: 'GIVE_CARD',
+              position: highestIdx,
+              initiatorSeat: giveCardInitiator,
+            },
+            giveCardInitiator
+          );
+        }, 950);
+        return () => clearTimeout(giveTimer);
+      }
+      return;
     }
 
     const currentPlayer = players.find((p) => p.seat === currentTurn);
@@ -81,15 +209,6 @@ export function useBotAI(
 
     if (timerRef.current) clearTimeout(timerRef.current);
 
-    const broadcastBotMove = (ev: GameEvent) => {
-      if (isOnlineMode && sendAction) {
-        sendAction(ev, botSeat);
-        setTimeout(() => {
-          syncGameState?.();
-        }, 120);
-      }
-    };
-
     timerRef.current = setTimeout(() => {
       const s = useGameStore.getState();
 
@@ -98,36 +217,49 @@ export function useBotAI(
         const me = s.players.find((p) => p.seat === botSeat);
         if (!me) return;
 
-        // 1) Önce Cambio kontrolü: Zorluk seviyesine göre eşik
+        // Eğer bot tüm kartlarını yapıştırıp bitirdiyse (0 kart) veya çok az kartı kaldıysa hemen Cambio der!
         const cambioThreshold =
           difficulty === 'grandmaster' ? 7 : difficulty === 'tactical' ? 6 : 4;
         const cambioChance =
-          difficulty === 'grandmaster' ? 0.88 : difficulty === 'tactical' ? 0.65 : 0.45;
+          difficulty === 'grandmaster'
+            ? 0.88
+            : difficulty === 'tactical'
+              ? 0.68
+              : 0.48;
 
-        if (s.cambioCaller === null && s.turnCount >= 4) {
-          const myScore = me.cards.reduce((sum, c) => sum + c.value, 0);
-          if (myScore <= cambioThreshold && Math.random() < cambioChance) {
-            s.callCambio();
-            broadcastBotMove({ type: 'CALL_CAMBIO', seat: botSeat });
-            return;
-          }
+        const myScore = me.cards.reduce((sum, c) => sum + c.value, 0);
+        if (
+          s.cambioCaller === null &&
+          (me.cards.length === 0 ||
+            (me.cards.length <= 2 && myScore <= cambioThreshold) ||
+            (s.turnCount >= 4 &&
+              myScore <= cambioThreshold &&
+              Math.random() < cambioChance))
+        ) {
+          s.callCambio();
+          broadcastBotMove({ type: 'CALL_CAMBIO', seat: botSeat }, botSeat);
+          return;
         }
 
         // 2) Cambio demediyse kart çek
         const topDiscard = s.discardPile[s.discardPile.length - 1];
-        const highestMyCard = me.cards.reduce((max, c) => Math.max(max, c.value), -10);
+        const highestMyCard = me.cards.reduce(
+          (max, c) => Math.max(max, c.value),
+          -10
+        );
         const maxAcceptableDiscard = difficulty === 'grandmaster' ? 3 : 4;
 
         if (
           topDiscard &&
+          me.cards.length > 0 &&
           topDiscard.value <= maxAcceptableDiscard &&
           topDiscard.value < highestMyCard
         ) {
           s.drawFromDiscard();
-          broadcastBotMove({ type: 'DRAW_FROM_DISCARD' });
+          broadcastBotMove({ type: 'DRAW_FROM_DISCARD' }, botSeat);
         } else {
           s.drawFromDeck();
-          broadcastBotMove({ type: 'DRAW_FROM_DECK' });
+          broadcastBotMove({ type: 'DRAW_FROM_DECK' }, botSeat);
         }
         return;
       }
@@ -139,11 +271,10 @@ export function useBotAI(
         const me = s.players.find((p) => p.seat === botSeat);
         if (!me || me.cards.length === 0) {
           s.discardDrawn(botSeat);
-          broadcastBotMove({ type: 'DISCARD_DRAWN' });
+          broadcastBotMove({ type: 'DISCARD_DRAWN' }, botSeat);
           return;
         }
 
-        // En yüksek kartı bul
         let highestValue = -100;
         let highestIndex = 0;
         me.cards.forEach((c, idx) => {
@@ -153,31 +284,29 @@ export function useBotAI(
           }
         });
 
-        // Casual modda bazen rastgele kartı değiştirebilir
         if (difficulty === 'casual' && Math.random() < 0.25) {
           highestIndex = Math.floor(Math.random() * me.cards.length);
           highestValue = me.cards[highestIndex]?.value ?? highestValue;
         }
 
-        // Açık desteden çekilmişse MUTLAKA takas yap
         if (s.drawnFrom === 'discard') {
           s.swapCard(highestIndex, botSeat);
-          broadcastBotMove({ type: 'SWAP_CARD', position: highestIndex });
+          broadcastBotMove({ type: 'SWAP_CARD', position: highestIndex }, botSeat);
           return;
         }
 
         if (card.value <= 4 && card.value < highestValue) {
           s.swapCard(highestIndex, botSeat);
-          broadcastBotMove({ type: 'SWAP_CARD', position: highestIndex });
+          broadcastBotMove({ type: 'SWAP_CARD', position: highestIndex }, botSeat);
         } else if (power) {
           s.discardDrawn(botSeat);
-          broadcastBotMove({ type: 'DISCARD_DRAWN' });
+          broadcastBotMove({ type: 'DISCARD_DRAWN' }, botSeat);
         } else if (card.value < highestValue && highestValue >= 8) {
           s.swapCard(highestIndex, botSeat);
-          broadcastBotMove({ type: 'SWAP_CARD', position: highestIndex });
+          broadcastBotMove({ type: 'SWAP_CARD', position: highestIndex }, botSeat);
         } else {
           s.discardDrawn(botSeat);
-          broadcastBotMove({ type: 'DISCARD_DRAWN' });
+          broadcastBotMove({ type: 'DISCARD_DRAWN' }, botSeat);
         }
         return;
       }
@@ -191,7 +320,7 @@ export function useBotAI(
         const me = s.players.find((p) => p.seat === botSeat);
         if (!me || me.cards.length === 0 || otherPlayers.length === 0) {
           s.skipPower(botSeat);
-          broadcastBotMove({ type: 'SKIP_POWER' });
+          broadcastBotMove({ type: 'SKIP_POWER' }, botSeat);
           return;
         }
 
@@ -222,12 +351,15 @@ export function useBotAI(
         if (power === 'peek_own') {
           const randomMyPos = Math.floor(Math.random() * me.cards.length);
           s.usePower('peek_own', botSeat, randomMyPos, undefined, false, botSeat);
-          broadcastBotMove({
-            type: 'USE_POWER',
-            power: 'peek_own',
-            targetSeat: botSeat,
-            targetPos: randomMyPos,
-          });
+          broadcastBotMove(
+            {
+              type: 'USE_POWER',
+              power: 'peek_own',
+              targetSeat: botSeat,
+              targetPos: randomMyPos,
+            },
+            botSeat
+          );
         } else if (power === 'peek_other') {
           s.usePower(
             'peek_other',
@@ -237,12 +369,15 @@ export function useBotAI(
             false,
             botSeat
           );
-          broadcastBotMove({
-            type: 'USE_POWER',
-            power: 'peek_other',
-            targetSeat: randomOpponent.seat,
-            targetPos: randomOpponentPos,
-          });
+          broadcastBotMove(
+            {
+              type: 'USE_POWER',
+              power: 'peek_other',
+              targetSeat: randomOpponent.seat,
+              targetPos: randomOpponentPos,
+            },
+            botSeat
+          );
         } else if (power === 'blind_swap') {
           if (highestMyValue >= 5) {
             s.usePower(
@@ -253,16 +388,19 @@ export function useBotAI(
               false,
               botSeat
             );
-            broadcastBotMove({
-              type: 'USE_POWER',
-              power: 'blind_swap',
-              targetSeat: randomOpponent.seat,
-              targetPos: randomOpponentPos,
-              swapWith: highestMyIndex,
-            });
+            broadcastBotMove(
+              {
+                type: 'USE_POWER',
+                power: 'blind_swap',
+                targetSeat: randomOpponent.seat,
+                targetPos: randomOpponentPos,
+                swapWith: highestMyIndex,
+              },
+              botSeat
+            );
           } else {
             s.skipPower(botSeat);
-            broadcastBotMove({ type: 'SKIP_POWER' });
+            broadcastBotMove({ type: 'SKIP_POWER' }, botSeat);
           }
         } else if (power === 'spy_swap') {
           s.usePower(
@@ -273,15 +411,22 @@ export function useBotAI(
             false,
             botSeat
           );
-          broadcastBotMove({
-            type: 'USE_POWER',
-            power: 'spy_swap',
-            targetSeat: randomOpponent.seat,
-            targetPos: lowestOpponentPos,
-          });
+          broadcastBotMove(
+            {
+              type: 'USE_POWER',
+              power: 'spy_swap',
+              targetSeat: randomOpponent.seat,
+              targetPos: lowestOpponentPos,
+            },
+            botSeat
+          );
           setTimeout(() => {
             const currentS = useGameStore.getState();
-            if (currentS.phase !== 'power' || currentS.activePower !== 'spy_swap') return;
+            if (
+              currentS.phase !== 'power' ||
+              currentS.activePower !== 'spy_swap'
+            )
+              return;
             if (lowestOpponentValue < highestMyValue) {
               currentS.usePower(
                 'spy_swap',
@@ -291,22 +436,25 @@ export function useBotAI(
                 false,
                 botSeat
               );
-              broadcastBotMove({
-                type: 'USE_POWER',
-                power: 'spy_swap',
-                targetSeat: randomOpponent.seat,
-                targetPos: lowestOpponentPos,
-                swapWith: highestMyIndex,
-              });
+              broadcastBotMove(
+                {
+                  type: 'USE_POWER',
+                  power: 'spy_swap',
+                  targetSeat: randomOpponent.seat,
+                  targetPos: lowestOpponentPos,
+                  swapWith: highestMyIndex,
+                },
+                botSeat
+              );
             } else {
               currentS.skipPower(botSeat);
-              broadcastBotMove({ type: 'SKIP_POWER' });
+              broadcastBotMove({ type: 'SKIP_POWER' }, botSeat);
             }
           }, 2200);
         }
         return;
       }
-    }, getRandomDelay(1000, 1900));
+    }, getRandomDelay(1000, 1850));
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -317,6 +465,8 @@ export function useBotAI(
     peekState,
     activePower,
     drawnCard,
+    discardTopId,
+    giveCardInitiator,
     isOnlineMode,
     isHost,
     isGameOver,

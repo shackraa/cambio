@@ -61,13 +61,25 @@ export function HomeScreen() {
   const lang = langStore.lang;
   const t = translations[lang];
 
+  const [nickname, setNickname] = useState(() => {
+    const saved = sessionStorage.getItem('nickname');
+    if (!saved || saved === 'You' || saved === 'Sen') {
+      return lang === 'tr' ? 'Sen' : 'You';
+    }
+    return saved;
+  });
+
   useEffect(() => {
     document.documentElement.lang = lang;
+    setNickname((prev) => {
+      if (!prev || prev === 'You' || prev === 'Sen') {
+        const next = lang === 'tr' ? 'Sen' : 'You';
+        sessionStorage.setItem('nickname', next);
+        return next;
+      }
+      return prev;
+    });
   }, [lang]);
-
-  const [nickname, setNickname] = useState(
-    () => sessionStorage.getItem('nickname') ?? (lang === 'tr' ? 'Sen' : 'You')
-  );
   const [avatar, setAvatar] = useState(
     () => sessionStorage.getItem('avatar') ?? '👑'
   );

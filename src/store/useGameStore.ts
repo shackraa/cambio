@@ -45,6 +45,14 @@ export interface KnownCard {
   expiresAt?: number; // peek için geçici görme
 }
 
+export interface StickFeedback {
+  id: string;
+  success: boolean;
+  playerName: string;
+  selectedCard: { rank: string; suit: string };
+  discardCard: { rank: string; suit: string };
+}
+
 interface GameStore {
   // ── Oyun durumu
   phase: GamePhase;
@@ -75,6 +83,7 @@ interface GameStore {
 
   // ── Hamle logu
   gameLog: GameLogEntry[];
+  lastStickFeedback: StickFeedback | null;
 
   // ── Sonuç
   finalScores: { seat: number; score: number; calledCambio: boolean; baseScore?: number; cambioModifier?: number }[];
@@ -179,6 +188,7 @@ export const useGameStore = create<GameStore>()(
     lastSwappedPositions: [],
     knownCards: [],
     gameLog: [],
+    lastStickFeedback: null,
     finalScores: [],
     winner: null,
     leaderboard: [],
@@ -209,16 +219,19 @@ export const useGameStore = create<GameStore>()(
       if (state.chatMessages.length > 100) state.chatMessages.shift();
     }),
 
-    // ── Oyunu başlat (Fiziksel Tek Tek Kart Dağıtımıyla!) ──
+    // ── Oyunu başlat (60fps Kesintisiz GPU Kart Dağıtımıyla!) ──
     initGame: (myNickname, opponents) => {
       clearDealingTimers();
       const shuffled = shuffleDeck(createDeck());
-      const players = makePlayers(myNickname, opponents);
+      const { playerHands, remainingDeck } = dealCards(shuffled);
+      const players = makePlayers(myNickname, opponents).map((p, idx) => ({
+        ...p,
+        cards: (playerHands[idx] ?? []).map(c => ({ ...c, isRevealed: false })),
+      }));
 
-      // Başlangıçta tüm 54 kart ortadaki kapalı destede durur!
       set(state => {
         state.phase = 'peek';
-        state.deck = shuffled;
+        state.deck = remainingDeck;
         state.discardPile = [];
         state.players = players;
         state.currentTurn = 0;
@@ -236,27 +249,19 @@ export const useGameStore = create<GameStore>()(
         state.lastSwappedPositions = [];
         state.knownCards = [];
         state.gameLog = [];
+        state.lastStickFeedback = null;
         state.finalScores = [];
         state.winner = null;
-        state.peekPhaseEndTime = Date.now() + 3800; // 16 kartın dağıtım süresi
+        state.peekPhaseEndTime = Date.now() + 1850;
         state.peekState = 'dealing';
         state.peekSelectedPositions = [];
       });
 
-      // 16 kartı sırayla (4 tur × 4 oyuncu) desteden çekip oyuncuların önüne fiziksel olarak uçur!
-      for (let i = 0; i < 16; i++) {
-        const seat = i % 4;
+      // Kartların akıcı 60fps GPU uçuşuna eşlik eden ritmik dağıtım sesleri (state mutasyonu yapmadığı için sıfır takılma!)
+      for (let i = 0; i < 8; i++) {
         const t = setTimeout(() => {
-          useGameStore.setState(s => {
-            if (s.phase !== 'peek') return;
-            const card = s.deck.shift();
-            const targetPlayer = s.players.find(p => p.seat === seat);
-            if (card && targetPlayer && targetPlayer.cards.length < 4) {
-              targetPlayer.cards.push({ ...card, isRevealed: false });
-            }
-          });
           SoundManager.playCardDraw();
-        }, 260 + i * 200);
+        }, 80 + i * 180);
         dealingTimers.push(t);
       }
     },
@@ -651,6 +656,8 @@ export const useGameStore = create<GameStore>()(
       const targetCard = targetPlayer.cards[targetPosition];
       if (!targetCard) return;
 
+      const feedbackId = `stick-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
       if (targetCard.rank === topDiscard.rank) {
         SoundManager.playStick();
         set(state => {
@@ -659,7 +666,22 @@ export const useGameStore = create<GameStore>()(
             state.players[tIdx].cards[targetPosition].isRevealed = true;
             state.lastSwappedPositions = [{ seat: targetSeat, pos: targetPosition }];
           }
+          state.lastStickFeedback = {
+            id: feedbackId,
+            success: true,
+            playerName: initiator.nickname,
+            selectedCard: { rank: targetCard.rank, suit: targetCard.suit },
+            discardCard: { rank: topDiscard.rank, suit: topDiscard.suit },
+          };
         });
+
+        setTimeout(() => {
+          useGameStore.setState(s => {
+            if (s.lastStickFeedback?.id === feedbackId) {
+              s.lastStickFeedback = null;
+            }
+          });
+        }, 2800);
 
         setTimeout(() => {
           useGameStore.setState(state => {
@@ -684,9 +706,6 @@ export const useGameStore = create<GameStore>()(
                 detail: `kendi kartını (${removedCard.rank}) açıp ortaya yapıştırdı!`,
                 detailEn: `revealed and stuck own card (${removedCard.rank})!`,
               });
-              setTimeout(() => {
-                useToastStore.getState().addToast(`⚡ ${initiator.nickname} (${removedCard.rank})!`, 'success');
-              }, 0);
             } else {
               state.gameLog.push({
                 id: mkLogId(),
@@ -712,29 +731,38 @@ export const useGameStore = create<GameStore>()(
           if (tIdx !== -1 && state.players[tIdx].cards[targetPosition]) {
             state.players[tIdx].cards[targetPosition].isRevealed = true;
           }
+          state.lastStickFeedback = {
+            id: feedbackId,
+            success: false,
+            playerName: initiator.nickname,
+            selectedCard: { rank: targetCard.rank, suit: targetCard.suit },
+            discardCard: { rank: topDiscard.rank, suit: topDiscard.suit },
+          };
           ensureDeckHasCards(state);
           const initiatorIdx = state.players.findIndex(p => p.seat === initiatorSeat);
           const penalty = state.deck.shift();
           if (penalty && initiatorIdx !== -1) {
             const penaltyCard = { ...penalty, isPenalty: true, isRevealed: false };
             state.players[initiatorIdx].cards.push(penaltyCard);
-            setTimeout(() => {
-              useToastStore.getState().addToast(
-                `⚠️ ${initiator.nickname} (${targetCard.rank} ≠ ${topDiscard.rank})! +1 Penalty`,
-                'error'
-              );
-            }, 0);
           }
           state.gameLog.push({
             id: mkLogId(),
             timestamp: Date.now(),
             playerName: initiator.nickname,
             action: 'stick_fail',
-            detail: `yanlış yapıştırma yaptı, desteden ceza kartı aldı`,
-            detailEn: `wrong stick attempt, received a penalty card`,
+            detail: `yanlış yapıştırma yaptı (${targetCard.rank} ≠ ${topDiscard.rank}), +1 ceza kartı aldı`,
+            detailEn: `wrong stick (${targetCard.rank} ≠ ${topDiscard.rank}), received +1 penalty card`,
           });
           if (state.gameLog.length > 50) state.gameLog.shift();
         });
+
+        setTimeout(() => {
+          useGameStore.setState(s => {
+            if (s.lastStickFeedback?.id === feedbackId) {
+              s.lastStickFeedback = null;
+            }
+          });
+        }, 2900);
 
         setTimeout(() => {
           useGameStore.setState(s => {

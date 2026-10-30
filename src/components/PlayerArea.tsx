@@ -6,6 +6,7 @@ import { GameCard } from './GameCard';
 import { useGameStore } from '../store/useGameStore';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
+import { formatPlayerName } from '../utils/formatPlayerName';
 
 // ─── Çekilen kartı önce kapalı (veya çöptense açık) uçurup getir, sonra çevir ───
 function DrawnCardDisplay({
@@ -182,7 +183,7 @@ export function PlayerArea({
           }`}
         >
           <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${player.isOnline ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-red-400'}`} />
-          <span>{player.nickname}</span>
+          <span>{formatPlayerName(player.nickname, lang)}</span>
           {!isMe && (
             <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
               player.isCurrentTurn ? 'bg-black/15 text-[#261a05]' : 'bg-white/10 text-emerald-100/80'
@@ -268,7 +269,8 @@ export function PlayerArea({
           highlightPositions={mergedHighlightPositions}
           swapHighlightPositions={swapHighlightPositions}
           peekPositions={activePeekPositions}
-          isDealing={false}
+          isDealing={phase === 'peek' && peekState === 'dealing'}
+          seatIndex={player.seat}
           isHighlighting={phase === 'peek' && (peekState === 'select' || peekState === 'highlight')}
           playerPosition={position}
         />

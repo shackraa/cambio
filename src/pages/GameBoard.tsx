@@ -19,6 +19,8 @@ import { SoundManager } from '../utils/SoundManager';
 import { CustomizationModal } from '../components/CustomizationModal';
 import { useCustomizationStore } from '../store/useCustomizationStore';
 import { MobileLandscapeGuard } from '../components/MobileLandscapeGuard';
+import { StickFeedbackBanner } from '../components/StickFeedbackBanner';
+import { formatPlayerName } from '../utils/formatPlayerName';
 
 export function GameBoard() {
   const { code } = useParams<{ code: string }>();
@@ -783,8 +785,9 @@ export function GameBoard() {
 
               {/* Merkez: Deste + Çöp + Bilgilendirme Bannerları (Grid 2. satırda olduğu için Zeliha'nın kartlarına ASLA değmez!) */}
               <div className="col-start-2 row-start-2 flex flex-col items-center justify-center relative">
-                {/* Peek fazı bilgilendirme kutusu: Tam merkezde, 4K keskinlikte */}
-                <div className="mb-3 flex justify-center z-[100]">
+                {/* Peek fazı bilgilendirme kutusu ve Görsel Yapıştırma / Ceza Rozeti: Tam merkezde, 4K keskinlikte */}
+                <div className="mb-3 flex flex-col items-center gap-2 justify-center z-[100]">
+                  <StickFeedbackBanner />
                   <GameBackgroundOverlay myPlayerId={me?.id ?? lobbyInfo.playerId} />
                 </div>
 
@@ -916,12 +919,12 @@ export function GameBoard() {
 
           <div className="luxury-panel shrink-0 rounded-[24px] px-4 py-2">
             <TurnIndicator
-              currentPlayerName={currentPlayer?.nickname ?? '—'}
+              currentPlayerName={formatPlayerName(currentPlayer?.nickname, langStore.lang)}
               phase={phase}
               myTurn={myTurn}
               timeLeft={stickTimeLeft ?? undefined}
               cambioCaller={cambioCaller}
-              cambioCallerName={cambioCallerPlayer?.nickname}
+              cambioCallerName={cambioCallerPlayer ? formatPlayerName(cambioCallerPlayer.nickname, langStore.lang) : undefined}
               remainingTurns={remainingTurns}
               turnCount={turnCount ?? 0}
               onCallCambio={() => doAction(callCambio, { type: 'CALL_CAMBIO', seat: lobbyInfo.seat })}

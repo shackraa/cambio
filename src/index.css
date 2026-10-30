@@ -153,16 +153,25 @@
   transition: filter 0.2s ease-out;
 }
 
-/* ─── Kart yüzleri: Üst üste bindiğinde siyahlaşma yapmayan, göz yormayan yumuşak kenarlar ─── */
+/* ─── Kart yüzleri: Saf Beyaz İskambil (Classic) ve Antik Krem Parşömen (Vintage) ─── */
 .card-face {
-  background: var(--card-face);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1.5px solid rgba(212,168,67,0.38);
   box-shadow: 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.85);
   overflow: hidden;
+}
+
+.card-face-classic {
+  background: linear-gradient(165deg, #ffffff 0%, #f8fafc 60%, #f1f5f9 100%);
+  border: 1.5px solid #cbd5e1;
+}
+
+.card-face-vintage {
+  background: radial-gradient(circle at 50% 45%, #fff9eb 0%, #f5e4bc 68%, #e5cb92 100%);
+  border: 1.5px solid #c2953c;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.22), inset 0 0 10px rgba(168, 118, 32, 0.18);
 }
 
 @keyframes shineSpecialCard {
