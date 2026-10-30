@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState, useRef, memo } from 'react';
 import type { Card as CardType } from '../types/game';
 import { CARD_TRANSITION } from '../utils/cardTransition';
+import { SoundManager } from '../utils/SoundManager';
 import {
   useCustomizationStore,
   type CardBackSkin,
@@ -174,16 +175,12 @@ export const GameCard = memo(function GameCard({
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
   const isLandscape = orientation === 'landscape';
 
-  // Sadece kart çevrilirken (850ms) 3D perspective aktif olur; sabit dururken 4K/Retina vektör keskinliği için flat 2D render kullanılır!
-  const [isFlipping, setIsFlipping] = useState(false);
+  // Ses efekti: Kart açıldığında da, geri kapandığında da fiziksel kart çevirme sesi çalar
   const prevRevealed = useRef(card.isRevealed);
-
   useEffect(() => {
     if (prevRevealed.current !== card.isRevealed) {
       prevRevealed.current = card.isRevealed;
-      setIsFlipping(true);
-      const timer = setTimeout(() => setIsFlipping(false), 860);
-      return () => clearTimeout(timer);
+      SoundManager.playCardFlip();
     }
   }, [card.isRevealed]);
 
@@ -313,73 +310,63 @@ export const GameCard = memo(function GameCard({
         </motion.div>
       )}
 
-      {/* Perspektif container: Çevirme bittiğinde 2D vektör keskinliğine geçer */}
+      {/* 3D Kart Çevirme Container'ı (Açılırken de kapanırken de pürüzsüz 3D animasyon) */}
       <div
         style={{
           width: '100%',
           height: '100%',
-          perspective: isFlipping ? '900px' : 'none',
+          perspective: '1000px',
           perspectiveOrigin: '50% 50%',
         }}
       >
-        {isFlipping ? (
+        <motion.div
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'relative',
+            transformStyle: 'preserve-3d',
+          }}
+          initial={false}
+          animate={{
+            rotateY: isLandscape ? 0 : card.isRevealed ? 180 : 0,
+            rotateX: isLandscape ? (card.isRevealed ? 180 : 0) : 0,
+          }}
+          transition={{
+            duration: 0.65,
+            ease: [0.25, 1, 0.5, 1],
+          }}
+        >
+          {/* Kartın Arkası (Kapalıyken 0deg bakar) */}
           <div
+            className="card-back"
             style={{
-              width: '100%',
-              height: '100%',
-              position: 'relative',
-              transformStyle: 'preserve-3d',
-              transition: 'transform 0.82s cubic-bezier(0.25, 1, 0.5, 1)',
-              transform: card.isRevealed
-                ? isLandscape
-                  ? 'rotateX(180deg)'
-                  : 'rotateY(180deg)'
-                : 'rotateY(0deg)',
+              position: 'absolute',
+              inset: 0,
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              borderRadius: '8px',
+              overflow: 'hidden',
             }}
           >
-            <div
-              className="card-back"
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                borderRadius: '8px',
-              }}
-            >
-              <PlayingCardBack skin={activeBackSkin} isLandscape={isLandscape} />
-            </div>
+            <PlayingCardBack skin={activeBackSkin} isLandscape={isLandscape} />
+          </div>
 
-            <div
-              className={`card-face ${frontBgClass}`}
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backfaceVisibility: 'hidden',
-                WebkitBackfaceVisibility: 'hidden',
-                transform: isLandscape ? 'rotateX(180deg)' : 'rotateY(180deg)',
-                borderRadius: '8px',
-              }}
-            >
-              <CardFrontContent card={card} isRed={isRed} sizes={sizes} />
-            </div>
+          {/* Kartın Ön Yüzü (Açılınca 180deg bakar) */}
+          <div
+            className={`card-face ${frontBgClass}`}
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backfaceVisibility: 'hidden',
+              WebkitBackfaceVisibility: 'hidden',
+              transform: isLandscape ? 'rotateX(180deg)' : 'rotateY(180deg)',
+              borderRadius: '8px',
+              overflow: 'hidden',
+            }}
+          >
+            <CardFrontContent card={card} isRed={isRed} sizes={sizes} />
           </div>
-        ) : (
-          <div className="w-full h-full relative">
-            {!card.isRevealed ? (
-              <div className="card-back w-full h-full" style={{ borderRadius: '8px' }}>
-                <PlayingCardBack skin={activeBackSkin} isLandscape={isLandscape} />
-              </div>
-            ) : (
-              <div
-                className={`card-face w-full h-full ${frontBgClass}`}
-                style={{ borderRadius: '8px' }}
-              >
-                <CardFrontContent card={card} isRed={isRed} sizes={sizes} />
-              </div>
-            )}
-          </div>
-        )}
+        </motion.div>
       </div>
     </motion.div>
   );
