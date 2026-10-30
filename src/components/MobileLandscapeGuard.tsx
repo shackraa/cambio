@@ -101,9 +101,12 @@ export function MobileLandscapeGuard({ requireFullscreen = true }: MobileLandsca
             <motion.div
               animate={{ rotate: needsPortraitFix ? [0, -90, -90, 0] : [0, 5, -5, 0] }}
               transition={{ duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
-              className="w-16 h-16 rounded-2xl bg-[#e8c468]/15 border border-[#e8c468]/45 flex items-center justify-center text-3xl shadow-inner"
+              className="w-16 h-16 rounded-2xl bg-[#e8c468]/15 border border-[#e8c468]/45 flex items-center justify-center text-[#f7e2ab] shadow-inner"
             >
-              {needsPortraitFix ? '📱' : '🖥️'}
+              <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                <line x1="12" y1="18" x2="12.01" y2="18" />
+              </svg>
             </motion.div>
 
             <div className="flex flex-col gap-2">

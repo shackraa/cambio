@@ -53,31 +53,31 @@ export function CustomizationModal({
   }[] = [
     {
       id: 'classic_red',
-      labelTr: 'Klasik Kırmızı İskambil',
-      labelEn: 'Heritage Crimson Deck',
-      tagTr: 'Klasik Seri',
-      tagEn: 'Classic Deck',
+      labelTr: 'Klasik Kırmızı',
+      labelEn: 'Classic Crimson',
+      tagTr: 'Baklava Desen',
+      tagEn: 'Diamond Weave',
     },
     {
       id: 'classic_blue',
-      labelTr: 'Klasik Mavi İskambil',
-      labelEn: 'Royal Club Navy',
-      tagTr: 'Klasik Seri',
-      tagEn: 'Classic Deck',
+      labelTr: 'Klasik Lacivert',
+      labelEn: 'Classic Navy',
+      tagTr: 'Baklava Desen',
+      tagEn: 'Diamond Weave',
     },
     {
       id: 'royal_compass',
-      labelTr: 'Monarch Altın & Gece',
-      labelEn: 'Monarchs Gold Foil',
-      tagTr: 'Premium',
-      tagEn: 'Premium',
+      labelTr: 'Bordo Ekose',
+      labelEn: 'Burgundy Tartan',
+      tagTr: 'Ekose Dokuma',
+      tagEn: 'Tartan Plaid',
     },
     {
       id: 'emerald_botanical',
-      labelTr: 'Monte Carlo Zümrüt',
-      labelEn: 'Grand Casino Emerald',
-      tagTr: 'Premium',
-      tagEn: 'Premium',
+      labelTr: 'Kulüp Yeşili',
+      labelEn: 'Club Green',
+      tagTr: 'Baklava Desen',
+      tagEn: 'Diamond Weave',
     },
   ];
 
@@ -91,16 +91,16 @@ export function CustomizationModal({
     {
       id: 'classic',
       labelTr: 'Saf Beyaz İskambil',
-      labelEn: 'Crisp Porcelain White',
-      descTr: 'Parlak beyaz turnuva kağıdı',
-      descEn: 'Bright tournament card stock',
+      labelEn: 'Crisp White Card',
+      descTr: 'Klasik parlak beyaz iskambil kağıdı',
+      descEn: 'Standard white playing card stock',
     },
     {
       id: 'vintage',
-      labelTr: 'Antik Krem Parşömen',
-      labelEn: 'Warm Vintage Parchment',
-      descTr: 'Sıcak krem & altın çerçeve dokusu',
-      descEn: 'Aged cream paper & brass trim',
+      labelTr: 'Krem İskambil',
+      labelEn: 'Warm Cream Card',
+      descTr: 'Yumuşak krem tonlu iskambil kağıdı',
+      descEn: 'Warm cream-toned playing card stock',
     },
   ];
 
@@ -124,8 +124,8 @@ export function CustomizationModal({
     },
     {
       id: 'burgundy',
-      labelTr: 'Bordo Kadife',
-      labelEn: 'Velvet Burgundy',
+      labelTr: 'Bordo Çuha',
+      labelEn: 'Burgundy Felt',
       previewColor: '#5c202e',
     },
   ];
@@ -151,19 +151,28 @@ export function CustomizationModal({
             {/* Başlık */}
             <div className="luxury-panel-header flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-400/15 border border-amber-300/35 flex items-center justify-center text-lg">
-                  🎨
+                <div className="w-9 h-9 rounded-xl bg-amber-400/15 border border-amber-300/35 flex items-center justify-center text-[#f7e2ab]">
+                  <svg
+                    className="w-4 h-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                  >
+                    <rect x="4" y="3" width="12" height="17" rx="2" />
+                    <path d="M16 6h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H9" />
+                  </svg>
                 </div>
                 <div>
                   <h2 className="text-sm sm:text-base font-extrabold text-white tracking-wide">
                     {lang === 'tr'
-                      ? 'KART & MASA TASARIMI'
-                      : 'CARD & TABLE CUSTOMIZATION'}
+                      ? 'KART & MASA GÖRÜNÜMÜ'
+                      : 'CARD & TABLE APPEARANCE'}
                   </h2>
                   <p className="text-[11px] text-emerald-100/65 font-medium">
                     {lang === 'tr'
-                      ? 'Klasik ve premium iskambil destelerini kendine göre özelleştir'
-                      : 'Personalize your classic & premium playing cards and table mat'}
+                      ? 'Klasik iskambil destesini ve masa çuhasını seç'
+                      : 'Choose your classic playing card deck and table felt'}
                   </p>
                 </div>
               </div>
@@ -183,11 +192,8 @@ export function CustomizationModal({
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-xs font-extrabold uppercase tracking-[0.14em] text-[#f7e2ab]">
                     {lang === 'tr'
-                      ? '1. Kart Sırtı Tasarımı'
-                      : '1. Playing Card Back Design'}
-                  </span>
-                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-400/30">
-                    {lang === 'tr' ? 'Klasik & Premium' : 'Classic & Premium'}
+                      ? '1. İskambil Sırt Deseni'
+                      : '1. Playing Card Back Pattern'}
                   </span>
                 </div>
 
@@ -213,7 +219,6 @@ export function CustomizationModal({
                             }}
                             size="md"
                             overrideBackSkin={opt.id}
-                            disableLayout={true}
                           />
                         </div>
                         <div className="text-center">
@@ -235,7 +240,7 @@ export function CustomizationModal({
                 <span className="block text-xs font-extrabold uppercase tracking-[0.14em] text-[#f7e2ab] mb-3">
                   {lang === 'tr'
                     ? '2. Kart Ön Yüzü Kağıt Rengi'
-                    : '2. Card Face Paper Style'}
+                    : '2. Card Face Paper Tone'}
                 </span>
                 <div className="grid grid-cols-2 gap-3">
                   {FRONT_OPTIONS.map((opt) => {
@@ -259,7 +264,6 @@ export function CustomizationModal({
                             }}
                             size="sm"
                             overrideFrontStyle={opt.id}
-                            disableLayout={true}
                           />
                         </div>
                         <div className="flex flex-col text-left">
@@ -279,7 +283,7 @@ export function CustomizationModal({
               {/* 3. MASA ÖRTÜSÜ RENGİ */}
               <div>
                 <span className="block text-xs font-extrabold uppercase tracking-[0.14em] text-[#f7e2ab] mb-3">
-                  {lang === 'tr' ? '3. Masa Rengi' : '3. Table Mat Color'}
+                  {lang === 'tr' ? '3. Masa Çuhası' : '3. Table Felt Color'}
                 </span>
                 <div className="grid grid-cols-3 gap-3">
                   {TABLE_OPTIONS.map((opt) => {
@@ -316,7 +320,7 @@ export function CustomizationModal({
                 onClick={onClose}
                 className="btn-gold-3d px-6 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider cursor-pointer"
               >
-                {lang === 'tr' ? 'Tamam & Uygula' : 'Apply & Done'}
+                {lang === 'tr' ? 'Uygula' : 'Apply'}
               </button>
             </div>
           </motion.div>

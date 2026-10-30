@@ -269,8 +269,7 @@ export function PlayerArea({
           highlightPositions={mergedHighlightPositions}
           swapHighlightPositions={swapHighlightPositions}
           peekPositions={activePeekPositions}
-          isDealing={phase === 'peek' && peekState === 'dealing'}
-          seatIndex={player.seat}
+          isDealing={false}
           isHighlighting={phase === 'peek' && (peekState === 'select' || peekState === 'highlight')}
           playerPosition={position}
         />

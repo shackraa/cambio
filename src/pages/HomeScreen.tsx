@@ -11,8 +11,6 @@ import { SoundManager } from '../utils/SoundManager';
 import { MobileLandscapeGuard } from '../components/MobileLandscapeGuard';
 import type { Card } from '../types/game';
 
-const AVATARS = ['👑', '🎩', '🦊', '🦁', '⚡', '🐉', '🎭', '💎'];
-
 const HERO_DEMO_CARDS: Array<{
   card: Card;
   labelTr: string;
@@ -27,8 +25,8 @@ const HERO_DEMO_CARDS: Array<{
       isRevealed: true,
       isPenalty: false,
     },
-    labelTr: 'Kırmızı K = -1 Puan (En Değerli!)',
-    labelEn: 'Red King = -1 Pt (Best Card!)',
+    labelTr: 'Kupa Papazı (K) = -1 Puan (En Değerli Kart)',
+    labelEn: 'King of Hearts (K) = -1 Pt (Best Card)',
   },
   {
     card: {
@@ -80,9 +78,7 @@ export function HomeScreen() {
       return prev;
     });
   }, [lang]);
-  const [avatar, setAvatar] = useState(
-    () => sessionStorage.getItem('avatar') ?? '👑'
-  );
+
   const [botDifficulty, setBotDifficulty] = useState<
     'casual' | 'tactical' | 'grandmaster'
   >(
@@ -122,7 +118,7 @@ export function HomeScreen() {
     await triggerMobileFullscreenLandscape();
     const cleanNick = nickname.trim() || (lang === 'tr' ? 'Sen' : 'You');
     sessionStorage.setItem('nickname', cleanNick);
-    sessionStorage.setItem('avatar', avatar);
+    sessionStorage.setItem('avatar', '♠');
     sessionStorage.setItem('botDifficulty', botDifficulty);
     sessionStorage.removeItem('roomId');
     sessionStorage.setItem('playerId', 'local');
@@ -136,9 +132,9 @@ export function HomeScreen() {
     await triggerMobileFullscreenLandscape();
     const cleanNick = nickname.trim();
     sessionStorage.setItem('nickname', cleanNick);
-    sessionStorage.setItem('avatar', avatar);
+    sessionStorage.setItem('avatar', '♠');
     sessionStorage.setItem('botDifficulty', botDifficulty);
-    await createRoom(cleanNick, avatar, botDifficulty);
+    await createRoom(cleanNick, '♠', botDifficulty);
   };
 
   const handleJoinRoom = async () => {
@@ -146,8 +142,8 @@ export function HomeScreen() {
     await triggerMobileFullscreenLandscape();
     const cleanNick = nickname.trim();
     sessionStorage.setItem('nickname', cleanNick);
-    sessionStorage.setItem('avatar', avatar);
-    await joinRoom(joinCode, cleanNick, avatar);
+    sessionStorage.setItem('avatar', '♠');
+    await joinRoom(joinCode, cleanNick, '♠');
   };
 
   const handleFlipDemoCard = (index: number) => {
@@ -171,14 +167,26 @@ export function HomeScreen() {
       {/* Mobilde Dikey Tutuş Koruması */}
       <MobileLandscapeGuard requireFullscreen={false} />
 
-      {/* Sağ Üst: Sadece Dil Seçici (EN / TR) ve Tam Ekran Tuşu */}
+      {/* Sağ Üst: Dil Seçici (EN / TR) ve Tam Ekran Tuşu */}
       <div className="fixed top-4 right-4 sm:top-5 sm:right-6 z-40 flex items-center gap-2">
         <div className="luxury-panel h-10 p-1 rounded-xl flex items-center gap-1">
           <span
-            className="pl-2 pr-1 text-xs opacity-80 select-none"
+            className="pl-2 pr-1 text-emerald-200/75 flex items-center select-none"
             title="Language / Dil"
           >
-            🌐
+            <svg
+              className="w-3.5 h-3.5"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <path d="M2 12h20" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
           </span>
           <button
             type="button"
@@ -216,7 +224,15 @@ export function HomeScreen() {
           className="btn-emerald-3d h-10 px-3.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
           title={t.fullScreen}
         >
-          <span className="text-sm leading-none text-[#f7e2ab]">⛶</span>
+          <svg
+            className="w-3.5 h-3.5 text-[#f7e2ab]"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.2"
+          >
+            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+          </svg>
           <span className="hidden sm:inline text-[11px] uppercase tracking-wider">
             {t.fullScreen}
           </span>
@@ -224,8 +240,8 @@ export function HomeScreen() {
       </div>
 
       {/* Ana Hub Kapsayıcısı */}
-      <div className="relative z-10 w-full max-w-[470px] flex flex-col items-center gap-4 sm:gap-5">
-        {/* Etkileşimli 3'lü Kart Yelpazesi + CAMBIO Başlığı */}
+      <div className="relative z-10 w-full max-w-[460px] flex flex-col items-center gap-4 sm:gap-5">
+        {/* Etkileşimli 3'lü İskambil Kartı Yelpazesi + CAMBIO Başlığı */}
         <motion.div
           className="flex flex-col items-center gap-1.5"
           initial={{ opacity: 0, y: -14 }}
@@ -247,8 +263,8 @@ export function HomeScreen() {
                   className={`absolute transition-all duration-200 cursor-pointer ${transforms[idx]}`}
                   title={
                     lang === 'tr'
-                      ? 'Kartı çevirmek için dokun!'
-                      : 'Tap to flip card!'
+                      ? 'Kartı çevirmek için dokun'
+                      : 'Tap to flip card'
                   }
                 >
                   <GameCard card={item.card} size="sm" />
@@ -259,11 +275,11 @@ export function HomeScreen() {
 
           {/* Kart İpucu Çubuğu */}
           <div className="h-5 flex items-center justify-center">
-            <span className="text-[10px] font-bold tracking-wider text-[#f7e2ab]/90 bg-black/30 px-3 py-0.5 rounded-full border border-[#e8c468]/25">
+            <span className="text-[10px] font-bold tracking-wider text-[#f7e2ab]/90 bg-black/30 px-3.5 py-0.5 rounded-full border border-[#e8c468]/25">
               {activeCardHint ||
                 (lang === 'tr'
-                  ? '✨ Kartlara dokunarak çevir ve güçlerini keşfet'
-                  : '✨ Tap the cards above to flip & inspect powers')}
+                  ? 'Kartlara dokunarak çevir ve güçlerini incele'
+                  : 'Tap the playing cards above to flip & inspect')}
             </span>
           </div>
 
@@ -277,11 +293,15 @@ export function HomeScreen() {
           >
             CAMBIO
           </h1>
-          <p className="text-emerald-200/80 text-[11px] tracking-[0.24em] uppercase font-bold">
-            {lang === 'tr'
-              ? 'HAFIZA & STRATEJİ KART OYUNU'
-              : 'MEMORY & STRATEGY CARD GAME'}
-          </p>
+          <div className="flex items-center gap-2 text-emerald-200/80 text-[11px] tracking-[0.22em] uppercase font-bold">
+            <span className="text-[#e8c468]/70">♠ ♥</span>
+            <span>
+              {lang === 'tr'
+                ? 'HAFIZA & STRATEJİ KART OYUNU'
+                : 'MEMORY & STRATEGY CARD GAME'}
+            </span>
+            <span className="text-[#e8c468]/70">♦ ♣</span>
+          </div>
         </motion.div>
 
         {/* Ana Etkileşim Paneli */}
@@ -291,67 +311,34 @@ export function HomeScreen() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.06, duration: 0.35, ease: 'easeOut' }}
         >
-          {/* Oyuncu Profili: Avatar Seçici + İsim Girişi */}
-          <div className="flex flex-col gap-2 w-full">
+          {/* Oyuncu İsmi Girişi */}
+          <div className="flex flex-col gap-1.5 w-full">
             <div className="flex items-center justify-between px-1">
               <label className="text-[#f7e2ab] text-[11px] font-extrabold uppercase tracking-[0.15em]">
                 {t.hs_player_name}
               </label>
-              <span className="text-[10px] text-emerald-200/65 font-semibold">
-                {lang === 'tr' ? 'Avatar Seç' : 'Pick Avatar'}
+              <span className="text-[10px] text-emerald-200/60 font-semibold tracking-wider">
+                ♠ ♥ ♦ ♣
               </span>
             </div>
 
-            <div className="flex items-center gap-2.5 w-full">
-              {/* Avatar Döngü Butonu */}
-              <button
-                type="button"
-                onClick={() => {
-                  const nextIdx = (AVATARS.indexOf(avatar) + 1) % AVATARS.length;
-                  setAvatar(AVATARS[nextIdx]);
-                }}
-                className="h-12 w-12 rounded-2xl bg-black/40 hover:bg-black/55 border border-[#e8c468]/40 flex items-center justify-center text-2xl shrink-0 transition-transform active:scale-95 cursor-pointer shadow-inner"
-                title={lang === 'tr' ? 'Avatarı değiştir' : 'Change avatar'}
-              >
-                {avatar}
-              </button>
-
-              <input
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder={t.hs_placeholder}
-                maxLength={16}
-                className="flex-1 h-12 bg-black/35 border border-white/15 rounded-2xl px-4
-                           text-white placeholder-white/30 text-center focus:outline-none focus:border-[#f7e2ab]/70
-                           focus:ring-2 focus:ring-[#f7e2ab]/20 transition-all text-base font-bold"
-              />
-            </div>
-
-            {/* Hızlı Avatar Seçim Çubuğu */}
-            <div className="flex items-center justify-between gap-1 pt-0.5">
-              {AVATARS.map((av) => (
-                <button
-                  key={av}
-                  type="button"
-                  onClick={() => setAvatar(av)}
-                  className={`flex-1 py-1 rounded-xl text-sm transition-all cursor-pointer ${
-                    avatar === av
-                      ? 'bg-[#e8c468]/25 border border-[#e8c468]/60 scale-105'
-                      : 'bg-white/[0.03] border border-transparent opacity-60 hover:opacity-100'
-                  }`}
-                >
-                  {av}
-                </button>
-              ))}
-            </div>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder={t.hs_placeholder}
+              maxLength={16}
+              className="w-full h-12 bg-black/35 border border-white/15 rounded-2xl px-4
+                         text-white placeholder-white/30 text-center focus:outline-none focus:border-[#f7e2ab]/70
+                         focus:ring-2 focus:ring-[#f7e2ab]/20 transition-all text-base font-bold"
+            />
           </div>
 
-          {/* Yapay Zeka Bot Zorluk Seçici */}
+          {/* Bot Zorluk Seçici (Temiz Tipografi & Klasik İskambil Sembolleri) */}
           <div className="flex flex-col gap-1.5 w-full">
             <div className="flex items-center justify-between px-1">
               <span className="text-emerald-100/75 text-[10px] font-extrabold uppercase tracking-[0.15em]">
-                {lang === 'tr' ? 'BOT ZEKASI & TEMPO' : 'BOT AI DIFFICULTY'}
+                {lang === 'tr' ? 'BOT ZORLUK SEVİYESİ' : 'BOT AI DIFFICULTY'}
               </span>
               <span className="text-[10px] font-bold text-[#f7e2ab]">
                 {botDifficulty === 'casual'
@@ -373,19 +360,19 @@ export function HomeScreen() {
                 [
                   {
                     id: 'casual',
-                    icon: '🌱',
+                    suit: '♣',
                     tr: 'Rahat',
                     en: 'Casual',
                   },
                   {
                     id: 'tactical',
-                    icon: '🧠',
+                    suit: '♦',
                     tr: 'Stratejik',
                     en: 'Tactical',
                   },
                   {
                     id: 'grandmaster',
-                    icon: '🔥',
+                    suit: '♠',
                     tr: 'Usta',
                     en: 'Master',
                   },
@@ -401,7 +388,7 @@ export function HomeScreen() {
                       : 'text-emerald-100/70 hover:text-white'
                   }`}
                 >
-                  <span>{lv.icon}</span>
+                  <span className="text-[11px] opacity-80">{lv.suit}</span>
                   <span>{lang === 'tr' ? lv.tr : lv.en}</span>
                 </button>
               ))}
@@ -426,7 +413,18 @@ export function HomeScreen() {
                     onClick={handleCreateRoom}
                     className="w-full py-3.5 rounded-2xl btn-gold-3d font-black text-xs sm:text-sm uppercase tracking-[0.14em] disabled:opacity-45 disabled:pointer-events-none cursor-pointer flex items-center justify-center gap-2"
                   >
-                    <span>✨</span>
+                    <svg
+                      className="w-4 h-4 shrink-0"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
                     <span>{loading ? t.hs_creating : t.hs_create_room}</span>
                   </button>
 
@@ -437,7 +435,19 @@ export function HomeScreen() {
                       onClick={() => setMode('join')}
                       className="py-3.5 rounded-2xl btn-emerald-3d font-bold text-xs tracking-wider uppercase disabled:opacity-40 disabled:pointer-events-none cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      <span>🔑</span>
+                      <svg
+                        className="w-3.5 h-3.5 text-[#f7e2ab] shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                        <polyline points="10 17 15 12 10 7" />
+                        <line x1="15" y1="12" x2="3" y2="12" />
+                      </svg>
                       <span>{t.hs_join_room}</span>
                     </button>
                     <button
@@ -445,7 +455,17 @@ export function HomeScreen() {
                       onClick={handlePlayWithBots}
                       className="py-3.5 rounded-2xl btn-emerald-3d font-bold text-xs tracking-wider uppercase flex items-center justify-center gap-1.5 cursor-pointer"
                     >
-                      <span>🤖</span>
+                      <svg
+                        className="w-3.5 h-3.5 text-[#f7e2ab] shrink-0"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polygon points="5 3 19 12 5 21 5 3" />
+                      </svg>
                       <span>{t.hs_with_bots}</span>
                     </button>
                   </div>
@@ -455,7 +475,18 @@ export function HomeScreen() {
                     onClick={() => setShowRules(true)}
                     className="w-full py-2.5 rounded-2xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/12 text-white/90 font-bold text-xs tracking-wide transition-colors cursor-pointer flex items-center justify-center gap-2 mt-0.5"
                   >
-                    <span>📖</span>
+                    <svg
+                      className="w-3.5 h-3.5 text-[#f7e2ab] shrink-0"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.1"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                      <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                    </svg>
                     <span>
                       {lang === 'tr'
                         ? 'Oyun Kuralları & Kart Güçleri Rehberi'
@@ -531,7 +562,7 @@ export function HomeScreen() {
           </AnimatePresence>
         </motion.div>
 
-        {/* Alt Oyuncu Kariyer & İstatistik Rozet Barı */}
+        {/* Alt Oyuncu İstatistik Barı (Emojisiz, Temiz Tipografi) */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -552,7 +583,7 @@ export function HomeScreen() {
               {lang === 'tr' ? 'GALİBİYET' : 'VICTORIES'}
             </span>
             <span className="text-base font-black text-[#f7e2ab] font-['JetBrains_Mono'] mt-0.5">
-              🏆 {stats.wins}
+              {stats.wins}
             </span>
           </div>
 

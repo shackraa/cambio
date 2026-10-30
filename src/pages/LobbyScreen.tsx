@@ -100,7 +100,7 @@ export function LobbyScreen() {
               onClick={handleCopyCode}
               className="btn-gold-3d px-4 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
             >
-              <span>{copied ? '✓' : '📋'}</span>
+              <span>{copied ? '✓' : '⧉'}</span>
               <span>
                 {copied
                   ? lang === 'tr'
@@ -145,15 +145,15 @@ export function LobbyScreen() {
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0 border ${
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-base font-black shrink-0 border ${
                       isMe
-                        ? 'bg-[#e8c468]/25 border-[#e8c468]'
+                        ? 'bg-[#e8c468]/25 border-[#e8c468] text-[#f7e2ab]'
                         : isBot
-                          ? 'bg-white/5 border-white/15'
-                          : 'bg-emerald-500/20 border-emerald-400/30'
+                          ? 'bg-white/5 border-white/15 text-emerald-200/80'
+                          : 'bg-emerald-500/20 border-emerald-400/30 text-white'
                     }`}
                   >
-                    {player ? player.avatar || (isBot ? '🤖' : '🎴') : '🪑'}
+                    {player ? (isBot ? 'AI' : ['♠', '♥', '♦', '♣'][seat]) : '—'}
                   </div>
 
                   <div className="min-w-0">
@@ -221,11 +221,11 @@ export function LobbyScreen() {
                     >
                       {isBot
                         ? lang === 'tr'
-                          ? '👤 Boşalt'
-                          : '👤 Clear'
+                          ? 'Boşalt'
+                          : 'Clear'
                         : lang === 'tr'
-                          ? '+ 🤖 Bot'
-                          : '+ 🤖 Bot'}
+                          ? '+ Bot Ekle'
+                          : '+ Add Bot'}
                     </button>
                   )}
                 </div>
@@ -251,13 +251,13 @@ export function LobbyScreen() {
               onClick={handleStart}
               className="w-full flex-1 py-3.5 px-8 rounded-2xl btn-gold-3d font-black text-xs sm:text-sm uppercase tracking-[0.14em] disabled:opacity-45 cursor-pointer"
             >
-              {lang === 'tr' ? '🚀 MASAYI BAŞLAT' : '🚀 START TABLE'}
+              {lang === 'tr' ? 'MASAYI BAŞLAT' : 'START TABLE'}
             </button>
           ) : (
             <div className="flex-1 py-3.5 px-6 rounded-2xl bg-black/30 border border-white/10 text-center text-emerald-100/80 text-xs font-bold">
               {lang === 'tr'
-                ? '⏳ Masa sahibi (Host) oyunu başlatacak...'
-                : '⏳ Waiting for the Host to start the game...'}
+                ? 'Masa sahibi (Host) oyunu başlatacak...'
+                : 'Waiting for the Host to start the game...'}
             </div>
           )}
         </div>

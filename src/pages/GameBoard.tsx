@@ -97,28 +97,15 @@ export function GameBoard() {
     burgundy: 'radial-gradient(ellipse at center, #73293b 0%, #4d1a27 62%, #331019 100%)',
   };
 
-  // Bilgisayar Monitörü Görünümü: Masaüstünde 1:1 doğal 4K, mobilde (yatay) ise tam monitör düzenini koruyan vektörel CSS zoom
-  const [monitorZoom, setMonitorZoom] = useState(() => {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    if (w >= 1440 && h >= 840) return 1;
-    return Math.max(0.35, Math.min(w / 1580, h / 880));
-  });
-  const isCompact = false;
-
+  // Kompakt ekran tespiti (CSS scale / zoom kullanılmaz ki Framer Motion layoutId kart uçuşları 1:1 kusursuz aksın)
+  const [isCompact, setIsCompact] = useState(() => window.innerWidth < 1100 || window.innerHeight < 800);
   useLayoutEffect(() => {
-    const updateZoom = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      if (w >= 1440 && h >= 840) {
-        setMonitorZoom(1);
-      } else {
-        setMonitorZoom(Math.max(0.35, Math.min(w / 1580, h / 880)));
-      }
+    const updateLayout = () => {
+      setIsCompact(window.innerWidth < 1100 || window.innerHeight < 800);
     };
-    updateZoom();
-    window.addEventListener('resize', updateZoom);
-    return () => window.removeEventListener('resize', updateZoom);
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    return () => window.removeEventListener('resize', updateLayout);
   }, []);
 
   const transitionPeekState = useGameStore(s => s.transitionPeekState);
@@ -558,19 +545,8 @@ export function GameBoard() {
       {/* Mobilde Zorunlu Yatay + Tam Ekran Monitör Koruması */}
       <MobileLandscapeGuard requireFullscreen={true} />
 
-      {/* Doğal 4K / Full HD Bilgisayar Monitörü Sahnesi (Mobilde yatay tam ekran monitör görünümü için vektörel CSS zoom) */}
-      <div
-        className="w-full h-dvh flex flex-col p-3 lg:p-4 gap-3 overflow-hidden relative z-10 max-w-[1920px] mx-auto"
-        style={
-          monitorZoom < 1
-            ? {
-                width: `${100 / monitorZoom}vw`,
-                height: `${100 / monitorZoom}dvh`,
-                zoom: monitorZoom,
-              }
-            : undefined
-        }
-      >
+      {/* Doğal 4K / Full HD 1:1 Sahne (Zoom/Scale kullanılmaz, kartlar masada yağ gibi kayarak uçar) */}
+      <div className="w-full h-dvh flex flex-col p-2 sm:p-3 lg:p-4 gap-2 sm:gap-3 overflow-hidden relative z-10 max-w-[1920px] mx-auto">
         {/* Üst Bar: Orta (CAMBIO Logosu) + Sağ (Tasarım / Ses / Dil / Tam Ekran) */}
         <div className="relative flex items-center justify-center shrink-0 px-2">
           {/* Orta: Sıcak Masa Oyunu CAMBIO Logosu */}
@@ -626,9 +602,12 @@ export function GameBoard() {
               className="btn-emerald-3d h-9 px-3.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
               title={langStore.lang === 'tr' ? 'Kart & Masa Görünümü' : 'Customize Cards & Table'}
             >
-              <span>🎨</span>
+              <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <rect x="4" y="3" width="12" height="16" rx="2" />
+                <path d="M8 21h10a2 2 0 0 0 2-2V7" />
+              </svg>
               <span className="text-[11px] uppercase tracking-wider">
-                {langStore.lang === 'tr' ? 'Tasarım' : 'Skins'}
+                {langStore.lang === 'tr' ? 'Desteler' : 'Decks'}
               </span>
             </button>
 

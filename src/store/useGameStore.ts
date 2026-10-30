@@ -219,19 +219,16 @@ export const useGameStore = create<GameStore>()(
       if (state.chatMessages.length > 100) state.chatMessages.shift();
     }),
 
-    // ── Oyunu başlat (60fps Kesintisiz GPU Kart Dağıtımıyla!) ──
+    // ── Oyunu başlat (Fiziksel Tek Tek Kart Dağıtımıyla!) ──
     initGame: (myNickname, opponents) => {
       clearDealingTimers();
       const shuffled = shuffleDeck(createDeck());
-      const { playerHands, remainingDeck } = dealCards(shuffled);
-      const players = makePlayers(myNickname, opponents).map((p, idx) => ({
-        ...p,
-        cards: (playerHands[idx] ?? []).map(c => ({ ...c, isRevealed: false })),
-      }));
+      const players = makePlayers(myNickname, opponents);
 
+      // Başlangıçta tüm 54 kart ortadaki kapalı destede durur!
       set(state => {
         state.phase = 'peek';
-        state.deck = remainingDeck;
+        state.deck = shuffled;
         state.discardPile = [];
         state.players = players;
         state.currentTurn = 0;
@@ -252,16 +249,25 @@ export const useGameStore = create<GameStore>()(
         state.lastStickFeedback = null;
         state.finalScores = [];
         state.winner = null;
-        state.peekPhaseEndTime = Date.now() + 1850;
+        state.peekPhaseEndTime = Date.now() + 3800; // 16 kartın dağıtım süresi
         state.peekState = 'dealing';
         state.peekSelectedPositions = [];
       });
 
-      // Kartların akıcı 60fps GPU uçuşuna eşlik eden ritmik dağıtım sesleri (state mutasyonu yapmadığı için sıfır takılma!)
-      for (let i = 0; i < 8; i++) {
+      // 16 kartı sırayla (4 tur × 4 oyuncu) desteden çekip oyuncuların önüne fiziksel olarak uçur!
+      for (let i = 0; i < 16; i++) {
+        const seat = i % 4;
         const t = setTimeout(() => {
+          useGameStore.setState(s => {
+            if (s.phase !== 'peek') return;
+            const card = s.deck.shift();
+            const targetPlayer = s.players.find(p => p.seat === seat);
+            if (card && targetPlayer && targetPlayer.cards.length < 4) {
+              targetPlayer.cards.push({ ...card, isRevealed: false });
+            }
+          });
           SoundManager.playCardDraw();
-        }, 80 + i * 180);
+        }, 260 + i * 200);
         dealingTimers.push(t);
       }
     },

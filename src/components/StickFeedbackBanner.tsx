@@ -88,8 +88,8 @@ export function StickFeedbackBanner() {
                 >
                   {feedback.success
                     ? lang === 'tr'
-                      ? '⚡ KART ELENDİ (-1)'
-                      : '⚡ CARD STUCK (-1)'
+                      ? '✓ KART ELENDİ (-1)'
+                      : '✓ CARD STUCK (-1)'
                     : lang === 'tr'
                       ? '+1 CEZA KARTI'
                       : '+1 PENALTY CARD'}
