@@ -35,11 +35,11 @@ const SUIT_SYMBOL: Record<string, string> = {
  * Gerçek Klasik Türk İskambil Kağıdı Sırt Tasarımları
  * (Ortada tarot gibi garip ikonlar/semboller YOK — uçtan uca klasik baklava / ekose iskambil dokusu ve beyaz çerçeve)
  */
-function PlayingCardBack({
+export function PlayingCardBack({
   skin,
 }: {
   skin: CardBackSkin;
-  isLandscape: boolean;
+  isLandscape?: boolean;
 }) {
   // 1) KLASİK KIRMIZI TÜRK İSKAMBİLİ (Uçtan uca ince kırmızı-beyaz baklava dokusu)
   if (skin === 'classic_red') {
@@ -389,16 +389,13 @@ function CardFrontContent({
   isRed: boolean;
   sizes: { text: string; corner: string };
 }) {
-  const isCourt = ['J', 'Q', 'K'].includes(card.rank);
   const suitColor = isRed ? 'text-[#d91b24]' : 'text-[#111827]';
 
   if (card.rank === 'Joker') {
     return (
       <div className="relative w-full h-full flex flex-col items-center justify-center p-1.5 select-none">
-        <div className="absolute inset-[5px] rounded-[3px] border border-slate-300/80 pointer-events-none" />
-        <div className="absolute top-1.5 left-1.5 text-[7px] sm:text-[8px] font-black text-[#111827] tracking-tighter leading-none flex flex-col items-center">
-          <span>J</span>
-          <span className="text-[#d91b24]">★</span>
+        <div className="absolute top-1 left-1.5 leading-none flex flex-col items-center text-[#111827]">
+          <span className={`font-extrabold tracking-tighter ${sizes.corner}`}>★</span>
         </div>
         <div className="grid grid-cols-2 gap-0.5 text-xs sm:text-sm leading-none">
           <span className="text-[#111827]">♠</span>
@@ -409,9 +406,8 @@ function CardFrontContent({
         <span className="text-[#111827] font-black text-[8px] sm:text-[9px] tracking-[0.14em] mt-1">
           JOKER
         </span>
-        <div className="absolute bottom-1.5 right-1.5 rotate-180 text-[7px] sm:text-[8px] font-black text-[#111827] tracking-tighter leading-none flex flex-col items-center">
-          <span>J</span>
-          <span className="text-[#d91b24]">★</span>
+        <div className="absolute bottom-1 right-1.5 rotate-180 leading-none flex flex-col items-center text-[#d91b24]">
+          <span className={`font-extrabold tracking-tighter ${sizes.corner}`}>★</span>
         </div>
       </div>
     );
@@ -419,15 +415,6 @@ function CardFrontContent({
 
   return (
     <div className="relative w-full h-full flex items-center justify-center select-none">
-      {/* Resimli Kartlar (J, Q, K) için Klasik İskambil İç Çerçevesi */}
-      {isCourt && (
-        <div
-          className={`absolute inset-[14%] rounded-[2px] border pointer-events-none ${
-            isRed ? 'border-[#d91b24]/30 bg-[#d91b24]/[0.02]' : 'border-[#111827]/25 bg-[#111827]/[0.02]'
-          }`}
-        />
-      )}
-
       {/* Sol Üst Klasik İskambil Köşe İndeksi */}
       <div
         className={`absolute top-1 left-1.5 leading-none flex flex-col items-center ${suitColor}`}
@@ -438,22 +425,11 @@ function CardFrontContent({
         <span className={`${sizes.corner} -mt-0.5`}>{SUIT_SYMBOL[card.suit]}</span>
       </div>
 
-      {/* Merkez İskambil Sembolü */}
-      <div className={`${suitColor} flex flex-col items-center justify-center`}>
-        {isCourt ? (
-          <div className="flex flex-col items-center justify-center leading-none">
-            <span className="font-serif font-bold text-xs sm:text-sm opacity-85 -mb-0.5">
-              {card.rank}
-            </span>
-            <span className={`${sizes.text} leading-none`}>
-              {SUIT_SYMBOL[card.suit]}
-            </span>
-          </div>
-        ) : (
-          <span className={`${sizes.text} leading-none`}>
-            {SUIT_SYMBOL[card.suit]}
-          </span>
-        )}
+      {/* Merkez İskambil Sembolü (İç içe binen ikinci harf veya iç çerçeve YOK — net ve temiz) */}
+      <div className={`${suitColor} flex items-center justify-center`}>
+        <span className={`${sizes.text} leading-none`}>
+          {SUIT_SYMBOL[card.suit]}
+        </span>
       </div>
 
       {/* Sağ Alt Ters Klasik İskambil Köşe İndeksi */}

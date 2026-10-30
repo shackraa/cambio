@@ -47,24 +47,78 @@ export function useRealtimeGame({
     const room = p2pRoomManager.getStoredRoom(roomCode);
     if (room?.initialGameState) {
       const gs = room.initialGameState;
-      useGameStore.setState({
-        players: gs.players,
-        phase: gs.phase,
-        currentTurn: gs.currentTurn,
-        discardPile: gs.discardPile ?? [],
-        deck: gs.deck ?? [],
-        drawnCard: gs.drawnCard ?? null,
-        cambioCaller: gs.cambioCaller ?? null,
-        remainingTurns: gs.remainingTurns ?? 0,
-        roomCode,
-        knownCards: [],
-        peekPhaseEndTime: gs.phase === 'peek' ? Date.now() + 3200 : null,
-        peekState: gs.peekState ?? 'dealing',
-        peekSelectedPositions: gs.peekSelectedPositions ?? [],
-        winner: gs.winner ?? null,
-        finalScores: gs.finalScores ?? [],
-        turnCount: gs.turnCount ?? 0,
-      });
+
+      // Eğer oyun yeni başlıyorsa (dealing fazındaysa), 16 kartı destenin en üstüne koyup
+      // tek tek fiziksel olarak masadaki oyunculara uçur!
+      if (gs.phase === 'peek' && (gs.peekState === 'dealing' || !gs.peekState)) {
+        const dealtRoundRobin: any[] = [];
+        for (let r = 0; r < 4; r++) {
+          for (let s = 0; s < 4; s++) {
+            const p = gs.players.find((pl: any) => pl.seat === s);
+            if (p?.cards?.[r]) {
+              dealtRoundRobin.push({ ...p.cards[r], isRevealed: false });
+            }
+          }
+        }
+
+        const emptyPlayers = gs.players.map((p: any) => ({
+          ...p,
+          cards: [],
+        }));
+
+        useGameStore.setState({
+          players: emptyPlayers,
+          phase: gs.phase,
+          currentTurn: gs.currentTurn,
+          discardPile: gs.discardPile ?? [],
+          deck: [...dealtRoundRobin, ...(gs.deck ?? [])],
+          drawnCard: null,
+          cambioCaller: null,
+          remainingTurns: 0,
+          roomCode,
+          knownCards: [],
+          peekPhaseEndTime: Date.now() + 3800,
+          peekState: 'dealing',
+          peekSelectedPositions: [],
+          winner: null,
+          finalScores: [],
+          turnCount: 1,
+        });
+
+        for (let i = 0; i < dealtRoundRobin.length; i++) {
+          const seat = i % 4;
+          setTimeout(() => {
+            useGameStore.setState((s) => {
+              if (s.phase !== 'peek' || s.peekState !== 'dealing') return;
+              const card = s.deck.shift();
+              const targetPlayer = s.players.find((pl) => pl.seat === seat);
+              if (card && targetPlayer && targetPlayer.cards.length < 4) {
+                targetPlayer.cards.push({ ...card, isRevealed: false });
+              }
+            });
+            SoundManager.playCardDraw();
+          }, 260 + i * 200);
+        }
+      } else {
+        useGameStore.setState({
+          players: gs.players,
+          phase: gs.phase,
+          currentTurn: gs.currentTurn,
+          discardPile: gs.discardPile ?? [],
+          deck: gs.deck ?? [],
+          drawnCard: gs.drawnCard ?? null,
+          cambioCaller: gs.cambioCaller ?? null,
+          remainingTurns: gs.remainingTurns ?? 0,
+          roomCode,
+          knownCards: [],
+          peekPhaseEndTime: gs.phase === 'peek' ? Date.now() + 3200 : null,
+          peekState: gs.peekState ?? 'dealing',
+          peekSelectedPositions: gs.peekSelectedPositions ?? [],
+          winner: gs.winner ?? null,
+          finalScores: gs.finalScores ?? [],
+          turnCount: gs.turnCount ?? 0,
+        });
+      }
     } else if (isHost && room) {
       // Eğer henüz initialGameState yoksa Host olarak hemen oluştur
       await initGameInDB();

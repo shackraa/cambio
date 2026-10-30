@@ -10,13 +10,23 @@ interface CardGridProps {
   canInteract?: boolean;
   onCardClick?: (position: number) => void;
   highlightPositions?: number[];
-  peekPositions?: number[];   // peek fazında veya güç kullanımında bakılan kart pozisyonları
+  peekPositions?: number[]; // peek fazında veya güç kullanımında bakılan kart pozisyonları
   swapHighlightPositions?: number[]; // takas öncesi/sırasında parlayan slotlar
   direction?: 'horizontal' | 'vertical';
   isDealing?: boolean;
   isHighlighting?: boolean;
   playerPosition?: 'bottom' | 'top' | 'left' | 'right';
 }
+
+const SLOT_DIM_MAP: Record<
+  'xs' | 'sm' | 'md' | 'lg',
+  { portrait: string; landscape: string }
+> = {
+  xs: { portrait: 'w-11 h-16', landscape: 'w-15 h-10' },
+  sm: { portrait: 'w-14 h-20', landscape: 'w-20 h-14' },
+  md: { portrait: 'w-16 h-24', landscape: 'w-24 h-16' },
+  lg: { portrait: 'w-20 h-28', landscape: 'w-28 h-20' },
+};
 
 export const CardGrid = memo(function CardGrid({
   cards,
@@ -35,13 +45,32 @@ export const CardGrid = memo(function CardGrid({
   const isSidePlayer = playerPosition === 'left' || playerPosition === 'right';
 
   // Sol/sağ oyuncuların kartları tek sıra dikey (alt alta) dizilir ve her kart yan (landscape) durur!
-  const gridClass = direction === 'vertical'
-    ? 'flex flex-col justify-center items-center gap-1.5 sm:gap-2.5'
-    : 'flex flex-row justify-center items-center gap-1.5 sm:gap-3';
+  const gridClass =
+    direction === 'vertical'
+      ? 'flex flex-col justify-center items-center gap-1.5 sm:gap-2.5'
+      : 'flex flex-row justify-center items-center gap-1.5 sm:gap-3';
+
+  // Dağıtım sırasında (isDealing) 4 slot sabit boyutta tutulur; böylece her yeni kart desteden uçup geldiğinde
+  // önceden gelen kartlar yana kayıp titreme yapmaz (sıfır reflow, 60fps fiziksel uçuş)!
+  const totalSlots = isDealing ? Math.max(4, cards.length) : cards.length;
+  const placeholderDim = isSidePlayer
+    ? SLOT_DIM_MAP[size].landscape
+    : SLOT_DIM_MAP[size].portrait;
 
   return (
     <div className={gridClass}>
-      {cards.map((card, i) => {
+      {Array.from({ length: totalSlots }).map((_, i) => {
+        const card = cards[i];
+
+        if (!card) {
+          return (
+            <div
+              key={`deal-slot-${i}`}
+              className={`${placeholderDim} shrink-0 pointer-events-none opacity-0`}
+            />
+          );
+        }
+
         const isSwapHighlighted = swapHighlightPositions.includes(i);
         const isPeeked = peekPositions.includes(i);
         const isSelectedMode = isHighlighting;
@@ -80,7 +109,7 @@ export const CardGrid = memo(function CardGrid({
               canInteract={canInteract}
               onClick={() => onCardClick?.(i)}
               highlight={highlightPositions.includes(i)}
-              initial={isDealing ? { opacity: 0, scale: 0.85, y: -16 } : false}
+              initial={false}
               animate={{
                 opacity: 1,
                 scale: 1,
@@ -112,8 +141,10 @@ export const CardGrid = memo(function CardGrid({
                   ease: [0.45, 0, 0.55, 1],
                 }}
                 style={{
-                  boxShadow: '0 0 20px 3px rgba(240, 201, 108, 0.5), inset 0 0 10px rgba(240, 201, 108, 0.25)',
-                  background: 'radial-gradient(circle, rgba(240,201,108,0.14) 0%, rgba(212,168,67,0.02) 70%)',
+                  boxShadow:
+                    '0 0 20px 3px rgba(240, 201, 108, 0.5), inset 0 0 10px rgba(240, 201, 108, 0.25)',
+                  background:
+                    'radial-gradient(circle, rgba(240,201,108,0.14) 0%, rgba(212,168,67,0.02) 70%)',
                   border: '1.5px solid rgba(250, 225, 156, 0.75)',
                 }}
               />
@@ -155,7 +186,8 @@ export const CardGrid = memo(function CardGrid({
                     className="flex items-center gap-1 px-2 py-0.5 rounded-full whitespace-nowrap"
                     style={{
                       background: 'linear-gradient(180deg, #fdf8eb 0%, #f2e4c6 100%)',
-                      boxShadow: '0 3px 10px rgba(0,0,0,0.3), 0 0 0 1px rgba(180, 138, 62, 0.5)',
+                      boxShadow:
+                        '0 3px 10px rgba(0,0,0,0.3), 0 0 0 1px rgba(180, 138, 62, 0.5)',
                     }}
                     animate={{ y: -2 }}
                     transition={{
@@ -165,7 +197,9 @@ export const CardGrid = memo(function CardGrid({
                       ease: [0.45, 0, 0.55, 1],
                     }}
                   >
-                    <span className="text-amber-800 text-[8px] font-black leading-none">✓</span>
+                    <span className="text-amber-800 text-[8px] font-black leading-none">
+                      ✓
+                    </span>
                     <span className="text-[8.5px] font-bold text-[#3d280a] tracking-wide leading-none">
                       {lang === 'tr' ? 'Seçili' : 'Selected'}
                     </span>
@@ -175,7 +209,8 @@ export const CardGrid = memo(function CardGrid({
                     className="flex items-center gap-1 px-2 py-0.5 rounded-full whitespace-nowrap"
                     style={{
                       background: 'rgba(15, 38, 29, 0.92)',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(243, 212, 124, 0.45)',
+                      boxShadow:
+                        '0 4px 12px rgba(0,0,0,0.35), inset 0 0 0 1px rgba(243, 212, 124, 0.45)',
                     }}
                     animate={{ y: -2 }}
                     transition={{
