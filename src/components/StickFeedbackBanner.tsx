@@ -11,22 +11,20 @@ const SUIT_SYMBOL: Record<string, string> = {
   joker: '★',
 };
 
-function MiniCardBadge({ rank, suit }: { rank: string; suit: string }) {
+function MiniCardChip({ rank, suit }: { rank: string; suit: string }) {
   const isRed = suit === 'hearts' || suit === 'diamonds';
-  const displayRank = rank === 'Joker' ? 'JKR' : rank;
+  const displayRank = rank === 'Joker' ? 'J' : rank;
   return (
-    <div
-      className={`w-9 h-12 rounded-lg bg-[#fffdf9] border-2 flex flex-col items-center justify-center shadow-md shrink-0 select-none ${
-        isRed ? 'border-red-300 text-[#c81e1e]' : 'border-slate-300 text-[#14171f]'
+    <span
+      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-[#fffdf9] border text-[11px] font-black leading-none shadow-xs select-none ${
+        isRed
+          ? 'border-red-300 text-[#d91b24]'
+          : 'border-slate-300 text-[#111827]'
       }`}
     >
-      <span className="text-xs font-black leading-none tracking-tighter">
-        {displayRank}
-      </span>
-      <span className="text-xs leading-none mt-0.5">
-        {SUIT_SYMBOL[suit] ?? '♠'}
-      </span>
-    </div>
+      <span>{displayRank}</span>
+      <span className="text-[10px]">{SUIT_SYMBOL[suit] ?? '♠'}</span>
+    </span>
   );
 }
 
@@ -39,76 +37,59 @@ export function StickFeedbackBanner() {
       {feedback && (
         <motion.div
           key={feedback.id}
-          initial={{ opacity: 0, y: 12, scale: 0.88 }}
+          initial={{ opacity: 0, y: 6, scale: 0.92 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -10, scale: 0.92 }}
-          transition={{ type: 'spring', stiffness: 340, damping: 24 }}
+          exit={{ opacity: 0, y: -6, scale: 0.94 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
           className="pointer-events-none z-[120]"
         >
           <div
-            className={`flex items-center gap-3.5 px-4 py-2.5 rounded-2xl border backdrop-blur-md shadow-[0_14px_36px_rgba(0,0,0,0.5)] ${
+            className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-[0_8px_24px_rgba(0,0,0,0.45)] whitespace-nowrap ${
               feedback.success
                 ? 'bg-emerald-950/95 border-emerald-400/60'
                 : 'bg-[#2b0c10]/95 border-red-400/60'
             }`}
           >
-            {/* İki Kartın Görsel Karşılaştırması */}
-            <div className="flex items-center gap-1.5">
-              <MiniCardBadge
+            {/* Oyuncu Adı */}
+            <span className="text-xs font-extrabold text-white">
+              {formatPlayerName(feedback.playerName, lang)}
+            </span>
+
+            {/* İki Kartın Kompakt Karşılaştırması */}
+            <div className="flex items-center gap-1">
+              <MiniCardChip
                 rank={feedback.selectedCard.rank}
                 suit={feedback.selectedCard.suit}
               />
-              <div
-                className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
-                  feedback.success
-                    ? 'bg-emerald-500 text-black shadow-[0_0_12px_rgba(16,185,129,0.6)]'
-                    : 'bg-red-500 text-white shadow-[0_0_12px_rgba(239,68,68,0.6)]'
+              <span
+                className={`text-xs font-black px-0.5 ${
+                  feedback.success ? 'text-emerald-300' : 'text-red-300'
                 }`}
               >
                 {feedback.success ? '=' : '≠'}
-              </div>
-              <MiniCardBadge
+              </span>
+              <MiniCardChip
                 rank={feedback.discardCard.rank}
                 suit={feedback.discardCard.suit}
               />
             </div>
 
-            {/* Açıklama ve Sonuç Rozeti */}
-            <div className="flex flex-col text-left pr-1">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold text-white">
-                  {formatPlayerName(feedback.playerName, lang)}
-                </span>
-                <span
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${
-                    feedback.success
-                      ? 'bg-emerald-400/20 text-emerald-200 border border-emerald-400/40'
-                      : 'bg-red-500/25 text-red-200 border border-red-400/45'
-                  }`}
-                >
-                  {feedback.success
-                    ? lang === 'tr'
-                      ? '✓ KART ELENDİ (-1)'
-                      : '✓ CARD STUCK (-1)'
-                    : lang === 'tr'
-                      ? '+1 CEZA KARTI'
-                      : '+1 PENALTY CARD'}
-                </span>
-              </div>
-              <span
-                className={`text-[11px] font-semibold mt-0.5 ${
-                  feedback.success ? 'text-emerald-200/85' : 'text-red-200/85'
-                }`}
-              >
-                {feedback.success
-                  ? lang === 'tr'
-                    ? 'Aynı değerdeki kart başarıyla ortaya yapıştırıldı!'
-                    : 'Matching card successfully stuck to the center!'
-                  : lang === 'tr'
-                    ? 'Kartlar eşleşmedi, desteden 1 ceza kartı eklendi.'
-                    : 'Cards did not match, 1 penalty card added from deck.'}
-              </span>
-            </div>
+            {/* Kısa ve Öz Sonuç Etiketi */}
+            <span
+              className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                feedback.success
+                  ? 'bg-emerald-400/25 text-emerald-200 border border-emerald-400/40'
+                  : 'bg-red-500/30 text-red-200 border border-red-400/45'
+              }`}
+            >
+              {feedback.success
+                ? lang === 'tr'
+                  ? '✓ Elendi'
+                  : '✓ Stuck'
+                : lang === 'tr'
+                  ? '+1 Ceza'
+                  : '+1 Penalty'}
+            </span>
           </div>
         </motion.div>
       )}

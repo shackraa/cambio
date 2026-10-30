@@ -256,9 +256,14 @@ export const GameCard = memo(function GameCard({
     );
   }
 
-  // Tüm kartların ön yüzü gerçek iskambil kağıdı gibi standart kağıt rengindedir (Saf Beyaz veya Krem)
-  const frontBgClass =
-    activeFrontStyle === 'vintage' ? 'card-face-vintage' : 'card-face-classic';
+  // Kırmızı Papaz (K ♥ / K ♦, -1 puan) hafızada kolay yer etmesi için hafif sıcak altın-fildişi tonda parlar;
+  // diğer tüm kartlar seçilen Saf Beyaz veya Krem iskambil zeminini kullanır.
+  const isRedKing = card.rank === 'K' && isRed;
+  const frontBgClass = isRedKing
+    ? 'red-king-card-bg'
+    : activeFrontStyle === 'vintage'
+      ? 'card-face-vintage'
+      : 'card-face-classic';
 
   return (
     <motion.div
@@ -390,6 +395,7 @@ function CardFrontContent({
   sizes: { text: string; corner: string };
 }) {
   const suitColor = isRed ? 'text-[#d91b24]' : 'text-[#111827]';
+  const isRedKing = card.rank === 'K' && isRed;
 
   if (card.rank === 'Joker') {
     return (
@@ -406,6 +412,10 @@ function CardFrontContent({
         <span className="text-[#111827] font-black text-[8px] sm:text-[9px] tracking-[0.14em] mt-1">
           JOKER
         </span>
+        {/* Sol Alt Mini Puan Etiketi */}
+        <div className="absolute bottom-1 left-1 px-1 py-[1px] rounded-[3px] bg-emerald-600/15 border border-emerald-600/30 text-[6.5px] sm:text-[7.5px] font-black text-emerald-900 leading-none">
+          0 pt
+        </div>
         <div className="absolute bottom-1 right-1.5 rotate-180 leading-none flex flex-col items-center text-[#d91b24]">
           <span className={`font-extrabold tracking-tighter ${sizes.corner}`}>★</span>
         </div>
@@ -425,11 +435,22 @@ function CardFrontContent({
         <span className={`${sizes.corner} -mt-0.5`}>{SUIT_SYMBOL[card.suit]}</span>
       </div>
 
-      {/* Merkez İskambil Sembolü (İç içe binen ikinci harf veya iç çerçeve YOK — net ve temiz) */}
+      {/* Merkez İskambil Sembolü */}
       <div className={`${suitColor} flex items-center justify-center`}>
         <span className={`${sizes.text} leading-none`}>
           {SUIT_SYMBOL[card.suit]}
         </span>
+      </div>
+
+      {/* Sol Alt Köşe: Küçük ve Zarif Puan Hatırlatıcı Etiketi (-1 pt, 10 pt vb.) */}
+      <div
+        className={`absolute bottom-1 left-1 px-1 py-[1px] rounded-[3px] text-[6.5px] sm:text-[7.5px] font-extrabold leading-none ${
+          isRedKing
+            ? 'bg-amber-500/25 border border-amber-600/45 text-amber-950 font-black'
+            : 'bg-slate-900/[0.06] text-slate-600/90'
+        }`}
+      >
+        {card.value} pt
       </div>
 
       {/* Sağ Alt Ters Klasik İskambil Köşe İndeksi */}
