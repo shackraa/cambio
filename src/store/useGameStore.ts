@@ -12,6 +12,7 @@ import {
 } from '../engine/gameEngine';
 import { useToastStore } from './useToastStore';
 import { SoundManager } from '../utils/SoundManager';
+import { recordGameResult } from '../utils/playerStats';
 
 // ─── Hamle logu ──────────────────────────────────────────────
 export type LogAction =
@@ -859,6 +860,12 @@ export const useGameStore = create<GameStore>()(
         });
 
         state.winner = resolveWinner(state.finalScores);
+
+        const mySeat = parseInt(sessionStorage.getItem('seat') ?? '0', 10);
+        const myFinal = state.finalScores.find(fs => fs.seat === mySeat);
+        if (myFinal) {
+          recordGameResult(myFinal.score, state.winner === mySeat);
+        }
 
         state.finalScores.forEach(fs => {
           const p = state.players.find(x => x.seat === fs.seat);

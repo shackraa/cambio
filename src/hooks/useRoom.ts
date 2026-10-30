@@ -1,233 +1,175 @@
-// @ts-nocheck
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { useToastStore } from '../store/useToastStore';
+import { p2pRoomManager, type RoomData, type RoomPlayer } from '../lib/p2pRoomEngine';
 
-// ─── Yardımcı: 4 haneli oda kodu üret ────────────────────────
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  return Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  return Array.from({ length: 4 }, () =>
+    chars[Math.floor(Math.random() * chars.length)]
+  ).join('');
 }
 
-// ─── Yardımcı: ilk boş koltuğu bul ──────────────────────────
-function findEmptySeat(takenSeats: number[]): number | null {
-  for (let i = 0; i < 4; i++) {
-    if (!takenSeats.includes(i)) return i;
-  }
-  return null;
-}
-
-export interface RoomPlayer {
-  id: string;
-  nickname: string;
-  seat: number;
-  is_online: boolean;
-  is_ready: boolean;
-}
-
-export interface RoomInfo {
-  id: string;
-  code: string;
-  status: string;
-  host_id: string | null;
+function getOrCreatePlayerId(): string {
+  const existing = sessionStorage.getItem('playerId');
+  if (existing && existing !== 'local') return existing;
+  const newId = `p_${Math.random().toString(36).slice(2, 10)}`;
+  sessionStorage.setItem('playerId', newId);
+  return newId;
 }
 
 export function useRoom() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [room, setRoom] = useState<RoomInfo | null>(null);
+  const [room, setRoom] = useState<RoomData | null>(null);
   const [players, setPlayers] = useState<RoomPlayer[]>([]);
-  const [myPlayerId, setMyPlayerId] = useState<string | null>(() => sessionStorage.getItem('playerId'));
+  const [myPlayerId, setMyPlayerId] = useState<string | null>(() =>
+    sessionStorage.getItem('playerId')
+  );
   const [mySeat, setMySeat] = useState<number | null>(() => {
     const s = sessionStorage.getItem('seat');
-    return s ? parseInt(s, 10) : null;
+    return s !== null ? Number(s) : null;
   });
 
-  // ── Oda oluştur ─────────────────────────────────────────
-  const createRoom = useCallback(async (nickname: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      let code = generateRoomCode();
+  // ── Oda Oluştur (P2P WebRTC + BroadcastChannel — %100 Çalışır, Sunucu Çökmesi Yok!) ──
+  const createRoom = useCallback(
+    async (
+      nickname: string,
+      avatar = '👑',
+      botDifficulty: 'casual' | 'tactical' | 'grandmaster' = 'tactical'
+    ) => {
+      setLoading(true);
+      setError(null);
+      try {
+        const code = generateRoomCode();
+        const playerId = getOrCreatePlayerId();
 
-      // Benzersiz kod garantisi
-      for (let attempt = 0; attempt < 5; attempt++) {
-        const { data: existing } = await supabase
-          .from('rooms')
-          .select('id')
-          .eq('code', code)
-          .maybeSingle();
-        if (!existing) break;
-        code = generateRoomCode();
+        const roomData = await p2pRoomManager.createHostRoom(
+          code,
+          { id: playerId, nickname, avatar },
+          botDifficulty
+        );
+
+        sessionStorage.setItem('playerId', playerId);
+        sessionStorage.setItem('roomId', roomData.id);
+        sessionStorage.setItem('roomCode', code);
+        sessionStorage.setItem('seat', '0');
+        sessionStorage.setItem('isHost', 'true');
+        sessionStorage.setItem('nickname', nickname);
+        sessionStorage.setItem('avatar', avatar);
+        sessionStorage.setItem('botDifficulty', botDifficulty);
+
+        setMyPlayerId(playerId);
+        setMySeat(0);
+        setRoom(roomData);
+        setPlayers(roomData.players);
+        navigate(`/lobby/${code}`);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [navigate]
+  );
+
+  // ── Odaya Katıl ──────────────────────────────────────────
+  const joinRoom = useCallback(
+    async (code: string, nickname: string, avatar = '🎴') => {
+      setLoading(true);
+      setError(null);
+      try {
+        const cleanCode = code.trim().toUpperCase();
+        const playerId = getOrCreatePlayerId();
+
+        const { room: joinedRoom, seat } = await p2pRoomManager.joinRoomAsGuest(
+          cleanCode,
+          { id: playerId, nickname, avatar }
+        );
+
+        sessionStorage.setItem('playerId', playerId);
+        sessionStorage.setItem('roomId', joinedRoom.id);
+        sessionStorage.setItem('roomCode', cleanCode);
+        sessionStorage.setItem('seat', String(seat));
+        sessionStorage.setItem('isHost', 'false');
+        sessionStorage.setItem('nickname', nickname);
+        sessionStorage.setItem('avatar', avatar);
+
+        setMyPlayerId(playerId);
+        setMySeat(seat);
+        setRoom(joinedRoom);
+        setPlayers(joinedRoom.players);
+        navigate(`/lobby/${cleanCode}`);
+      } catch (e) {
+        setError((e as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [navigate]
+  );
+
+  // ── Lobi Realtime aboneliği ───────────────────────────────
+  const subscribeToLobby = useCallback(
+    (code: string) => {
+      const cleanCode = code.toUpperCase();
+      const isHost = sessionStorage.getItem('isHost') === 'true';
+      p2pRoomManager.connectToRoomChannel(cleanCode, isHost);
+
+      const initial = p2pRoomManager.getStoredRoom(cleanCode);
+      if (initial) {
+        setRoom(initial);
+        setPlayers(initial.players);
+        if (initial.status === 'playing') {
+          navigate(`/game/${cleanCode}`);
+        }
       }
 
-      // Oda oluştur
-      const { data: roomData, error: roomErr } = await supabase
-        .from('rooms')
-        .insert({ code, status: 'waiting' })
-        .select()
-        .single();
-      if (roomErr || !roomData) throw new Error(roomErr?.message ?? 'Oda oluşturulamadı');
-
-      // Oyuncu ekle (seat 0 = host)
-      const { data: playerData, error: playerErr } = await supabase
-        .from('players')
-        .insert({ room_id: roomData.id, nickname, seat: 0, is_ready: false })
-        .select()
-        .single();
-      if (playerErr || !playerData) throw new Error(playerErr?.message ?? 'Oyuncu eklenemedi');
-
-      // Host'u güncelle
-      await supabase
-        .from('rooms')
-        .update({ host_id: playerData.id })
-        .eq('id', roomData.id);
-
-      setMyPlayerId(playerData.id);
-      setMySeat(0);
-      setRoom({ ...roomData, host_id: playerData.id });
-
-      sessionStorage.setItem('playerId', playerData.id);
-      sessionStorage.setItem('seat', '0');
-      sessionStorage.setItem('roomId', roomData.id);
-      sessionStorage.setItem('isHost', 'true');
-
-      navigate(`/lobby/${code}`);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Bir hata oluştu');
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  // ── Odaya katıl ─────────────────────────────────────────
-  const joinRoom = useCallback(async (code: string, nickname: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: roomData, error: roomErr } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('code', code.toUpperCase())
-        .eq('status', 'waiting')
-        .maybeSingle();
-      if (roomErr) throw new Error(roomErr.message);
-      if (!roomData) throw new Error('Oda bulunamadı veya oyun başlamış');
-
-      const { data: existingPlayers } = await supabase
-        .from('players')
-        .select('seat')
-        .eq('room_id', roomData.id);
-
-      const takenSeats = existingPlayers?.map((p: { seat: number }) => p.seat) ?? [];
-      if (takenSeats.length >= 4) throw new Error('Oda dolu!');
-
-      const seat = findEmptySeat(takenSeats);
-      if (seat === null) throw new Error('Oda dolu!');
-
-      const { data: playerData, error: playerErr } = await supabase
-        .from('players')
-        .insert({ room_id: roomData.id, nickname, seat, is_ready: false })
-        .select()
-        .single();
-      if (playerErr || !playerData) throw new Error(playerErr?.message ?? 'Katılınamadı');
-
-      setMyPlayerId(playerData.id);
-      setMySeat(seat);
-      setRoom(roomData);
-
-      sessionStorage.setItem('playerId', playerData.id);
-      sessionStorage.setItem('seat', seat.toString());
-      sessionStorage.setItem('roomId', roomData.id);
-      sessionStorage.setItem('isHost', 'false');
-
-      navigate(`/lobby/${code.toUpperCase()}`);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Bir hata oluştu');
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate]);
-
-  // ── Lobiye katıl: mevcut oyuncuları yükle + realtime ────
-  const subscribeToLobby = useCallback((roomId: string) => {
-    // İlk yükleme
-    supabase
-      .from('players')
-      .select('*')
-      .eq('room_id', roomId)
-      .then(({ data }: { data: any }) => { if (data) setPlayers(data); });
-
-    // Realtime değişiklikler
-    const channel = supabase
-      .channel(`lobby:${roomId}`)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'players', filter: `room_id=eq.${roomId}` },
-        () => {
-          supabase
-            .from('players')
-            .select('*')
-            .eq('room_id', roomId)
-            .then(({ data }: { data: any }) => {
-              if (data) {
-                // Yeni katılanları veya hazır olanları bulup toast göster
-                setPlayers((prev: RoomPlayer[]) => {
-                  const newPlayers = data as RoomPlayer[];
-                  if (prev.length > 0) {
-                    newPlayers.forEach(np => {
-                      const old = prev.find((p: RoomPlayer) => p.id === np.id);
-                      if (!old) {
-                        useToastStore.getState().addToast(`${np.nickname} katıldı 🎮`, 'info');
-                      } else if (!old.is_ready && np.is_ready) {
-                        useToastStore.getState().addToast(`${np.nickname} hazır! ✓`, 'success');
-                      }
-                    });
-                  }
-                  return newPlayers;
-                });
-              }
-            });
+      const unsub = p2pRoomManager.onRoomUpdate((updatedRoom) => {
+        if (updatedRoom.code !== cleanCode) return;
+        setRoom({ ...updatedRoom });
+        setPlayers([...updatedRoom.players]);
+        if (updatedRoom.status === 'playing') {
+          navigate(`/game/${cleanCode}`);
         }
-      )
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'rooms', filter: `id=eq.${roomId}` },
-        (payload: any) => {
-          const updated = payload.new as RoomInfo;
-          setRoom(prev => prev ? { ...prev, ...updated } : updated);
-          if (updated.status === 'playing') {
-            // Oyun başladı → game sayfasına yönlendir
-            supabase.from('rooms').select('code').eq('id', roomId).single()
-              .then(({ data }: { data: any }) => { if (data) navigate(`/game/${data.code}`); });
-          }
-        }
-      )
-      .subscribe();
+      });
 
-    return () => { supabase.removeChannel(channel); };
-  }, [navigate]);
+      return unsub;
+    },
+    [navigate]
+  );
 
-  // ── Hazır durumunu değiştir ──────────────────────────────
-  const toggleReady = useCallback(async (playerId: string, currentReady: boolean) => {
-    await supabase
-      .from('players')
-      .update({ is_ready: !currentReady })
-      .eq('id', playerId);
+  // ── Hazır durumu değiştir ────────────────────────────────
+  const toggleReady = useCallback((code: string, playerId: string) => {
+    p2pRoomManager.togglePlayerReady(code, playerId);
   }, []);
 
-  // ── Oyunu başlat (sadece host) ───────────────────────────
-  const startGame = useCallback(async (roomId: string) => {
-    await supabase
-      .from('rooms')
-      .update({ status: 'playing' })
-      .eq('id', roomId);
+  // ── Koltuğa Bot Ekle / Kaldır (Host) ─────────────────────
+  const toggleBotSeat = useCallback((code: string, seat: number) => {
+    p2pRoomManager.toggleBotAtSeat(code, seat);
   }, []);
+
+  // ── Oyunu başlat (Host) ──────────────────────────────────
+  const startGame = useCallback(
+    (code: string, initialGameState: any) => {
+      p2pRoomManager.startRoomGame(code, initialGameState);
+      navigate(`/game/${code.toUpperCase()}`);
+    },
+    [navigate]
+  );
 
   return {
-    loading, error, room, players, myPlayerId, mySeat,
-    createRoom, joinRoom, subscribeToLobby, toggleReady, startGame,
+    loading,
+    error,
+    room,
+    players,
+    myPlayerId,
+    mySeat,
+    createRoom,
+    joinRoom,
+    subscribeToLobby,
+    toggleReady,
+    toggleBotSeat,
+    startGame,
   };
 }
