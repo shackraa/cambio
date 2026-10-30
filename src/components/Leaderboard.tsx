@@ -3,15 +3,12 @@ import { useGameStore } from '../store/useGameStore';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 
-const MEDAL_ICONS = ['🥇', '🥈', '🥉', '4.'];
-
 export function Leaderboard() {
   const leaderboard = useGameStore(s => s.leaderboard);
   const players = useGameStore(s => s.players);
   const lang = useLangStore((s) => s.lang);
   const t = translations[lang];
 
-  // Henüz bitmiş el yoksa bile masadaki mevcut oyuncuları 0 puanla hazır göster
   const displayList =
     leaderboard && leaderboard.length > 0
       ? [...leaderboard].sort((a, b) => a.totalScore - b.totalScore)
@@ -26,37 +23,34 @@ export function Leaderboard() {
 
   return (
     <div
-      className="flex flex-col rounded-2xl overflow-hidden shrink-0 shadow-lg"
+      className="flex flex-col rounded-2xl overflow-hidden shrink-0"
       style={{
-        background: 'linear-gradient(180deg, rgba(13, 62, 43, 0.78) 0%, rgba(7, 38, 26, 0.85) 100%)',
-        border: '1px solid rgba(212, 168, 67, 0.22)',
-        backdropFilter: 'blur(12px)',
+        background: 'rgba(8, 36, 25, 0.88)',
+        border: '1px solid rgba(255, 255, 255, 0.1)',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.28)',
       }}
     >
       {/* Başlık */}
-      <div
-        className="px-5 py-3.5 flex items-center justify-between bg-emerald-950/45"
-        style={{ borderBottom: '1px solid rgba(212, 168, 67, 0.15)' }}
-      >
-        <div className="flex items-center gap-2.5">
-          <div className="w-1.5 h-4 rounded-full bg-[var(--gold)] shadow-[0_0_8px_var(--gold)]" />
-          <h3 className="text-white font-bold text-xs uppercase tracking-wider">
-            🏆 {t.leaderboardTitle}
+      <div className="px-4 py-3 flex items-center justify-between border-b border-white/[0.08] bg-white/[0.02]">
+        <div className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)]" />
+          <h3 className="text-white/90 font-bold text-xs uppercase tracking-[0.12em]">
+            {t.leaderboardTitle}
           </h3>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[var(--gold)]/15 text-[var(--gold)] border border-[var(--gold)]/25">
+        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-white/[0.06] text-white/60">
           {roundsPlayed > 0
             ? lang === 'tr'
               ? `${roundsPlayed} El`
               : `${roundsPlayed} Hand(s)`
             : lang === 'tr'
-              ? '1. El Oynanıyor'
-              : 'Hand 1 Active'}
+              ? '1. El'
+              : 'Hand 1'}
         </span>
       </div>
 
       {/* Sıralama Listesi */}
-      <div className="flex flex-col p-3.5 space-y-2">
+      <div className="flex flex-col p-3 space-y-1.5">
         {displayList.map((entry, index) => {
           const isFirst = index === 0 && roundsPlayed > 0;
           const playerState = players.find(p => p.id === entry.playerId);
@@ -65,38 +59,38 @@ export function Leaderboard() {
             <motion.div
               key={entry.playerId}
               layout
-              className={`flex flex-col px-3.5 py-2.5 rounded-xl border transition-all ${
+              className={`flex flex-col px-3 py-2 rounded-xl border transition-all ${
                 isFirst
-                  ? 'bg-[var(--gold)]/15 border-[var(--gold)]/50 shadow-sm'
-                  : 'bg-emerald-950/45 border-emerald-400/12 hover:bg-emerald-900/40'
+                  ? 'bg-[var(--gold)]/12 border-[var(--gold)]/45'
+                  : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.05]'
               }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-sm w-5 text-center font-black text-emerald-200/70 shrink-0">
-                    {roundsPlayed > 0 ? MEDAL_ICONS[index] ?? `${index + 1}.` : `${index + 1}.`}
+                  <span
+                    className={`w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-black shrink-0 ${
+                      isFirst
+                        ? 'bg-[var(--gold)] text-black'
+                        : 'bg-white/[0.08] text-white/60'
+                    }`}
+                  >
+                    {index + 1}
                   </span>
                   <span className="text-white font-bold text-xs truncate">
                     {entry.nickname}
                   </span>
                   {playerState?.isCurrentTurn && (
-                    <span className="w-2 h-2 rounded-full bg-[var(--gold)] animate-pulse shrink-0" title="Sıra onda" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-[var(--gold)] shrink-0" />
                   )}
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
                   {roundsPlayed > 0 ? (
-                    <span
-                      className={`font-black text-sm px-2 py-0.5 rounded-lg ${
-                        isFirst
-                          ? 'bg-[var(--gold)] text-black'
-                          : 'bg-emerald-950/80 text-[var(--gold)] border border-[var(--gold)]/25'
-                      }`}
-                    >
+                    <span className="font-bold text-xs font-mono text-[var(--gold)]">
                       {entry.totalScore} pt
                     </span>
                   ) : (
-                    <span className="text-[10px] font-semibold text-emerald-200/50 px-2 py-0.5 rounded-lg bg-emerald-950/60 border border-emerald-400/10">
+                    <span className="text-[10px] font-medium text-white/45 font-mono">
                       {t.cardCount(playerState?.cards.length ?? 4)}
                     </span>
                   )}
@@ -104,20 +98,19 @@ export function Leaderboard() {
               </div>
 
               {entry.handScores.length > 0 && (
-                <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/5">
-                  <span className="text-[9px] text-emerald-100/45 uppercase tracking-wider font-semibold">
+                <div className="flex items-center justify-between mt-1.5 pt-1.5 border-t border-white/[0.05]">
+                  <span className="text-[9px] text-white/40 uppercase tracking-wider">
                     {t.roundScores}
                   </span>
                   <div className="flex gap-1 overflow-x-auto">
                     {entry.handScores.map((score, i) => (
                       <span
                         key={i}
-                        className={`px-1.5 py-0.5 rounded text-[10px] font-bold whitespace-nowrap ${
+                        className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold whitespace-nowrap ${
                           score < 0
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
-                            : 'bg-emerald-950/70 text-emerald-100/80 border border-white/10'
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : 'bg-white/[0.06] text-white/75'
                         }`}
-                        title={`${i + 1}. El Puanı`}
                       >
                         {score > 0 ? `+${score}` : score}
                       </span>

@@ -26,6 +26,7 @@ export interface GameLogEntry {
   playerName: string;
   action: LogAction;
   detail?: string;
+  detailEn?: string;
 }
 
 export interface LeaderboardEntry {
@@ -63,7 +64,7 @@ interface GameStore {
   activePower: PowerType | null;
   peekTarget: { playerId: string; position: number } | null;
   swappingCards: { card1: Card; card2: Card } | null;
-  lastSwappedPosition: { seat: number; pos: number } | null; // takas edilen slot
+  lastSwappedPosition: { seat: number; pos: number } | null;
   lastSwappedPositions: { seat: number; pos: number }[]; // her iki takas slotunu da vurgulamak için
 
   // ── Hafıza (bilinen kartlar)
@@ -147,7 +148,7 @@ function ensureDeckHasCards(state: GameStore) {
 let _logId = 0;
 function mkLogId() { return `log-${++_logId}`; }
 
-// ─── Tekil dağıtım zamanlayıcıları (temizlemek için) ────────
+// ─── Tekil dağıtım zamanlayıcıları ───────────────────────────
 let dealingTimers: ReturnType<typeof setTimeout>[] = [];
 function clearDealingTimers() {
   dealingTimers.forEach(t => clearTimeout(t));
@@ -218,7 +219,7 @@ export const useGameStore = create<GameStore>()(
         state.phase = 'peek';
         state.deck = shuffled;
         state.discardPile = [];
-        state.players = players; // Elleri boş başlar, kartlar desteden tek tek uçarak gelecek
+        state.players = players;
         state.currentTurn = 0;
         state.drawnCard = null;
         state.drawnFrom = null;
@@ -236,7 +237,7 @@ export const useGameStore = create<GameStore>()(
         state.gameLog = [];
         state.finalScores = [];
         state.winner = null;
-        state.peekPhaseEndTime = Date.now() + 3600; // 16 kartın dağıtım süresi
+        state.peekPhaseEndTime = Date.now() + 3800; // 16 kartın dağıtım süresi
         state.peekState = 'dealing';
         state.peekSelectedPositions = [];
       });
@@ -253,8 +254,8 @@ export const useGameStore = create<GameStore>()(
               targetPlayer.cards.push({ ...card, isRevealed: false });
             }
           });
-          if (i % 2 === 0) SoundManager.playCardDraw();
-        }, 250 + i * 190);
+          SoundManager.playCardDraw();
+        }, 260 + i * 200);
         dealingTimers.push(t);
       }
     },
@@ -263,7 +264,7 @@ export const useGameStore = create<GameStore>()(
     startPeekPhase: () => {
       set(state => { 
         state.phase = 'peek'; 
-        state.peekPhaseEndTime = Date.now() + 2800; 
+        state.peekPhaseEndTime = Date.now() + 3800; 
         state.peekState = 'dealing';
         state.peekSelectedPositions = [];
       });
@@ -271,7 +272,6 @@ export const useGameStore = create<GameStore>()(
     transitionPeekState: (newState) => {
       set(state => {
         if (state.phase !== 'peek') return;
-        // Eğer dealing bittiyse ama herhangi bir sebepten eksik kart kaldıysa tamamla (online mod vb. için)
         if (state.peekState === 'dealing' && newState !== 'dealing') {
           state.players.forEach(p => {
             while (p.cards.length < 4 && state.deck.length > 0) {
@@ -285,11 +285,12 @@ export const useGameStore = create<GameStore>()(
         if (newState === 'starting') {
           state.peekPhaseEndTime = Date.now() + 2500;
         } else if (newState === 'select') {
-          state.peekPhaseEndTime = Date.now() + 15000; // 15s fallback
+          state.peekPhaseEndTime = Date.now() + 15000;
         } else if (newState === 'highlight') {
           state.peekPhaseEndTime = Date.now() + 2500;
         } else if (newState === 'reveal') {
           state.peekPhaseEndTime = Date.now() + 4500;
+          SoundManager.playCardFlip();
         }
       });
     },
@@ -312,12 +313,18 @@ export const useGameStore = create<GameStore>()(
         ensureDeckHasCards(state);
         if (state.deck.length === 0) return;
 
-        // Kart desteden çıkar ve aynı ID ile drawnCard olur -> Framer Motion desteden oyuncunun önüne uçurur!
         const card = state.deck.shift()!;
         state.drawnCard = { ...card, isRevealed: false };
         state.drawnFrom = 'deck';
         state.phase = 'action';
-        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me.nickname, action: 'draw_deck', detail: 'Desteden kart çekti' });
+        state.gameLog.push({
+          id: mkLogId(),
+          timestamp: Date.now(),
+          playerName: me.nickname,
+          action: 'draw_deck',
+          detail: 'Desteden kart çekti',
+          detailEn: 'Drew a card from the deck',
+        });
         if (state.gameLog.length > 50) state.gameLog.shift();
       });
       SoundManager.playCardDraw();
@@ -329,18 +336,24 @@ export const useGameStore = create<GameStore>()(
       if (phase !== 'draw' || !me || discardPile.length === 0) return;
 
       set(state => {
-        // Kart çöpten çıkar ve aynı ID ile drawnCard olur -> Framer Motion çöpten oyuncunun önüne uçurur!
         const card = state.discardPile.pop()!;
         state.drawnCard = { ...card, isRevealed: true };
         state.drawnFrom = 'discard';
         state.phase = 'action';
-        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me.nickname, action: 'draw_discard', detail: 'Çöpten kart çekti' });
+        state.gameLog.push({
+          id: mkLogId(),
+          timestamp: Date.now(),
+          playerName: me.nickname,
+          action: 'draw_discard',
+          detail: 'Çöpten kart çekti',
+          detailEn: 'Took the top card from discard',
+        });
         if (state.gameLog.length > 50) state.gameLog.shift();
       });
       SoundManager.playCardDraw();
     },
 
-    // ── Takas: çekilen kartı bir pozisyonla değiştir ────────
+    // ── Takas: ÖNCE seçilen kartın etrafında ışık yanar (700ms), SONRA kartlar fiziksel olarak yer değiştirir! ──
     swapCard: (position, initiatorSeat) => {
       const { drawnCard, currentTurn, players, phase } = get();
       if ((phase !== 'action' && phase !== 'power') || !drawnCard) return;
@@ -348,40 +361,51 @@ export const useGameStore = create<GameStore>()(
       const playerIdx = players.findIndex(p => p.seat === activeSeat);
       if (playerIdx === -1) return;
 
+      // 1. AŞAMA: Hangi kartın seçildiğini gözün takip edebilmesi için önce o kartın etrafında altın ışık halkası yak!
+      SoundManager.playCardFlip();
       set(state => {
-        const player = state.players[playerIdx];
-        const oldCard = player.cards[position];
-        if (!oldCard) return;
-
-        // 1) Eldeki eski kart (aynı ID ile) yüzü açılarak çöp destesinin en üstüne uçar!
-        state.discardPile.push({ ...oldCard, isRevealed: true, isPenalty: false });
-        // 2) Çekilen kart (aynı ID ile) yüzü kapanarak oyuncunun elindeki o slota yerleşir!
-        player.cards[position] = { ...state.drawnCard!, isRevealed: false, isPenalty: false };
-        state.drawnCard = null;
-        state.drawnFrom = null;
-
-        // Bu slottaki eski bilinen kart bilgisini temizle
-        state.knownCards = state.knownCards.filter(
-          k => !(k.playerId === player.id && k.position === position)
-        );
-
-        // Hangi slotun değiştiğini işaretle
         state.lastSwappedPosition = { seat: activeSeat, pos: position };
         state.lastSwappedPositions = [{ seat: activeSeat, pos: position }];
-
-        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: player.nickname, action: 'swap', detail: `çektiği kartla ${position + 1}. kartını değiştirdi` });
-        if (state.gameLog.length > 50) state.gameLog.shift();
-
-        state.phase = 'stick_window';
       });
-      SoundManager.playCardDrop();
 
+      // 2. AŞAMA (700ms sonra): Işık yandıktan sonra eski kart çöpe, çekilen kart o slota fiziksel olarak uçar!
       setTimeout(() => {
-        useGameStore.setState(s => {
-          s.lastSwappedPosition = null;
-          s.lastSwappedPositions = [];
+        useGameStore.setState(state => {
+          const player = state.players[playerIdx];
+          if (!player || !state.drawnCard) return;
+          const oldCard = player.cards[position];
+          if (!oldCard) return;
+
+          state.discardPile.push({ ...oldCard, isRevealed: true, isPenalty: false });
+          player.cards[position] = { ...state.drawnCard, isRevealed: false, isPenalty: false };
+          state.drawnCard = null;
+          state.drawnFrom = null;
+
+          state.knownCards = state.knownCards.filter(
+            k => !(k.playerId === player.id && k.position === position)
+          );
+
+          state.gameLog.push({
+            id: mkLogId(),
+            timestamp: Date.now(),
+            playerName: player.nickname,
+            action: 'swap',
+            detail: `çektiği kartla ${position + 1}. kartını değiştirdi`,
+            detailEn: `swapped drawn card with slot #${position + 1}`,
+          });
+          if (state.gameLog.length > 50) state.gameLog.shift();
+
+          state.phase = 'stick_window';
         });
-      }, 1100);
+        SoundManager.playCardDrop();
+
+        setTimeout(() => {
+          useGameStore.setState(s => {
+            s.lastSwappedPosition = null;
+            s.lastSwappedPositions = [];
+          });
+        }, 1250);
+      }, 700);
     },
 
     // ── Çekilen kartı direkt çöpe at ────────────────────────
@@ -396,9 +420,15 @@ export const useGameStore = create<GameStore>()(
       set(state => {
         const card = state.drawnCard!;
         const power = state.drawnFrom === 'deck' ? getPower(card.rank, card.suit) : null;
-        // Çekilen kart aynı ID ile doğrudan çöp destesinin üstüne uçar ve orada birikir!
         state.discardPile.push({ ...card, isRevealed: true, isPenalty: false });
-        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me?.nickname ?? '?', action: 'discard', detail: `çektiği kartı (${card.rank}) çöpe attı` });
+        state.gameLog.push({
+          id: mkLogId(),
+          timestamp: Date.now(),
+          playerName: me?.nickname ?? '?',
+          action: 'discard',
+          detail: `çektiği kartı (${card.rank}) çöpe attı`,
+          detailEn: `discarded drawn card (${card.rank})`,
+        });
         if (state.gameLog.length > 50) state.gameLog.shift();
         state.drawnCard = null;
         state.drawnFrom = null;
@@ -413,118 +443,144 @@ export const useGameStore = create<GameStore>()(
       SoundManager.playCardDrop();
     },
 
-    // ── Güç kullan ──────────────────────────────────────────
+    // ── Güç kullan (Bakmalarda daha uzun süre, takaslarda önce 850ms ışık + sonra fiziksel uçuş!) ──
     usePower: (power, targetSeat, targetPosition, swapWithPosition, isLocalUser = true, initiatorSeat) => {
+      const stateSnapshot = get();
+      const activeSeat = initiatorSeat !== undefined ? initiatorSeat : stateSnapshot.currentTurn;
+      const targetPlayerSnap = stateSnapshot.players.find(p => p.seat === targetSeat);
+      const myPlayerSnap = stateSnapshot.players.find(p => p.seat === activeSeat);
+      if (!targetPlayerSnap || !myPlayerSnap) return;
+      if (!targetPlayerSnap.cards[targetPosition]) return;
+
+      // ── 1) KENDİ KARTINA VEYA RAKİP KARTINA BAKMA (7-8 / 9-10) ──
+      if (power === 'peek_own' || power === 'peek_other') {
+        SoundManager.playCardFlip();
+        set(state => {
+          const targetPlayer = state.players.find(p => p.seat === targetSeat);
+          const myPlayer = state.players.find(p => p.seat === activeSeat);
+          if (!targetPlayer || !myPlayer) return;
+
+          if (isLocalUser) {
+            state.knownCards.push({
+              playerId: targetPlayer.id,
+              position: targetPosition,
+              card: { ...targetPlayer.cards[targetPosition] },
+              expiresAt: Date.now() + 4800,
+            });
+          }
+          state.peekTarget = { playerId: targetPlayer.id, position: targetPosition };
+          state.lastSwappedPositions = [{ seat: targetSeat, pos: targetPosition }];
+
+          state.gameLog.push({
+            id: mkLogId(),
+            timestamp: Date.now(),
+            playerName: myPlayer.nickname,
+            action: power === 'peek_own' ? 'power_peek_own' : 'power_peek_other',
+            detail: power === 'peek_own'
+              ? `kendi ${targetPosition + 1}. kartını inceledi`
+              : `${targetPlayer.nickname} adlı oyuncunun ${targetPosition + 1}. kartını inceledi`,
+            detailEn: power === 'peek_own'
+              ? `peeked at own card #${targetPosition + 1}`
+              : `peeked at ${targetPlayer.nickname}'s card #${targetPosition + 1}`,
+          });
+          if (state.gameLog.length > 50) state.gameLog.shift();
+          state.activePower = null;
+          state.phase = 'stick_window';
+        });
+
+        setTimeout(() => {
+          useGameStore.setState(s => {
+            s.peekTarget = null;
+            s.lastSwappedPositions = [];
+            s.knownCards = s.knownCards.filter(k => !k.expiresAt || k.expiresAt > Date.now());
+          });
+        }, 4800);
+        return;
+      }
+
+      // ── 2) CASUS TAKASI (SİYAH K) — 1. AŞAMA: Sadece Rakip Kartını İncele ──
+      if (power === 'spy_swap' && swapWithPosition === undefined) {
+        SoundManager.playCardFlip();
+        set(state => {
+          const targetPlayer = state.players.find(p => p.seat === targetSeat);
+          if (!targetPlayer) return;
+          if (isLocalUser) {
+            state.knownCards.push({
+              playerId: targetPlayer.id,
+              position: targetPosition,
+              card: { ...targetPlayer.cards[targetPosition] },
+              expiresAt: Date.now() + 8000,
+            });
+          }
+          state.peekTarget = { playerId: targetPlayer.id, position: targetPosition };
+          state.lastSwappedPositions = [{ seat: targetSeat, pos: targetPosition }];
+        });
+        return;
+      }
+
+      // ── 3) KÖR TAKAS (J-Q) veya CASUS TAKASI 2. AŞAMA (SİYAH K) ──
+      // ÖNCE seçilen iki kartın da etrafında altın ışık halkası yanar (850ms), göz hangi kartların seçildiğini görür!
+      // SONRA iki kart masanın üzerinden süzülerek birbirinin yerine uçar!
+      const myPos = swapWithPosition ?? 0;
+      if (!myPlayerSnap.cards[myPos]) return;
+
+      SoundManager.playCardFlip();
       set(state => {
-        const targetPlayer = state.players.find(p => p.seat === targetSeat);
-        const activeSeat = initiatorSeat !== undefined ? initiatorSeat : state.currentTurn;
-        const myPlayer = state.players.find(p => p.seat === activeSeat);
-        if (!targetPlayer || !myPlayer) return;
-        if (!targetPlayer.cards[targetPosition]) return;
-
-        const powerLabels: Record<string, LogAction> = {
-          peek_own: 'power_peek_own', peek_other: 'power_peek_other',
-          blind_swap: 'power_blind_swap', spy_swap: 'power_spy_swap'
+        state.lastSwappedPosition = { seat: activeSeat, pos: myPos };
+        state.lastSwappedPositions = [
+          { seat: activeSeat, pos: myPos },
+          { seat: targetSeat, pos: targetPosition },
+        ];
+        state.swappingCards = {
+          card1: { ...myPlayerSnap.cards[myPos] },
+          card2: { ...targetPlayerSnap.cards[targetPosition] },
         };
-        const powerNames: Record<string, string> = {
-          peek_own: `kendi ${targetPosition + 1}. kartına baktı`,
-          peek_other: `${targetPlayer.nickname} adlı oyuncunun ${targetPosition + 1}. kartına baktı`,
-          blind_swap: `${targetPlayer.nickname} ile kör takas yaptı`,
-          spy_swap: swapWithPosition !== undefined
-            ? `${targetPlayer.nickname} ile casus takası yaptı`
-            : `${targetPlayer.nickname} adlı oyuncunun kartını gördü`
-        };
-
-        switch (power) {
-          case 'peek_own':
-          case 'peek_other': {
-            if (isLocalUser) {
-              state.knownCards.push({
-                playerId: targetPlayer.id,
-                position: targetPosition,
-                card: { ...targetPlayer.cards[targetPosition] },
-                expiresAt: Date.now() + 4000,
-              });
-            }
-            state.peekTarget = { playerId: targetPlayer.id, position: targetPosition };
-            SoundManager.playCardDraw();
-
-            setTimeout(() => {
-              useGameStore.setState(s => {
-                s.peekTarget = null;
-                s.knownCards = s.knownCards.filter(k => !k.expiresAt || k.expiresAt > Date.now());
-              });
-            }, 4000);
-            break;
-          }
-          case 'blind_swap': {
-            const myPos = swapWithPosition ?? 0;
-            if (!myPlayer.cards[myPos]) return;
-            const temp = { ...myPlayer.cards[myPos] };
-            const targetTemp = { ...targetPlayer.cards[targetPosition] };
-            // Orijinal ID'ler korunur — iki kart masanın üzerinden birbirlerinin slotuna fiziksel olarak uçar!
-            myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false, isPenalty: false };
-            targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false, isPenalty: false };
-
-            state.lastSwappedPosition = { seat: activeSeat, pos: myPos };
-            state.lastSwappedPositions = [
-              { seat: activeSeat, pos: myPos },
-              { seat: targetSeat, pos: targetPosition },
-            ];
-            state.swappingCards = { card1: temp, card2: targetTemp };
-            SoundManager.playCardDrop();
-            break;
-          }
-          case 'spy_swap': {
-            if (swapWithPosition === undefined) {
-              if (isLocalUser) {
-                state.knownCards.push({
-                  playerId: targetPlayer.id,
-                  position: targetPosition,
-                  card: { ...targetPlayer.cards[targetPosition] },
-                  expiresAt: Date.now() + 6000,
-                });
-              }
-              state.peekTarget = { playerId: targetPlayer.id, position: targetPosition };
-              SoundManager.playCardDraw();
-              return;
-            } else {
-              const myPos = swapWithPosition;
-              if (!myPlayer.cards[myPos]) return;
-              const temp = { ...myPlayer.cards[myPos] };
-              const targetTemp = { ...targetPlayer.cards[targetPosition] };
-              myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false, isPenalty: false };
-              targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false, isPenalty: false };
-
-              state.lastSwappedPosition = { seat: activeSeat, pos: myPos };
-              state.lastSwappedPositions = [
-                { seat: activeSeat, pos: myPos },
-                { seat: targetSeat, pos: targetPosition },
-              ];
-              state.swappingCards = { card1: temp, card2: targetTemp };
-              state.peekTarget = null;
-              state.knownCards = state.knownCards.filter(
-                k => !(k.playerId === targetPlayer.id && k.position === targetPosition)
-              );
-              SoundManager.playCardDrop();
-            }
-            break;
-          }
-        }
-
-        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: myPlayer.nickname, action: powerLabels[power] ?? 'swap', detail: powerNames[power] });
-        if (state.gameLog.length > 50) state.gameLog.shift();
-        state.activePower = null;
-        state.phase = 'stick_window';
       });
 
       setTimeout(() => {
-        useGameStore.setState(s => {
-          s.lastSwappedPosition = null;
-          s.lastSwappedPositions = [];
-          s.swappingCards = null;
+        useGameStore.setState(state => {
+          const targetPlayer = state.players.find(p => p.seat === targetSeat);
+          const myPlayer = state.players.find(p => p.seat === activeSeat);
+          if (!targetPlayer || !myPlayer) return;
+          if (!myPlayer.cards[myPos] || !targetPlayer.cards[targetPosition]) return;
+
+          const temp = { ...myPlayer.cards[myPos] };
+          const targetTemp = { ...targetPlayer.cards[targetPosition] };
+
+          myPlayer.cards[myPos] = { ...targetTemp, isRevealed: false, isPenalty: false };
+          targetPlayer.cards[targetPosition] = { ...temp, isRevealed: false, isPenalty: false };
+
+          state.peekTarget = null;
+          state.knownCards = state.knownCards.filter(
+            k => !(k.playerId === targetPlayer.id && k.position === targetPosition)
+          );
+
+          state.gameLog.push({
+            id: mkLogId(),
+            timestamp: Date.now(),
+            playerName: myPlayer.nickname,
+            action: power === 'blind_swap' ? 'power_blind_swap' : 'power_spy_swap',
+            detail: power === 'blind_swap'
+              ? `${myPos + 1}. kartını ${targetPlayer.nickname} oyuncusunun ${targetPosition + 1}. kartıyla takasladı`
+              : `${targetPlayer.nickname} ile casus takası yaptı`,
+            detailEn: power === 'blind_swap'
+              ? `blind swapped card #${myPos + 1} with ${targetPlayer.nickname}'s card #${targetPosition + 1}`
+              : `completed spy swap with ${targetPlayer.nickname}`,
+          });
+          if (state.gameLog.length > 50) state.gameLog.shift();
+          state.activePower = null;
+          state.phase = 'stick_window';
         });
-      }, 1200);
+        SoundManager.playCardDrop();
+
+        setTimeout(() => {
+          useGameStore.setState(s => {
+            s.lastSwappedPosition = null;
+            s.lastSwappedPositions = [];
+            s.swappingCards = null;
+          });
+        }, 1350);
+      }, 850);
     },
 
     // ── Gücü geç ────────────────────────────────────────────
@@ -533,10 +589,18 @@ export const useGameStore = create<GameStore>()(
       const activeSeat = initiatorSeat !== undefined ? initiatorSeat : currentTurn;
       const me = players.find(p => p.seat === activeSeat);
       set(state => {
-        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me?.nickname ?? '?', action: 'power_skip', detail: 'Takas yapmadan geçti' });
+        state.gameLog.push({
+          id: mkLogId(),
+          timestamp: Date.now(),
+          playerName: me?.nickname ?? '?',
+          action: 'power_skip',
+          detail: 'Takas yapmadan geçti',
+          detailEn: 'Skipped power without swapping',
+        });
         if (state.gameLog.length > 50) state.gameLog.shift();
         state.activePower = null;
         state.peekTarget = null;
+        state.lastSwappedPositions = [];
         state.knownCards = [];
         state.phase = 'stick_window';
       });
@@ -555,7 +619,6 @@ export const useGameStore = create<GameStore>()(
       if (!targetCard) return;
 
       if (targetCard.rank === topDiscard.rank) {
-        // 1. AŞAMA: Kartı oyuncunun elindeyken AÇ (isRevealed = true) ve vurgula ki herkes aynı kart olduğunu görsün!
         SoundManager.playStick();
         set(state => {
           const tIdx = state.players.findIndex(p => p.seat === targetSeat);
@@ -565,7 +628,6 @@ export const useGameStore = create<GameStore>()(
           }
         });
 
-        // 2. AŞAMA (750ms sonra): Açılan kartı oyuncunun elinden çıkarıp çöp destesinin üstüne fiziksel olarak uçur!
         setTimeout(() => {
           useGameStore.setState(state => {
             const initiatorIdx = state.players.findIndex(p => p.seat === initiatorSeat);
@@ -581,12 +643,26 @@ export const useGameStore = create<GameStore>()(
             SoundManager.playCardDrop();
 
             if (initiatorSeat === targetSeat) {
-              state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'stick_ok', detail: `kendi kartını (${removedCard.rank}) açıp ortaya yapıştırdı!` });
+              state.gameLog.push({
+                id: mkLogId(),
+                timestamp: Date.now(),
+                playerName: initiator.nickname,
+                action: 'stick_ok',
+                detail: `kendi kartını (${removedCard.rank}) açıp ortaya yapıştırdı!`,
+                detailEn: `revealed and stuck own card (${removedCard.rank})!`,
+              });
               setTimeout(() => {
-                useToastStore.getState().addToast(`⚡ ${initiator.nickname} kartını (${removedCard.rank}) ortaya yapıştırdı!`, 'success');
+                useToastStore.getState().addToast(`⚡ ${initiator.nickname} (${removedCard.rank})!`, 'success');
               }, 0);
             } else {
-              state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'stick_opponent_ok', detail: `${targetPlayer.nickname} adlı oyuncunun kartını (${removedCard.rank}) yapıştırdı!` });
+              state.gameLog.push({
+                id: mkLogId(),
+                timestamp: Date.now(),
+                playerName: initiator.nickname,
+                action: 'stick_opponent_ok',
+                detail: `${targetPlayer.nickname} adlı oyuncunun kartını (${removedCard.rank}) yapıştırdı!`,
+                detailEn: `stuck ${targetPlayer.nickname}'s card (${removedCard.rank})!`,
+              });
               if (initiatorIdx !== -1 && state.players[initiatorIdx].cards.length > 0) {
                 state.phase = 'give_card';
                 state.giveCardTarget = targetSeat;
@@ -595,17 +671,14 @@ export const useGameStore = create<GameStore>()(
             }
             if (state.gameLog.length > 50) state.gameLog.shift();
           });
-        }, 750);
+        }, 850);
       } else {
-        // YANLIŞ YAPIŞTIRMA:
-        // 1. AŞAMA: Tıklanan kartı 1100ms boyunca olduğu yerde aç ki oyuncu neden yanlış olduğunu kendi gözüyle görsün!
         SoundManager.playError();
         set(state => {
           const tIdx = state.players.findIndex(p => p.seat === targetSeat);
           if (tIdx !== -1 && state.players[tIdx].cards[targetPosition]) {
             state.players[tIdx].cards[targetPosition].isRevealed = true;
           }
-          // Aynı anda kapalı destenin en üstündeki kart ceza kartı olarak tıklayan oyuncunun eline uçar!
           ensureDeckHasCards(state);
           const initiatorIdx = state.players.findIndex(p => p.seat === initiatorSeat);
           const penalty = state.deck.shift();
@@ -614,16 +687,22 @@ export const useGameStore = create<GameStore>()(
             state.players[initiatorIdx].cards.push(penaltyCard);
             setTimeout(() => {
               useToastStore.getState().addToast(
-                `⚠️ ${initiator.nickname} yanlış yapıştırdı (${targetCard.rank} ≠ ${topDiscard.rank})! Desteden ceza kartı geldi.`,
+                `⚠️ ${initiator.nickname} (${targetCard.rank} ≠ ${topDiscard.rank})! +1 Penalty`,
                 'error'
               );
             }, 0);
           }
-          state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'stick_fail', detail: `yanlış yapıştırma yaptı, desteden ceza kartı aldı` });
+          state.gameLog.push({
+            id: mkLogId(),
+            timestamp: Date.now(),
+            playerName: initiator.nickname,
+            action: 'stick_fail',
+            detail: `yanlış yapıştırma yaptı, desteden ceza kartı aldı`,
+            detailEn: `wrong stick attempt, received a penalty card`,
+          });
           if (state.gameLog.length > 50) state.gameLog.shift();
         });
 
-        // 1100ms sonra yanlış açılan kartı tekrar kapat
         setTimeout(() => {
           useGameStore.setState(s => {
             const tIdx = s.players.findIndex(p => p.seat === targetSeat);
@@ -632,7 +711,7 @@ export const useGameStore = create<GameStore>()(
               if (c && s.phase !== 'results') c.isRevealed = false;
             }
           });
-        }, 1100);
+        }, 1200);
       }
     },
 
@@ -644,30 +723,44 @@ export const useGameStore = create<GameStore>()(
       const initiator = players.find(p => p.seat === initiatorSeat);
       if (!initiator) return;
 
+      // Önce seçilen kartı parlat (600ms), sonra rakibe uçur!
+      SoundManager.playCardFlip();
       set(state => {
-        const initiatorIdx = state.players.findIndex(p => p.seat === initiatorSeat);
-        const targetIdx = state.players.findIndex(p => p.seat === giveCardTarget);
-        if (initiatorIdx === -1 || targetIdx === -1) return;
-        if (!state.players[initiatorIdx].cards[myPosition]) return;
-
-        // Kart aynı ID ile oyuncunun elinden çıkıp rakibin eline fiziksel olarak uçar!
-        const cardToGive = state.players[initiatorIdx].cards.splice(myPosition, 1)[0];
-        state.players[targetIdx].cards.push({ ...cardToGive, isRevealed: false });
-
-        const targetPlayerName = state.players[targetIdx].nickname;
-        state.lastSwappedPositions = [{ seat: giveCardTarget, pos: state.players[targetIdx].cards.length - 1 }];
-        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: initiator.nickname, action: 'swap', detail: `kendi kartını ${targetPlayerName} adlı oyuncunun önüne verdi` });
-        if (state.gameLog.length > 50) state.gameLog.shift();
-
-        state.phase = 'stick_window';
-        state.giveCardTarget = undefined;
-        state.giveCardInitiator = undefined;
+        state.lastSwappedPositions = [{ seat: initiatorSeat, pos: myPosition }];
       });
-      SoundManager.playCardDrop();
 
       setTimeout(() => {
-        useGameStore.setState(s => { s.lastSwappedPositions = []; });
-      }, 1000);
+        useGameStore.setState(state => {
+          const initiatorIdx = state.players.findIndex(p => p.seat === initiatorSeat);
+          const targetIdx = state.players.findIndex(p => p.seat === giveCardTarget);
+          if (initiatorIdx === -1 || targetIdx === -1) return;
+          if (!state.players[initiatorIdx].cards[myPosition]) return;
+
+          const cardToGive = state.players[initiatorIdx].cards.splice(myPosition, 1)[0];
+          state.players[targetIdx].cards.push({ ...cardToGive, isRevealed: false });
+
+          const targetPlayerName = state.players[targetIdx].nickname;
+          state.lastSwappedPositions = [{ seat: giveCardTarget!, pos: state.players[targetIdx].cards.length - 1 }];
+          state.gameLog.push({
+            id: mkLogId(),
+            timestamp: Date.now(),
+            playerName: initiator.nickname,
+            action: 'swap',
+            detail: `kendi kartını ${targetPlayerName} adlı oyuncunun önüne verdi`,
+            detailEn: `gave a card to ${targetPlayerName}`,
+          });
+          if (state.gameLog.length > 50) state.gameLog.shift();
+
+          state.phase = 'stick_window';
+          state.giveCardTarget = undefined;
+          state.giveCardInitiator = undefined;
+        });
+        SoundManager.playCardDrop();
+
+        setTimeout(() => {
+          useGameStore.setState(s => { s.lastSwappedPositions = []; });
+        }, 1200);
+      }, 600);
     },
 
     // ── Cambio çağır ────────────────────────────────────────
@@ -683,7 +776,14 @@ export const useGameStore = create<GameStore>()(
         state.currentTurn = nextTurn(currentTurn, state.players);
         state.players.forEach(p => { p.isCurrentTurn = p.seat === state.currentTurn; });
         state.phase = 'draw';
-        state.gameLog.push({ id: mkLogId(), timestamp: Date.now(), playerName: me?.nickname ?? '?', action: 'cambio', detail: '🎯 CAMBIO çağırdı!' });
+        state.gameLog.push({
+          id: mkLogId(),
+          timestamp: Date.now(),
+          playerName: me?.nickname ?? '?',
+          action: 'cambio',
+          detail: '🎯 CAMBIO çağırdı!',
+          detailEn: '🎯 Called CAMBIO!',
+        });
         if (state.gameLog.length > 50) state.gameLog.shift();
       });
       SoundManager.playCambio();
@@ -692,7 +792,6 @@ export const useGameStore = create<GameStore>()(
     // ── Oyunu bitir & sonuçları hesapla ─────────────────────
     endGame: () => {
       set(state => {
-        // Tüm kartları olduğu yerde çevirerek aç
         state.players.forEach(player => {
           player.cards.forEach(card => { card.isRevealed = true; });
         });

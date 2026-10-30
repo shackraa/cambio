@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { getPower } from '../engine/gameEngine';
 
-function getRandomDelay(min = 1000, max = 2200) {
+function getRandomDelay(min = 1400, max = 2600) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -172,7 +172,7 @@ export function useBotAI(isOnlineMode: boolean) {
             s.skipPower(botSeat);
           }
         } else if (power === 'spy_swap') {
-          // Önce rakibin kartına bakar (1. aşama), 1.5sn sonra takaslar veya pas geçer (2. aşama)
+          // Önce rakibin kartına bakar (1. aşama), 2.2sn sonra takaslar veya pas geçer (2. aşama)
           s.usePower('spy_swap', randomOpponent.seat, lowestOpponentPos, undefined, false, botSeat);
           setTimeout(() => {
             const currentS = useGameStore.getState();
@@ -182,7 +182,7 @@ export function useBotAI(isOnlineMode: boolean) {
             } else {
               currentS.skipPower(botSeat);
             }
-          }, 1500);
+          }, 2200);
         }
         return;
       }

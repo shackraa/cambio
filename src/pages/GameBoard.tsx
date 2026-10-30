@@ -15,6 +15,7 @@ import { ToastContainer } from '../components/ToastContainer';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 import { useBotAI } from '../hooks/useBotAI';
+import { SoundManager } from '../utils/SoundManager';
 
 export function GameBoard() {
   const { code } = useParams<{ code: string }>();
@@ -77,6 +78,7 @@ export function GameBoard() {
   const [stickTimeLeft, setStickTimeLeft] = useState<number | null>(null);
   const [betweenHands, setBetweenHands] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(true);
+  const [isMuted, setIsMuted] = useState(() => SoundManager.getMuted());
 
   // Global sahne ölçeği
   const [stageScale, setStageScale] = useState(1);
@@ -367,27 +369,40 @@ export function GameBoard() {
       <AnimatePresence>
         {cambioFlash && (
           <motion.div
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-red-950/40 backdrop-blur-sm pointer-events-none"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/55 backdrop-blur-md pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <motion.h2
-              className="text-8xl font-black text-red-500 drop-shadow-[0_0_40px_rgba(239,68,68,0.8)] tracking-widest font-['Cinzel']"
-              initial={{ scale: 0.2, rotate: -10 }}
-              animate={{ scale: 1.2, rotate: 0 }}
-              exit={{ scale: 2, opacity: 0 }}
-              transition={{ type: 'spring', bounce: 0.6 }}
+            <motion.div
+              className="flex flex-col items-center px-14 py-8 rounded-3xl border border-[var(--gold)]/60"
+              style={{
+                background: 'radial-gradient(ellipse at center, rgba(16, 68, 46, 0.96) 0%, rgba(7, 30, 20, 0.98) 100%)',
+                boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 50px rgba(212,168,67,0.35)',
+              }}
+              initial={{ scale: 0.75, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 1.1, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
             >
-              CAMBIO!
-            </motion.h2>
-            {cambioCaller !== null && (
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                className="mt-4 text-center text-red-300 text-lg uppercase tracking-widest font-bold bg-black/60 px-6 py-2 rounded-full border border-red-500/40"
+              <span className="text-xs font-extrabold uppercase tracking-[0.35em] text-[var(--gold)] mb-2">
+                {langStore.lang === 'tr' ? 'SON TUR ÇAĞRISI' : 'FINAL ROUND CALLED'}
+              </span>
+              <h2
+                className="text-7xl font-black tracking-[0.18em] font-['Cinzel'] text-transparent bg-clip-text"
+                style={{
+                  backgroundImage: 'linear-gradient(135deg, #fffdf5 0%, #f0c96c 50%, #d4a843 100%)',
+                  filter: 'drop-shadow(0 4px 20px rgba(212,168,67,0.5))',
+                }}
               >
-                {t.cambioRoundTurnsLeft(remainingTurns)}
-              </motion.div>
-            )}
+                CAMBIO
+              </h2>
+              {cambioCaller !== null && (
+                <div className="mt-4 text-center text-white/85 text-xs uppercase tracking-[0.2em] font-bold bg-white/[0.06] px-5 py-2 rounded-full border border-white/15">
+                  {t.cambioRoundTurnsLeft(remainingTurns)}
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -402,21 +417,31 @@ export function GameBoard() {
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="relative w-full max-w-lg rounded-3xl p-8 flex flex-col items-center text-center border-2 border-[var(--gold)]/60 shadow-[0_0_80px_rgba(212,168,67,0.35)]"
+              className="relative w-full max-w-lg rounded-3xl p-8 flex flex-col items-center text-center border border-[var(--gold)]/50 shadow-[0_24px_80px_rgba(0,0,0,0.6)]"
               style={{
                 background: 'radial-gradient(ellipse at top, #133b2b 0%, #071912 100%)',
               }}
-              initial={{ scale: 0.8, y: 30, opacity: 0 }}
+              initial={{ scale: 0.85, y: 24, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.85, y: 20, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+              exit={{ scale: 0.9, y: 16, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 280, damping: 24 }}
             >
-              <div className="text-5xl mb-2">🏆</div>
+              <div className="w-12 h-12 rounded-2xl bg-[var(--gold)]/15 border border-[var(--gold)]/40 flex items-center justify-center text-2xl mb-3">
+                🏆
+              </div>
               <h2 className="text-3xl font-black text-[var(--gold)] tracking-widest uppercase font-['Cinzel']">
-                {winnerPlayer ? `${winnerPlayer.nickname} KAZANDI!` : 'EL BİTTİ!'}
+                {winnerPlayer
+                  ? langStore.lang === 'tr'
+                    ? `${winnerPlayer.nickname} KAZANDI!`
+                    : `${winnerPlayer.nickname} WINS!`
+                  : langStore.lang === 'tr'
+                    ? 'EL BİTTİ!'
+                    : 'HAND OVER!'}
               </h2>
               <p className="text-white/50 text-xs uppercase tracking-widest mt-1 mb-6">
-                En düşük puanla eli tamamladı
+                {langStore.lang === 'tr'
+                  ? 'En düşük puanla eli tamamladı'
+                  : 'Finished the hand with the lowest score'}
               </p>
 
               <div className="w-full space-y-2.5 mb-7">
@@ -430,19 +455,19 @@ export function GameBoard() {
                         key={fs.seat}
                         className={`flex items-center justify-between px-4 py-3 rounded-2xl border ${
                           isWin
-                            ? 'bg-[var(--gold)]/20 border-[var(--gold)] text-white shadow-[0_0_20px_rgba(212,168,67,0.25)]'
-                            : 'bg-black/40 border-white/10 text-white/80'
+                            ? 'bg-[var(--gold)]/18 border-[var(--gold)] text-white'
+                            : 'bg-white/[0.04] border-white/10 text-white/80'
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                          <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black ${
                             isWin ? 'bg-[var(--gold)] text-black' : 'bg-white/10 text-white/60'
                           }`}>
                             {idx + 1}
                           </span>
                           <span className="font-bold text-sm">{p?.nickname ?? `Oyuncu ${fs.seat}`}</span>
                           {fs.calledCambio && (
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
                               fs.cambioModifier === -10
                                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                                 : 'bg-red-500/20 text-red-300 border border-red-500/40'
@@ -453,9 +478,9 @@ export function GameBoard() {
                         </div>
                         <div className="flex items-center gap-2">
                           {fs.cambioModifier !== 0 && fs.baseScore !== undefined && (
-                            <span className="text-xs text-white/40 line-through">{fs.baseScore}</span>
+                            <span className="text-xs text-white/40 line-through font-mono">{fs.baseScore}</span>
                           )}
-                          <span className="text-lg font-black text-[var(--gold)]">{fs.score} pt</span>
+                          <span className="text-base font-black font-mono text-[var(--gold)]">{fs.score} pt</span>
                         </div>
                       </div>
                     );
@@ -465,9 +490,9 @@ export function GameBoard() {
               <div className="flex items-center gap-3 w-full">
                 <button
                   onClick={() => setShowResultsModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm transition-colors cursor-pointer"
+                  className="flex-1 py-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
                 >
-                  Masayı İncele
+                  {langStore.lang === 'tr' ? 'Masayı İncele' : 'Inspect Table'}
                 </button>
                 <button
                   onClick={() => {
@@ -475,10 +500,10 @@ export function GameBoard() {
                     if (isOnlineMode) {
                       initGameInDB().then(() => loadGameState());
                     } else {
-                      initGame('Sen', ['Ahmet', 'Zeliha', 'Mehmet']);
+                      initGame(langStore.lang === 'tr' ? 'Sen' : 'You', ['Ahmet', 'Zeliha', 'Mehmet']);
                     }
                   }}
-                  className="flex-1 py-3 rounded-xl font-black text-black text-sm shadow-lg transition-transform hover:scale-[1.02] cursor-pointer"
+                  className="flex-1 py-3 rounded-xl font-black text-black text-xs uppercase tracking-wider shadow-lg transition-transform hover:scale-[1.02] cursor-pointer"
                   style={{ background: 'linear-gradient(135deg, #d4a843, #f0c96c)' }}
                 >
                   {t.playAgain}
@@ -498,19 +523,55 @@ export function GameBoard() {
           transform: `translate(-50%, -50%) scale(${stageScale})`
         }}
       >
-        {/* Sağ Üst Butonlar */}
-        <div className="absolute top-8 right-8 z-50 flex items-center gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 1.0 }}
-            onClick={langStore.toggleLang}
-            className="px-4 py-3 bg-emerald-950/75 hover:bg-emerald-900/80 border border-[var(--gold)]/40 rounded-full text-[var(--gold)] font-bold text-sm transition-colors shadow-lg backdrop-blur-md cursor-pointer shrink-0 min-w-[80px]"
+        {/* Sağ Üst Kontroller: Ses Aç/Kapat + TR/EN Dil Seçici + Tam Ekran */}
+        <div className="absolute top-8 right-8 z-50 flex items-center gap-2.5">
+          {/* Ses Aç / Kapat */}
+          <button
+            type="button"
+            onClick={() => {
+              const nextMuted = SoundManager.toggleMute();
+              setIsMuted(nextMuted);
+            }}
+            className="h-10 px-3.5 rounded-xl bg-emerald-950/85 hover:bg-emerald-900/85 border border-white/15 text-white/85 hover:text-white text-xs font-bold flex items-center gap-2 transition-colors cursor-pointer shadow-md"
+            title={isMuted ? (langStore.lang === 'tr' ? 'Sesi Aç' : 'Unmute') : (langStore.lang === 'tr' ? 'Sesi Kapat' : 'Mute')}
           >
-            {t.chooseLanguage}
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.85, rotate: -3 }}
+            <span>{isMuted ? '🔇' : '🔊'}</span>
+            <span className="text-[11px] uppercase tracking-wider">
+              {isMuted
+                ? langStore.lang === 'tr' ? 'Sessiz' : 'Muted'
+                : langStore.lang === 'tr' ? 'Ses Açık' : 'Sound'}
+            </span>
+          </button>
+
+          {/* Segmented TR | EN Dil Seçici */}
+          <div className="h-10 p-1 rounded-xl bg-emerald-950/85 border border-white/15 flex items-center shadow-md">
+            <button
+              type="button"
+              onClick={() => langStore.setLang('tr')}
+              className={`h-full px-3 rounded-lg text-xs font-extrabold tracking-wider transition-all cursor-pointer ${
+                langStore.lang === 'tr'
+                  ? 'bg-[var(--gold)] text-black shadow-xs'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              TR
+            </button>
+            <button
+              type="button"
+              onClick={() => langStore.setLang('en')}
+              className={`h-full px-3 rounded-lg text-xs font-extrabold tracking-wider transition-all cursor-pointer ${
+                langStore.lang === 'en'
+                  ? 'bg-[var(--gold)] text-black shadow-xs'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              EN
+            </button>
+          </div>
+
+          {/* Tam Ekran */}
+          <button
+            type="button"
             onClick={() => {
               if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(() => {});
@@ -518,41 +579,54 @@ export function GameBoard() {
                 if (document.exitFullscreen) document.exitFullscreen();
               }
             }}
-            className="px-6 py-3 bg-emerald-950/75 hover:bg-emerald-900/80 border border-[var(--gold)]/40 rounded-full text-[var(--gold)] font-bold text-sm flex items-center gap-3 transition-colors shadow-lg backdrop-blur-md cursor-pointer whitespace-nowrap shrink-0 justify-center min-w-[160px]"
-            title="Tam Ekran (Aç/Kapat)"
+            className="h-10 px-4 rounded-xl bg-emerald-950/85 hover:bg-emerald-900/85 border border-white/15 text-white/85 hover:text-white font-bold text-xs flex items-center gap-2 transition-colors shadow-md cursor-pointer whitespace-nowrap"
+            title={t.fullScreen}
           >
-            <span className="tracking-widest">{t.fullScreen}</span>
-            <span className="text-xl leading-none drop-shadow-[0_0_10px_rgba(212,168,67,1)]">⛶</span>
-          </motion.button>
+            <span className="tracking-wider uppercase text-[11px]">{t.fullScreen}</span>
+            <span className="text-sm leading-none text-[var(--gold)]">⛶</span>
+          </button>
         </div>
 
+        {/* Üst Başlık: Zarif CAMBIO Logosu */}
         <motion.div
-          className="flex flex-col items-center gap-1 shrink-0 mt-4"
-          initial={{ opacity: 0, y: -20 }}
+          className="flex flex-col items-center shrink-0 mt-2"
+          initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-5xl font-black tracking-tight text-white drop-shadow-md font-['Cinzel']">
-            CAMBIO
-          </h1>
-          <p className="text-emerald-400 text-sm tracking-widest uppercase font-bold">
-            THE CARD GAME
+          <div className="flex items-center gap-3">
+            <span className="h-px w-10 bg-gradient-to-r from-transparent to-[var(--gold)]/60" />
+            <h1
+              className="text-4xl font-black tracking-[0.22em] font-['Cinzel'] text-transparent bg-clip-text"
+              style={{
+                backgroundImage: 'linear-gradient(180deg, #ffffff 0%, #f3d78b 60%, #d4a843 100%)',
+              }}
+            >
+              CAMBIO
+            </h1>
+            <span className="h-px w-10 bg-gradient-to-l from-transparent to-[var(--gold)]/60" />
+          </div>
+          <p className="text-emerald-200/55 text-[10px] tracking-[0.3em] uppercase font-bold mt-0.5">
+            {langStore.lang === 'tr' ? 'STRATEJİK KART OYUNU' : 'STRATEGIC CARD GAME'}
           </p>
         </motion.div>
 
-      <div className="flex flex-1 min-h-0 gap-8 px-8 relative z-10">
-        <div className="hidden lg:flex flex-col w-[320px] ml-12 shrink-0 z-50 gap-4">
+      <div className="flex flex-1 min-h-0 gap-6 px-8 relative z-10">
+        <div className="hidden lg:flex flex-col w-[320px] shrink-0 z-50 gap-4 min-h-0">
           <div
-            className="px-6 py-4 rounded-2xl flex items-center justify-between gap-4 backdrop-blur-xl shadow-lg whitespace-nowrap shrink-0"
+            className="px-4 py-3 rounded-2xl flex items-center justify-between gap-4 shrink-0"
             style={{
-              background: 'linear-gradient(180deg, rgba(13, 62, 43, 0.82) 0%, rgba(7, 38, 26, 0.88) 100%)',
-              border: '1px solid rgba(212, 168, 67, 0.25)',
+              background: 'rgba(8, 36, 25, 0.88)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
             }}
           >
-            <div className="flex items-center gap-2.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399]" />
-              <span className="text-emerald-100/70 text-[11px] font-bold uppercase tracking-[0.15em]">ODA KODU</span>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400" />
+              <span className="text-white/60 text-[10px] font-bold uppercase tracking-[0.14em]">
+                {langStore.lang === 'tr' ? 'ODA KODU' : 'ROOM CODE'}
+              </span>
             </div>
-            <span className="text-[var(--gold)] text-xl font-black tracking-[0.2em] drop-shadow-sm">
+            <span className="text-[var(--gold)] text-base font-black font-mono tracking-[0.18em]">
               {code ?? 'DEMO'}
             </span>
           </div>
@@ -563,7 +637,7 @@ export function GameBoard() {
             <ChatPanel 
               sendAction={sendAction} 
               myPlayerId={lobbyInfo.playerId} 
-              myNickname={players.find(p => p.id === lobbyInfo.playerId)?.nickname || 'Oyuncu'} 
+              myNickname={players.find(p => p.id === lobbyInfo.playerId)?.nickname || (langStore.lang === 'tr' ? 'Oyuncu' : 'Player')} 
             />
           </div>
         </div>
@@ -698,10 +772,12 @@ export function GameBoard() {
                       exit={{ opacity: 0, y: 20 }}
                     >
                       <span className="text-[var(--gold)] text-3xl font-black tracking-widest uppercase drop-shadow-xl text-center pointer-events-none">
-                        {myTurn ? 'Doğru Bildin!' : `${currentPlayer?.nickname} Doğru Bildi!`}
+                        {myTurn
+                          ? langStore.lang === 'tr' ? 'Doğru Bildin!' : 'Great Stick!'
+                          : langStore.lang === 'tr' ? `${currentPlayer?.nickname} Doğru Bildi!` : `${currentPlayer?.nickname} Stuck a Card!`}
                       </span>
-                      <span className="text-white/80 text-base font-bold bg-black/60 px-5 py-1.5 rounded-full border border-white/15 drop-shadow-md text-center pointer-events-none">
-                        {myTurn ? 'Rakibe vermek için kendi kartlarından birini seç.' : 'Rakibe vermek için bir kart seçiyor...'}
+                      <span className="text-white/85 text-sm font-bold bg-black/65 px-5 py-2 rounded-full border border-white/15 drop-shadow-md text-center pointer-events-none">
+                        {myTurn ? t.hint_give_card : t.hint_waiting}
                       </span>
                     </motion.div>
                   )}
@@ -766,10 +842,11 @@ export function GameBoard() {
           </LayoutGroup>
 
           <div
-            className="shrink-0 rounded-2xl backdrop-blur-xl shadow-lg py-3"
+            className="shrink-0 rounded-2xl py-2.5"
             style={{
-              background: 'linear-gradient(180deg, rgba(13, 62, 43, 0.82) 0%, rgba(7, 38, 26, 0.88) 100%)',
-              border: '1px solid rgba(212, 168, 67, 0.25)',
+              background: 'rgba(8, 36, 25, 0.88)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.25)',
             }}
           >
             <TurnIndicator

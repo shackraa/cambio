@@ -9,7 +9,7 @@ interface LangStore {
 }
 
 export const useLangStore = create<LangStore>((set) => ({
-  lang: 'en',
+  lang: 'tr',
   setLang: (lang) => set({ lang }),
   toggleLang: () => set((state) => ({ lang: state.lang === 'tr' ? 'en' : 'tr' })),
 }));
