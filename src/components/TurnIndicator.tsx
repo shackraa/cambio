@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { memo } from 'react';
 import type { GamePhase } from '../types/game';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
@@ -28,7 +29,7 @@ const PHASE_BADGE_STYLES: Partial<Record<GamePhase, { bg: string; border: string
   results:      { bg: 'rgba(212, 168, 67, 0.22)', border: 'rgba(243, 212, 124, 0.6)',  text: '#fae19c', dot: '#f3d47c' },
 };
 
-export function TurnIndicator({
+export const TurnIndicator = memo(function TurnIndicator({
   currentPlayerName,
   phase,
   timeLeft,
@@ -135,7 +136,7 @@ export function TurnIndicator({
             }}
           >
             <span
-              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-pulse shrink-0"
+              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0"
               style={{ backgroundColor: pStyle.dot, boxShadow: `0 0 8px ${pStyle.dot}` }}
             />
             <div className="flex flex-col leading-none">
@@ -281,4 +282,4 @@ export function TurnIndicator({
       </div>
     </div>
   );
-}
+});

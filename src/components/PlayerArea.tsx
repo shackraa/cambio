@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import type { Player, Card } from '../types/game';
 import { CardGrid } from './CardGrid';
 import { GameCard } from './GameCard';
@@ -41,7 +41,7 @@ function DrawnCardDisplay({
     : { ...drawnCard, isRevealed: drawnFrom === 'discard' };
 
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center gap-2.5 sm:gap-3">
       {/* GameCard kendi layoutId={drawnCard.id} değeriyle doğrudan desteden/çöpten buraya uçar! */}
       <div className="relative z-30">
         <GameCard card={displayCard} size={cardSize} />
@@ -51,7 +51,7 @@ function DrawnCardDisplay({
         <AnimatePresence>
           {isFlipped && (
             <motion.div
-              className="flex flex-col gap-1.5 bg-[#092b1e]/95 backdrop-blur-md border border-[var(--gold)]/45 rounded-2xl px-3.5 py-2.5 shadow-lg z-30"
+              className="flex flex-col gap-1 sm:gap-1.5 bg-[#092b1e]/95 border border-[var(--gold)]/45 rounded-2xl px-2.5 sm:px-3.5 py-2 sm:py-2.5 shadow-lg z-30"
               initial={{ opacity: 0, x: -12, scale: 0.92 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: -8, scale: 0.92 }}
@@ -59,23 +59,25 @@ function DrawnCardDisplay({
             >
               {drawnFrom === 'deck' && onDiscardDrawn ? (
                 <>
-                  <p className="text-emerald-100/80 text-[10px] font-semibold">{t.drawnAction_addOrDiscard}</p>
+                  <p className="text-emerald-100/80 text-[9px] sm:text-[10px] font-semibold">
+                    {t.drawnAction_addOrDiscard}
+                  </p>
                   <motion.button
-                    className="px-3 py-1.5 bg-[var(--gold)]/20 hover:bg-[var(--gold)]/35
+                    className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-[var(--gold)]/20 hover:bg-[var(--gold)]/35
                                border border-[var(--gold)]/55 rounded-xl text-[var(--gold)]
-                               text-xs font-bold cursor-pointer"
+                               text-[11px] sm:text-xs font-bold cursor-pointer"
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={onDiscardDrawn}
                   >
                     {t.drawnAction_discard}
                   </motion.button>
-                  <span className="text-emerald-200/50 text-[9px] text-center">
+                  <span className="text-emerald-200/50 text-[8px] sm:text-[9px] text-center">
                     {t.drawnAction_orClickBottom}
                   </span>
                 </>
               ) : (
-                <p className="text-emerald-300 text-[10px] font-bold max-w-[130px] text-center">
+                <p className="text-emerald-300 text-[9px] sm:text-[10px] font-bold max-w-[120px] text-center">
                   {t.drawnAction_orClickBottom}
                 </p>
               )}
@@ -92,6 +94,7 @@ interface PlayerAreaProps {
   position: 'bottom' | 'top' | 'left' | 'right';
   isMe?: boolean;
   compact?: boolean;
+  ultraCompact?: boolean;
   canInteract?: boolean;
   onCardClick?: (position: number) => void;
   highlightPositions?: number[];
@@ -100,41 +103,55 @@ interface PlayerAreaProps {
   onDiscardDrawn?: () => void;
 }
 
-export function PlayerArea({
+export const PlayerArea = memo(function PlayerArea({
   player,
   position,
   isMe,
   compact = false,
+  ultraCompact = false,
   canInteract = true,
   onCardClick,
   highlightPositions = [],
   swapHighlightPositions = [],
   drawnCard,
-  onDiscardDrawn
+  onDiscardDrawn,
 }: PlayerAreaProps) {
-  const cardSize: 'xs' | 'sm' | 'md' | 'lg' = compact ? (isMe ? 'sm' : 'xs') : 'lg';
-  const knownCards = useGameStore(s => s.knownCards);
-  const phase     = useGameStore(s => s.phase);
-  const peekState = useGameStore(s => s.peekState);
-  const peekTarget = useGameStore(s => s.peekTarget);
-  const drawnFrom  = useGameStore(s => s.drawnFrom);
-  const cambioCaller = useGameStore(s => s.cambioCaller);
+  const cardSize: 'xs' | 'sm' | 'md' | 'lg' = ultraCompact
+    ? 'xs'
+    : compact
+      ? isMe
+        ? 'sm'
+        : 'xs'
+      : 'lg';
+
+  const knownCards = useGameStore((s) => s.knownCards);
+  const phase = useGameStore((s) => s.phase);
+  const peekState = useGameStore((s) => s.peekState);
+  const peekTarget = useGameStore((s) => s.peekTarget);
+  const drawnFrom = useGameStore((s) => s.drawnFrom);
+  const cambioCaller = useGameStore((s) => s.cambioCaller);
   const isCambioCaller = cambioCaller === player.seat;
-  const finalScoreObj = useGameStore(s => phase === 'results' ? s.finalScores.find(fs => fs.seat === player.seat) : undefined);
+  const finalScoreObj = useGameStore((s) =>
+    phase === 'results'
+      ? s.finalScores.find((fs) => fs.seat === player.seat)
+      : undefined
+  );
   const isVertical = position === 'left' || position === 'right';
 
   const lang = useLangStore((s) => s.lang);
   const t = translations[lang];
 
-  const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
-  
+  const peekSelectedPositions = useGameStore((s) => s.peekSelectedPositions);
+
   const mergedHighlightPositions = [...highlightPositions];
 
-  // Peek fazında seçilen kartlar activePeekPositions üzerinden yumuşak aurayla gösterilir (çift çerçeve binmesini önler)
+  // Peek fazında seçilen kartlar activePeekPositions üzerinden yumuşak aurayla gösterilir
   const activePeekPositions: number[] = [];
   if (phase === 'peek') {
-    const selections = peekSelectedPositions.filter(p => p.playerId === player.id);
-    selections.forEach(s => {
+    const selections = peekSelectedPositions.filter(
+      (p) => p.playerId === player.id
+    );
+    selections.forEach((s) => {
       activePeekPositions.push(s.pos);
     });
   }
@@ -143,17 +160,23 @@ export function PlayerArea({
   }
 
   const processedCards = player.cards.map((card, idx) => {
-    // Eğer kart kendi üzerinde isRevealed: true taşıyorsa (ör. yapıştırılırken açıldıysa veya oyun sonuysa) açık göster
     if (card.isRevealed) {
       return card;
     }
 
     const known = knownCards.find(
-      k => k.playerId === player.id && k.position === idx
+      (k) => k.playerId === player.id && k.position === idx
     );
-    const isActive = known && (!known.expiresAt || known.expiresAt > Date.now());
+    const isActive =
+      known && (!known.expiresAt || known.expiresAt > Date.now());
     if (isActive) {
-      return { ...card, rank: known.card.rank, suit: known.card.suit, value: known.card.value, isRevealed: true };
+      return {
+        ...card,
+        rank: known.card.rank,
+        suit: known.card.suit,
+        value: known.card.value,
+        isRevealed: true,
+      };
     }
 
     // PEEK - REVEAL FAZI İÇİN (Sadece kendi kartlarını kendin gör)
@@ -172,49 +195,64 @@ export function PlayerArea({
   });
 
   return (
-    <div className="flex items-center gap-1.5 relative flex-col">
+    <div
+      className={`flex items-center relative flex-col ${
+        ultraCompact ? 'gap-0.5' : 'gap-1 sm:gap-1.5'
+      }`}
+    >
       {/* İsim rozeti, Cambio Çağrısı Pulu ve Final Puanı — z-10 */}
       <div className="flex gap-1.5 sm:gap-2 items-center relative z-10">
         <div
-          className={`px-2.5 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap min-w-[72px] sm:min-w-[105px] justify-center rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-all duration-300 ${
+          className={`${
+            ultraCompact
+              ? 'px-2 py-0.5 text-[10px] min-w-[60px]'
+              : 'px-2.5 sm:px-4 py-0.5 sm:py-1.5 text-xs sm:text-sm min-w-[72px] sm:min-w-[105px]'
+          } whitespace-nowrap justify-center rounded-full font-bold flex items-center gap-1.5 transition-colors duration-200 ${
             player.isCurrentTurn
-              ? 'bg-[#f4d78c] text-[#261a05] shadow-[0_4px_16px_rgba(244,215,140,0.45)] scale-105 border border-[#fff8e6]'
-              : 'bg-[#123327]/85 text-[#f5ebd6]/95 border border-[#e8c468]/25 shadow-sm'
+              ? 'bg-[#f4d78c] text-[#261a05] shadow-[0_4px_14px_rgba(244,215,140,0.4)] border border-[#fff8e6]'
+              : 'bg-[#123327]/90 text-[#f5ebd6]/95 border border-[#e8c468]/25'
           }`}
         >
-          <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${player.isOnline ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-red-400'}`} />
+          <span
+            className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${
+              player.isOnline ? 'bg-emerald-400' : 'bg-red-400'
+            }`}
+          />
           <span>{formatPlayerName(player.nickname, lang)}</span>
           {!isMe && (
-            <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-              player.isCurrentTurn ? 'bg-black/15 text-[#261a05]' : 'bg-white/10 text-emerald-100/80'
-            }`}>
+            <span
+              className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+                player.isCurrentTurn
+                  ? 'bg-black/15 text-[#261a05]'
+                  : 'bg-white/10 text-emerald-100/80'
+              }`}
+            >
               {player.cards.length}
             </span>
           )}
         </div>
 
-        {/* Bu oyuncu CAMBIO dediyse isminin hemen yanında masa oyunu zil/çağrı pulu görünür */}
+        {/* Bu oyuncu CAMBIO dediyse isminin hemen yanında çağrı pulu görünür */}
         <AnimatePresence>
           {isCambioCaller && phase !== 'results' && (
             <motion.div
               initial={{ opacity: 0, scale: 0.8, x: -6 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="flex items-center gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[9px] sm:text-[11px] font-extrabold tracking-wider uppercase shadow-[0_4px_14px_rgba(234,88,12,0.45)] border border-amber-200/70"
+              className="flex items-center gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[9px] sm:text-[11px] font-extrabold tracking-wider uppercase border border-amber-200/70"
             >
-              <span>🔔</span>
               <span>CAMBIO!</span>
             </motion.div>
           )}
         </AnimatePresence>
-        
+
         {phase === 'results' && finalScoreObj !== undefined && (
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             className="relative z-50"
           >
-            <div className="px-3 py-1 rounded-full bg-[var(--gold)] text-black font-black text-sm shadow-[0_0_15px_rgba(212,168,67,0.8)] border border-yellow-300">
+            <div className="px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-[var(--gold)] text-black font-black text-xs sm:text-sm border border-yellow-300">
               {finalScoreObj.score} pt
             </div>
             {finalScoreObj.calledCambio && (
@@ -239,8 +277,8 @@ export function PlayerArea({
                 ? 'left-full ml-2 sm:ml-5'
                 : 'right-full mr-2 sm:mr-5'
               : position === 'top'
-                ? 'top-full mt-2 sm:mt-3 left-1/2 -translate-x-1/2'
-                : 'bottom-full mb-2 sm:mb-3 left-1/2 -translate-x-1/2'
+                ? 'top-full mt-1.5 sm:mt-3 left-1/2 -translate-x-1/2'
+                : 'bottom-full mb-1.5 sm:mb-3 left-1/2 -translate-x-1/2'
           }`}
         >
           <DrawnCardDisplay
@@ -254,12 +292,7 @@ export function PlayerArea({
         </div>
       )}
 
-      {/* 
-        KARTLAR: CSS rotate(90deg) KULLANILMAZ!
-        Çünkü CSS 90° döndürme Framer Motion'ın 2D ekran koordinat matrisini bozar ve takas edilen kartların fiziksel uçuşunu engeller.
-        Bunun yerine yan oyuncular doğal dikey/kompakt dizilimle render edilir; böylece tüm takaslar (J, Q, K, el değişimi) masanın bir ucundan diğerine kusursuz uçar!
-      */}
-      <div className="relative mt-1.5">
+      <div className={`relative ${ultraCompact ? 'mt-0.5' : 'mt-1 sm:mt-1.5'}`}>
         <CardGrid
           cards={processedCards}
           size={cardSize}
@@ -269,11 +302,14 @@ export function PlayerArea({
           highlightPositions={mergedHighlightPositions}
           swapHighlightPositions={swapHighlightPositions}
           peekPositions={activePeekPositions}
-          isDealing={false}
-          isHighlighting={phase === 'peek' && (peekState === 'select' || peekState === 'highlight')}
+          isDealing={phase === 'peek' && peekState === 'dealing'}
+          isHighlighting={
+            phase === 'peek' &&
+            (peekState === 'select' || peekState === 'highlight')
+          }
           playerPosition={position}
         />
       </div>
     </div>
   );
-}
+});

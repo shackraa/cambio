@@ -18,7 +18,6 @@ import { useBotAI } from '../hooks/useBotAI';
 import { SoundManager } from '../utils/SoundManager';
 import { CustomizationModal } from '../components/CustomizationModal';
 import { useCustomizationStore } from '../store/useCustomizationStore';
-import { MobileLandscapeGuard } from '../components/MobileLandscapeGuard';
 import { StickFeedbackBanner } from '../components/StickFeedbackBanner';
 import { formatPlayerName } from '../utils/formatPlayerName';
 
@@ -41,34 +40,33 @@ export function GameBoard() {
 
   const isOnlineMode = lobbyInfo.roomId !== '';
 
-  const {
-    phase,
-    players,
-    currentTurn,
-    drawnCard,
-    discardPile,
-    deck,
-    activePower,
-    initGame,
-    endPeekPhase,
-    drawFromDeck,
-    drawFromDiscard,
-    swapCard,
-    discardDrawn,
-    usePower,
-    skipPower,
-    callCambio,
-    cambioCaller,
-    remainingTurns,
-    peekPhaseEndTime,
-    swappingCards,
-    stickCard,
-    giveCardToOpponent,
-    lastSwappedPositions,
-    turnCount,
-    winner,
-    finalScores,
-  } = useGameStore();
+  // Granüler Zustand selector'ları: Sohbet veya Hamle Logu güncellendiğinde masa ve kartlar asla gereksiz re-render olmaz!
+  const phase = useGameStore((s) => s.phase);
+  const players = useGameStore((s) => s.players);
+  const currentTurn = useGameStore((s) => s.currentTurn);
+  const drawnCard = useGameStore((s) => s.drawnCard);
+  const discardPile = useGameStore((s) => s.discardPile);
+  const deck = useGameStore((s) => s.deck);
+  const activePower = useGameStore((s) => s.activePower);
+  const initGame = useGameStore((s) => s.initGame);
+  const endPeekPhase = useGameStore((s) => s.endPeekPhase);
+  const drawFromDeck = useGameStore((s) => s.drawFromDeck);
+  const drawFromDiscard = useGameStore((s) => s.drawFromDiscard);
+  const swapCard = useGameStore((s) => s.swapCard);
+  const discardDrawn = useGameStore((s) => s.discardDrawn);
+  const usePower = useGameStore((s) => s.usePower);
+  const skipPower = useGameStore((s) => s.skipPower);
+  const callCambio = useGameStore((s) => s.callCambio);
+  const cambioCaller = useGameStore((s) => s.cambioCaller);
+  const remainingTurns = useGameStore((s) => s.remainingTurns);
+  const peekPhaseEndTime = useGameStore((s) => s.peekPhaseEndTime);
+  const swappingCards = useGameStore((s) => s.swappingCards);
+  const stickCard = useGameStore((s) => s.stickCard);
+  const giveCardToOpponent = useGameStore((s) => s.giveCardToOpponent);
+  const lastSwappedPositions = useGameStore((s) => s.lastSwappedPositions);
+  const turnCount = useGameStore((s) => s.turnCount);
+  const winner = useGameStore((s) => s.winner);
+  const finalScores = useGameStore((s) => s.finalScores);
 
   const { sendAction, syncGameState, loadGameState, initGameInDB } = useRealtimeGame({
     roomCode: code ?? '',
@@ -89,6 +87,7 @@ export function GameBoard() {
   const [showResultsModal, setShowResultsModal] = useState(true);
   const [isMuted, setIsMuted] = useState(() => SoundManager.getMuted());
   const [showCustomize, setShowCustomize] = useState(false);
+  const [activeMobilePanel, setActiveMobilePanel] = useState<'log' | 'chat' | 'rules' | 'leaderboard' | null>(null);
   const tableTheme = useCustomizationStore(s => s.tableTheme);
 
   const TABLE_THEME_GRADIENTS = {
@@ -97,16 +96,39 @@ export function GameBoard() {
     burgundy: 'radial-gradient(ellipse at center, #73293b 0%, #4d1a27 62%, #331019 100%)',
   };
 
-  // Kompakt ekran tespiti (CSS scale / zoom kullanılmaz ki Framer Motion layoutId kart uçuşları 1:1 kusursuz aksın)
-  const [isCompact, setIsCompact] = useState(() => window.innerWidth < 1100 || window.innerHeight < 800);
+  // Masaüstü / Mobil / Tam Ekran sığdırma tespiti
+  const [layoutMetrics, setLayoutMetrics] = useState(() => ({
+    isDesktop: window.innerWidth >= 1024 && window.innerHeight >= 600,
+    isCompact: window.innerWidth < 1100 || window.innerHeight < 800,
+    isUltraCompact: window.innerHeight < 640 || window.innerWidth < 640,
+    hideMobileTabBar: Boolean(document.fullscreenElement) || window.innerHeight < 580,
+  }));
+
   useLayoutEffect(() => {
     const updateLayout = () => {
-      setIsCompact(window.innerWidth < 1100 || window.innerHeight < 800);
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      const isFs = Boolean(document.fullscreenElement);
+      setLayoutMetrics({
+        isDesktop: w >= 1024 && h >= 600,
+        isCompact: w < 1100 || h < 800,
+        isUltraCompact: h < 640 || w < 640,
+        // Mobilde tam ekrana geçildiğinde veya kısa yatay ekranda alttaki tab bar gizlenir ki masa %100 ekrana sığsın!
+        hideMobileTabBar: isFs || h < 580,
+      });
     };
     updateLayout();
     window.addEventListener('resize', updateLayout);
-    return () => window.removeEventListener('resize', updateLayout);
+    window.addEventListener('orientationchange', updateLayout);
+    document.addEventListener('fullscreenchange', updateLayout);
+    return () => {
+      window.removeEventListener('resize', updateLayout);
+      window.removeEventListener('orientationchange', updateLayout);
+      document.removeEventListener('fullscreenchange', updateLayout);
+    };
   }, []);
+
+  const { isDesktop, isCompact, isUltraCompact, hideMobileTabBar } = layoutMetrics;
 
   const transitionPeekState = useGameStore(s => s.transitionPeekState);
   const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
@@ -542,28 +564,25 @@ export function GameBoard() {
         )}
       </AnimatePresence>
 
-      {/* Mobilde Zorunlu Yatay + Tam Ekran Monitör Koruması */}
-      <MobileLandscapeGuard requireFullscreen={true} />
-
       {/* Doğal 4K / Full HD 1:1 Sahne (Zoom/Scale kullanılmaz, kartlar masada yağ gibi kayarak uçar) */}
-      <div className="w-full h-dvh flex flex-col p-2 sm:p-3 lg:p-4 gap-2 sm:gap-3 overflow-hidden relative z-10 max-w-[1920px] mx-auto">
-        {/* Üst Bar: Orta (CAMBIO Logosu) + Sağ (Tasarım / Ses / Dil / Tam Ekran) */}
-        <div className="relative flex items-center justify-center shrink-0 px-2">
-          {/* Orta: Sıcak Masa Oyunu CAMBIO Logosu */}
+      <div className="w-full h-dvh flex flex-col p-1.5 sm:p-3 lg:p-4 gap-1.5 sm:gap-2.5 overflow-hidden relative z-10 max-w-[1920px] mx-auto">
+        {/* Üst Bar: Mobilde Sol Logo + Sağ Kontroller, Masaüstünde Orta Logo + Sağ Kontroller */}
+        <div className="relative flex items-center justify-between lg:justify-center shrink-0 px-1 sm:px-2">
+          {/* CAMBIO Logosu */}
           <motion.div
             className="flex flex-col items-center shrink-0"
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
           >
             <div
-              className="relative flex items-center gap-3.5 px-7 py-2 rounded-2xl border border-[#e8c468]/35"
+              className="relative flex items-center gap-2 sm:gap-3.5 px-3 sm:px-7 py-1 sm:py-2 rounded-xl sm:rounded-2xl border border-[#e8c468]/35"
               style={{
                 background: 'linear-gradient(180deg, rgba(24, 68, 52, 0.94) 0%, rgba(14, 42, 32, 0.96) 100%)',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.16)',
+                boxShadow: '0 6px 18px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.16)',
               }}
             >
               {/* Sol Minyatür Masa Oyunu Kart İkonu */}
-              <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
+              <div className="hidden sm:flex relative w-7 h-7 items-center justify-center shrink-0">
                 <div
                   className="absolute w-4 h-5.5 rounded-[4px] bg-[#1e2d5a] border border-[#e8c468]/70 shadow-xs"
                   style={{ transform: 'rotate(-12deg) translateX(-3px)' }}
@@ -577,36 +596,51 @@ export function GameBoard() {
               </div>
 
               <h1
-                className="text-2xl font-extrabold tracking-[0.22em] text-transparent bg-clip-text leading-none select-none"
-                style={{
-                  backgroundImage: 'linear-gradient(180deg, #fffdf8 0%, #f7e2ab 55%, #d9a74a 100%)',
-                  filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))',
-                }}
+                className="text-sm sm:text-2xl font-extrabold tracking-[0.18em] sm:tracking-[0.22em] text-[#fdf6e3] leading-none select-none"
               >
                 CAMBIO
               </h1>
 
               {/* Sağ Dekoratif Masa Oyunu Yıldız Sembolü */}
-              <div className="flex w-5 h-5 rounded-full bg-[#e8c468]/12 border border-[#e8c468]/30 items-center justify-center text-[#f7e2ab] text-[10px]">
+              <div className="hidden sm:flex w-5 h-5 rounded-full bg-[#e8c468]/12 border border-[#e8c468]/30 items-center justify-center text-[#f7e2ab] text-[10px]">
                 ✦
               </div>
             </div>
           </motion.div>
 
-          {/* Sağ Üst Kontroller: Kart Tasarımı + Ses Aç/Kapat + TR/EN Dil Seçici + Tam Ekran */}
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 z-50 flex items-center gap-2">
-            {/* Kart & Masa Kişiselleştirme Butonu (Sadece Oyun İçinde!) */}
+          {/* Sağ Üst Kontroller: (Mobil Tam Ekranda Paneller Tuşu) + Desteler + Ses + TR/EN + Tam Ekran */}
+          <div className="lg:absolute lg:right-2 lg:top-1/2 lg:-translate-y-1/2 z-50 flex items-center gap-1.5 sm:gap-2">
+            {/* Mobilde Tam Ekrandayken (alt tab bar gizliyken) Panelleri Açan Kompakt Buton */}
+            {!isDesktop && hideMobileTabBar && (
+              <button
+                type="button"
+                onClick={() => setActiveMobilePanel(activeMobilePanel ? null : 'log')}
+                className="btn-emerald-3d h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl text-[11px] font-extrabold flex items-center gap-1.5 cursor-pointer"
+                title={langStore.lang === 'tr' ? 'Sohbet, Hamleler & Rehber' : 'Chat, Moves & Guide'}
+              >
+                <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="21" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                </svg>
+                <span className="text-[10px] sm:text-[11px] uppercase tracking-wider">
+                  {langStore.lang === 'tr' ? 'Menü' : 'Menu'}
+                </span>
+              </button>
+            )}
+
+            {/* Kart & Masa Kişiselleştirme Butonu */}
             <button
               type="button"
               onClick={() => setShowCustomize(true)}
-              className="btn-emerald-3d h-9 px-3.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              className="btn-emerald-3d h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
               title={langStore.lang === 'tr' ? 'Kart & Masa Görünümü' : 'Customize Cards & Table'}
             >
               <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <rect x="4" y="3" width="12" height="16" rx="2" />
                 <path d="M8 21h10a2 2 0 0 0 2-2V7" />
               </svg>
-              <span className="text-[11px] uppercase tracking-wider">
+              <span className="hidden sm:inline text-[11px] uppercase tracking-wider">
                 {langStore.lang === 'tr' ? 'Desteler' : 'Decks'}
               </span>
             </button>
@@ -618,23 +652,23 @@ export function GameBoard() {
                 const nextMuted = SoundManager.toggleMute();
                 setIsMuted(nextMuted);
               }}
-              className="btn-emerald-3d h-9 px-3.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              className="btn-emerald-3d h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
               title={isMuted ? (langStore.lang === 'tr' ? 'Sesi Aç' : 'Unmute') : (langStore.lang === 'tr' ? 'Sesi Kapat' : 'Mute')}
             >
               {isMuted ? (
-                <svg className="w-4 h-4 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <path d="M11 5L6 9H2v6h4l5 4V5z" />
                   <line x1="23" y1="9" x2="17" y2="15" />
                   <line x1="17" y1="9" x2="23" y2="15" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
                   <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
                   <path d="M19.07 4.93a10 10 0 0 1 0 14.14" />
                 </svg>
               )}
-              <span className="text-[11px] uppercase tracking-wider">
+              <span className="hidden sm:inline text-[11px] uppercase tracking-wider">
                 {isMuted
                   ? langStore.lang === 'tr' ? 'Sessiz' : 'Muted'
                   : langStore.lang === 'tr' ? 'Ses' : 'Audio'}
@@ -642,11 +676,11 @@ export function GameBoard() {
             </button>
 
             {/* Segmented TR | EN Dil Seçici */}
-            <div className="luxury-panel h-9 p-1 rounded-xl flex items-center">
+            <div className="luxury-panel h-8 sm:h-9 p-0.5 sm:p-1 rounded-xl flex items-center">
               <button
                 type="button"
                 onClick={() => langStore.setLang('tr')}
-                className={`h-full px-2.5 rounded-lg text-xs font-extrabold tracking-wider transition-all cursor-pointer ${
+                className={`h-full px-2 sm:px-2.5 rounded-lg text-[10px] sm:text-xs font-extrabold tracking-wider transition-all cursor-pointer ${
                   langStore.lang === 'tr'
                     ? 'bg-gradient-to-b from-[#fae19c] to-[#c79531] text-black shadow-xs'
                     : 'text-emerald-100/65 hover:text-white'
@@ -657,7 +691,7 @@ export function GameBoard() {
               <button
                 type="button"
                 onClick={() => langStore.setLang('en')}
-                className={`h-full px-2.5 rounded-lg text-xs font-extrabold tracking-wider transition-all cursor-pointer ${
+                className={`h-full px-2 sm:px-2.5 rounded-lg text-[10px] sm:text-xs font-extrabold tracking-wider transition-all cursor-pointer ${
                   langStore.lang === 'en'
                     ? 'bg-gradient-to-b from-[#fae19c] to-[#c79531] text-black shadow-xs'
                     : 'text-emerald-100/65 hover:text-white'
@@ -677,57 +711,57 @@ export function GameBoard() {
                   if (document.exitFullscreen) document.exitFullscreen();
                 }
               }}
-              className="flex btn-emerald-3d h-9 px-3.5 rounded-xl font-extrabold text-xs items-center gap-1.5 cursor-pointer whitespace-nowrap"
+              className="flex btn-emerald-3d h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl font-extrabold text-xs items-center gap-1.5 cursor-pointer whitespace-nowrap"
               title={t.fullScreen}
             >
-              <span className="tracking-wider uppercase text-[11px]">{t.fullScreen}</span>
+              <span className="hidden sm:inline tracking-wider uppercase text-[11px]">{t.fullScreen}</span>
               <span className="text-sm leading-none text-[var(--gold-light)]">⛶</span>
             </button>
           </div>
         </div>
 
-      <div className="flex flex-1 min-h-0 gap-3 xl:gap-5 px-2 relative z-10">
-        <div className="flex flex-col w-[275px] xl:w-[310px] shrink-0 z-50 gap-3 min-h-0">
-          <div className="luxury-panel px-4 py-3 rounded-[20px] flex items-center justify-between gap-3 shrink-0">
-            <div className="flex items-center gap-2.5">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
-              </span>
-              <span className="text-emerald-100/80 text-xs font-bold uppercase tracking-[0.14em]">
-                {langStore.lang === 'tr' ? 'ODA KODU' : 'ROOM CODE'}
+      <div className="flex flex-1 min-h-0 gap-2 sm:gap-3 xl:gap-5 px-1 sm:px-2 relative z-10">
+        {/* SOL PANEL: Yalnızca Masaüstünde (isDesktop) mount edilir — mobilde 0 CPU maliyeti */}
+        {isDesktop && (
+          <div className="flex flex-col w-[275px] xl:w-[310px] shrink-0 z-50 gap-3 min-h-0">
+            <div className="luxury-panel px-4 py-3 rounded-[20px] flex items-center justify-between gap-3 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
+                <span className="text-emerald-100/80 text-xs font-bold uppercase tracking-[0.14em]">
+                  {langStore.lang === 'tr' ? 'ODA KODU' : 'ROOM CODE'}
+                </span>
+              </div>
+              <span className="px-3 py-1 rounded-xl bg-black/40 border border-[var(--gold)]/35 text-[var(--gold-light)] text-xs font-black font-['JetBrains_Mono'] tracking-[0.16em] shadow-inner">
+                {code ?? 'DEMO'}
               </span>
             </div>
-            <span className="px-3 py-1 rounded-xl bg-black/40 border border-[var(--gold)]/35 text-[var(--gold-light)] text-xs font-black font-['JetBrains_Mono'] tracking-[0.16em] shadow-inner">
-              {code ?? 'DEMO'}
-            </span>
+            <div className="flex-1 min-h-0 basis-1/2">
+              <GameLog />
+            </div>
+            <div className="flex-1 min-h-0 basis-1/2">
+              <ChatPanel 
+                sendAction={sendAction} 
+                myPlayerId={lobbyInfo.playerId} 
+                myNickname={players.find(p => p.id === lobbyInfo.playerId)?.nickname || (langStore.lang === 'tr' ? 'Oyuncu' : 'Player')} 
+              />
+            </div>
           </div>
-          <div className="flex-1 min-h-0 basis-1/2">
-            <GameLog />
-          </div>
-          <div className="flex-1 min-h-0 basis-1/2">
-            <ChatPanel 
-              sendAction={sendAction} 
-              myPlayerId={lobbyInfo.playerId} 
-              myNickname={players.find(p => p.id === lobbyInfo.playerId)?.nickname || (langStore.lang === 'tr' ? 'Oyuncu' : 'Player')} 
-            />
-          </div>
-        </div>
+        )}
 
-        <div className="flex-1 min-h-0 flex flex-col gap-2">
+        <div className="flex-1 min-h-0 flex flex-col gap-1.5 sm:gap-2">
           <LayoutGroup id="cards">
           <div
-            className="relative w-full rounded-[24px] sm:rounded-[34px] flex-1 min-h-0 flex flex-col justify-between transition-colors duration-500"
+            className="relative w-full rounded-[20px] sm:rounded-[34px] flex-1 min-h-0 flex flex-col justify-between transition-colors duration-500"
             style={{
               background: TABLE_THEME_GRADIENTS[tableTheme],
-              boxShadow: '0 16px 44px rgba(0,0,0,0.34), inset 0 0 60px rgba(0,0,0,0.22)',
-              border: '2.5px solid rgba(232,196,104,0.34)',
-              minHeight: '260px',
+              boxShadow: '0 14px 36px rgba(0,0,0,0.34), inset 0 0 50px rgba(0,0,0,0.2)',
+              border: '2px solid rgba(232,196,104,0.34)',
+              minHeight: '200px',
             }}
           >
             {/* ─── Grid Layout: 3 satır × 3 sütun ─── */}
             <div
-              className="flex-1 min-h-0 grid px-1.5 sm:px-3 py-2 sm:py-3"
+              className={`flex-1 min-h-0 grid ${isUltraCompact ? 'px-1 py-1' : 'px-1.5 sm:px-3 py-1.5 sm:py-3'}`}
               style={{ gridTemplateRows: 'auto 1fr auto', gridTemplateColumns: 'auto 1fr auto', alignContent: 'space-between' }}
             >
               {/* Üst orta: Karşı oyuncu */}
@@ -737,6 +771,7 @@ export function GameBoard() {
                     player={topPlayer}
                     position="top"
                     compact={isCompact}
+                    ultraCompact={isUltraCompact}
                     canInteract={canInteractWithSeat(topPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(topPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === topPlayer.seat ? [powerSelection.pos] : []}
@@ -753,6 +788,7 @@ export function GameBoard() {
                     player={leftPlayer}
                     position="left"
                     compact={isCompact}
+                    ultraCompact={isUltraCompact}
                     canInteract={canInteractWithSeat(leftPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(leftPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === leftPlayer.seat ? [powerSelection.pos] : []}
@@ -762,10 +798,9 @@ export function GameBoard() {
                 )}
               </div>
 
-              {/* Merkez: Deste + Çöp + Bilgilendirme Bannerları (Grid 2. satırda olduğu için Zeliha'nın kartlarına ASLA değmez!) */}
+              {/* Merkez: Deste + Çöp + Bilgilendirme Bannerları */}
               <div className="col-start-2 row-start-2 flex flex-col items-center justify-center relative">
-                {/* Peek fazı bilgilendirme kutusu ve Görsel Yapıştırma / Ceza Rozeti: Tam merkezde, 4K keskinlikte */}
-                <div className="mb-3 flex flex-col items-center gap-2 justify-center z-[100]">
+                <div className={`${isUltraCompact ? 'mb-1.5' : 'mb-3'} flex flex-col items-center gap-1.5 sm:gap-2 justify-center z-[100]`}>
                   <StickFeedbackBanner />
                   <GameBackgroundOverlay myPlayerId={me?.id ?? lobbyInfo.playerId} />
                 </div>
@@ -775,6 +810,7 @@ export function GameBoard() {
                     deck={deck}
                     discardPile={discardPile}
                     compact={isCompact}
+                    ultraCompact={isUltraCompact}
                     canDraw={myTurn && phase === 'draw'}
                     onDrawFromDeck={() => doAction(() => drawFromDeck(), { type: 'DRAW_FROM_DECK' })}
                     onDrawFromDiscard={() => doAction(() => drawFromDiscard(), { type: 'DRAW_FROM_DISCARD' })}
@@ -784,12 +820,12 @@ export function GameBoard() {
                 <AnimatePresence>
                   {phase === 'power' && activePower && (
                     <motion.div
-                      className="absolute bottom-[calc(100%+0.75rem)] sm:bottom-[calc(100%+1rem)] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 sm:gap-3 w-max max-w-[88vw] pointer-events-none"
+                      className="absolute bottom-[calc(100%+0.5rem)] sm:bottom-[calc(100%+1rem)] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1.5 sm:gap-3 w-max max-w-[88vw] pointer-events-none"
                       initial={{ opacity: 0, scale: 0.85, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.85, y: 10 }}
                     >
-                      <span className="text-white text-xs sm:text-base font-bold drop-shadow-xl text-center bg-black/75 px-4 sm:px-6 py-2 rounded-full border border-[var(--gold)]/40 backdrop-blur-md">
+                      <span className="text-white text-xs sm:text-base font-bold text-center bg-black/85 px-4 sm:px-6 py-1.5 sm:py-2 rounded-full border border-[var(--gold)]/40">
                         {myTurn ? (
                           <>
                             {activePower === 'peek_own' && t.hint_peek_own}
@@ -803,7 +839,7 @@ export function GameBoard() {
                       {myTurn && (activePower === 'blind_swap' || (activePower === 'spy_swap' && powerSelection)) && (
                         <div className="pointer-events-auto">
                           <motion.button
-                            className="mt-1 px-5 py-2 bg-red-600/90 hover:bg-red-500 border-2 border-red-400 rounded-xl text-white font-black text-xs sm:text-sm shadow-[0_0_20px_rgba(220,38,38,0.6)] cursor-pointer"
+                            className="mt-1 px-4 sm:px-5 py-1.5 sm:py-2 bg-red-600 hover:bg-red-500 border border-red-300 rounded-xl text-white font-black text-xs sm:text-sm cursor-pointer"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
                             onClick={() => {
@@ -819,17 +855,17 @@ export function GameBoard() {
                   )}
                   {phase === 'give_card' && (
                     <motion.div
-                      className="absolute bottom-full mb-4 sm:mb-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1.5 sm:gap-2 w-max max-w-[88vw]"
+                      className="absolute bottom-full mb-3 sm:mb-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-1 sm:gap-2 w-max max-w-[88vw]"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
                     >
-                      <span className="text-[var(--gold)] text-lg sm:text-2xl font-black tracking-widest uppercase drop-shadow-xl text-center pointer-events-none">
+                      <span className="text-[var(--gold)] text-base sm:text-2xl font-black tracking-widest uppercase text-center pointer-events-none">
                         {myTurn
                           ? langStore.lang === 'tr' ? 'Doğru Bildin!' : 'Great Stick!'
                           : langStore.lang === 'tr' ? `${currentPlayer?.nickname} Doğru Bildi!` : `${currentPlayer?.nickname} Stuck a Card!`}
                       </span>
-                      <span className="text-white/90 text-xs sm:text-sm font-bold bg-black/70 px-4 py-1.5 rounded-full border border-white/15 drop-shadow-md text-center pointer-events-none">
+                      <span className="text-white/90 text-xs sm:text-sm font-bold bg-black/80 px-4 py-1.5 rounded-full border border-white/15 text-center pointer-events-none">
                         {myTurn ? t.hint_give_card : t.hint_waiting}
                       </span>
                     </motion.div>
@@ -846,7 +882,7 @@ export function GameBoard() {
                       exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ duration: 0.35 }}
                     >
-                      <span className="text-[var(--gold)] text-4xl sm:text-6xl font-black drop-shadow-[0_0_25px_rgba(212,168,67,0.95)]">⇄</span>
+                      <span className="text-[var(--gold)] text-3xl sm:text-6xl font-black">⇄</span>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -860,6 +896,7 @@ export function GameBoard() {
                     player={rightPlayer}
                     position="right"
                     compact={isCompact}
+                    ultraCompact={isUltraCompact}
                     canInteract={canInteractWithSeat(rightPlayer.seat)}
                     onCardClick={(pos) => handleCardClick(rightPlayer.seat, pos)}
                     highlightPositions={powerSelection?.seat === rightPlayer.seat ? [powerSelection.pos] : []}
@@ -870,13 +907,14 @@ export function GameBoard() {
               </div>
 
               {/* Alt orta: Sen */}
-              <div className="col-start-2 row-start-3 flex flex-col items-center justify-end gap-1.5 sm:gap-2 pb-1 sm:pb-2">
+              <div className={`col-start-2 row-start-3 flex flex-col items-center justify-end ${isUltraCompact ? 'gap-0.5 pb-0.5' : 'gap-1.5 sm:gap-2 pb-1 sm:pb-2'}`}>
               {me && (
                 <PlayerArea
                   player={me}
                   position="bottom"
                   isMe
                   compact={isCompact}
+                  ultraCompact={isUltraCompact}
                   canInteract={canInteractWithSeat(me.seat)}
                   onCardClick={(pos) => handleCardClick(me.seat, pos)}
                   highlightPositions={
@@ -896,7 +934,7 @@ export function GameBoard() {
           </div>{/* yeşil masa kapanışı */}
           </LayoutGroup>
 
-          <div className="luxury-panel shrink-0 rounded-[24px] px-4 py-2">
+          <div className={`luxury-panel shrink-0 rounded-[18px] sm:rounded-[24px] ${isUltraCompact ? 'px-2 py-1' : 'px-3 sm:px-4 py-1.5 sm:py-2'}`}>
             <TurnIndicator
               currentPlayerName={formatPlayerName(currentPlayer?.nickname, langStore.lang)}
               phase={phase}
@@ -936,17 +974,122 @@ export function GameBoard() {
               }}
             />
           </div>
+
+          {/* MOBİL ALT HIZLI ERİŞİM TAB ÇUBUĞU (Tam Ekranda veya Kısa Yatay Ekranda otomatik gizlenir ki masa %100 ekrana sığsın!) */}
+          {!isDesktop && !hideMobileTabBar && (
+            <div className="grid grid-cols-4 gap-1.5 shrink-0">
+              {(
+                [
+                  { id: 'log', tr: 'Hamleler', en: 'Moves' },
+                  { id: 'chat', tr: 'Sohbet', en: 'Chat' },
+                  { id: 'rules', tr: 'Rehber', en: 'Guide' },
+                  { id: 'leaderboard', tr: 'Skorlar', en: 'Scores' },
+                ] as const
+              ).map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() =>
+                    setActiveMobilePanel(
+                      activeMobilePanel === tab.id ? null : tab.id
+                    )
+                  }
+                  className={`py-2 px-2 rounded-xl text-[11px] font-extrabold flex items-center justify-center gap-1.5 border transition-colors cursor-pointer ${
+                    activeMobilePanel === tab.id
+                      ? 'bg-[#e8c468] text-[#1c1302] border-[#fff3c4]'
+                      : 'luxury-panel text-emerald-100/90'
+                  }`}
+                >
+                  <span>{langStore.lang === 'tr' ? tab.tr : tab.en}</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* SAĞ: Kural Tablosu ve Liderlik Tablosu (Bilgisayar monitörü düzeninde her zaman görünür) */}
-        <div className="flex w-[310px] xl:w-[355px] shrink-0 flex-col gap-3 z-50 min-h-0">
-          <RulesPanel />
-          <Leaderboard />
-        </div>
+        {/* SAĞ PANEL: Yalnızca Masaüstünde (isDesktop) mount edilir */}
+        {isDesktop && (
+          <div className="flex w-[310px] xl:w-[355px] shrink-0 flex-col gap-3 z-50 min-h-0">
+            <RulesPanel />
+            <Leaderboard />
+          </div>
+        )}
       </div>
 
       {/* Kişiselleştirme (Kart Sırtı & Masa Rengi) Modalı */}
       <CustomizationModal isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
+
+      {/* MOBİL ÇEKMECE (BOTTOM SHEET) MODALI — İçinde Sekme Geçişleriyle */}
+      <AnimatePresence>
+        {!isDesktop && activeMobilePanel && (
+          <motion.div
+            className="fixed inset-0 z-[190] flex flex-col justify-end bg-black/65"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setActiveMobilePanel(null)}
+          >
+            <motion.div
+              className="w-full h-[78dvh] p-3 flex flex-col gap-2"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Çekmece Üst Sekme Seçici + Kapat Tuşu (Tam ekranda bile tüm sekmeler arası geçiş sağlar) */}
+              <div className="flex items-center justify-between gap-2 bg-[#0c261d] border border-[#e8c468]/35 p-1.5 rounded-2xl shrink-0">
+                <div className="grid grid-cols-4 gap-1 flex-1">
+                  {(
+                    [
+                      { id: 'log', tr: 'Hamleler', en: 'Moves' },
+                      { id: 'chat', tr: 'Sohbet', en: 'Chat' },
+                      { id: 'rules', tr: 'Rehber', en: 'Guide' },
+                      { id: 'leaderboard', tr: 'Skorlar', en: 'Scores' },
+                    ] as const
+                  ).map((tab) => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveMobilePanel(tab.id)}
+                      className={`py-1.5 px-2 rounded-xl text-[11px] font-extrabold transition-colors cursor-pointer ${
+                        activeMobilePanel === tab.id
+                          ? 'bg-[#e8c468] text-[#1c1302]'
+                          : 'text-emerald-100/75 hover:text-white'
+                      }`}
+                    >
+                      {langStore.lang === 'tr' ? tab.tr : tab.en}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveMobilePanel(null)}
+                  className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-extrabold cursor-pointer shrink-0"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex-1 min-h-0 flex flex-col">
+                {activeMobilePanel === 'log' && <GameLog />}
+                {activeMobilePanel === 'chat' && (
+                  <ChatPanel
+                    sendAction={sendAction}
+                    myPlayerId={lobbyInfo.playerId}
+                    myNickname={
+                      players.find((p) => p.id === lobbyInfo.playerId)?.nickname ||
+                      (langStore.lang === 'tr' ? 'Oyuncu' : 'Player')
+                    }
+                  />
+                )}
+                {activeMobilePanel === 'rules' && <RulesPanel />}
+                {activeMobilePanel === 'leaderboard' && <Leaderboard />}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       </div>
     </div>
   );

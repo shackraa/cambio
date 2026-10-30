@@ -50,13 +50,11 @@
   position: relative;
   background:
     radial-gradient(120% 80% at 50% 0%, rgba(46, 128, 98, 0.24) 0%, transparent 70%),
-    linear-gradient(165deg, rgba(20, 56, 43, 0.94) 0%, rgba(12, 35, 27, 0.97) 100%);
+    linear-gradient(165deg, rgba(20, 56, 43, 0.96) 0%, rgba(12, 35, 27, 0.98) 100%);
   border: 1.5px solid rgba(232, 196, 104, 0.30);
   box-shadow:
-    0 14px 34px -8px rgba(0, 0, 0, 0.42),
-    inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 0 24px rgba(0, 0, 0, 0.14);
-  backdrop-filter: blur(14px);
+    0 12px 28px -8px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .luxury-panel-header {

@@ -8,7 +8,6 @@ import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 import { getPlayerStats } from '../utils/playerStats';
 import { SoundManager } from '../utils/SoundManager';
-import { MobileLandscapeGuard } from '../components/MobileLandscapeGuard';
 import type { Card } from '../types/game';
 
 interface ShowcaseCardItem {
@@ -344,22 +343,7 @@ export function HomeScreen() {
   const canProceed = nickname.trim().length >= 2;
   const activeShowcase = CAMBIO_CARD_LINEUP[selectedCardIdx] ?? CAMBIO_CARD_LINEUP[0];
 
-  const triggerMobileFullscreenLandscape = async () => {
-    try {
-      const isSmallOrTouch =
-        window.innerWidth < 1024 ||
-        (navigator.maxTouchPoints > 0 &&
-          Math.min(window.screen.width, window.screen.height) <= 920);
-      if (isSmallOrTouch && !document.fullscreenElement) {
-        await document.documentElement.requestFullscreen?.();
-      }
-      // @ts-ignore
-      await screen.orientation?.lock?.('landscape');
-    } catch {}
-  };
-
   const handlePlayWithBots = async () => {
-    await triggerMobileFullscreenLandscape();
     const cleanNick = nickname.trim() || (lang === 'tr' ? 'Sen' : 'You');
     sessionStorage.setItem('nickname', cleanNick);
     sessionStorage.setItem('avatar', '♠');
@@ -373,7 +357,6 @@ export function HomeScreen() {
 
   const handleCreateRoom = async () => {
     if (!canProceed || loading) return;
-    await triggerMobileFullscreenLandscape();
     const cleanNick = nickname.trim();
     sessionStorage.setItem('nickname', cleanNick);
     sessionStorage.setItem('avatar', '♠');
@@ -383,7 +366,6 @@ export function HomeScreen() {
 
   const handleJoinRoom = async () => {
     if (!canProceed || joinCode.length < 4 || loading) return;
-    await triggerMobileFullscreenLandscape();
     const cleanNick = nickname.trim();
     sessionStorage.setItem('nickname', cleanNick);
     sessionStorage.setItem('avatar', '♠');
@@ -406,9 +388,6 @@ export function HomeScreen() {
 
   return (
     <div className="min-h-dvh w-full flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 overflow-x-hidden relative antialiased">
-      {/* Mobilde Dikey Tutuş Koruması */}
-      <MobileLandscapeGuard requireFullscreen={false} />
-
       {/* ─── ARKA PLAN: ZENGİN MASA ÇUHASI ÇERÇEVESİ VE DAĞITILMIŞ İSKAMBİL KARTLARI ─── */}
       <div className="fixed inset-0 pointer-events-none select-none overflow-hidden z-0">
         {/* İnce altın masa içi bordür çizgisi */}

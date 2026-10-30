@@ -14,6 +14,7 @@ interface CenterAreaProps {
   canDraw?: boolean;
   myPlayerId?: string;
   compact?: boolean;
+  ultraCompact?: boolean;
 }
 
 // Çöpteki her kartın masaya atıldığında hafif organik bir açıyla durması için deterministik açı
@@ -43,12 +44,13 @@ export const CenterArea = memo(function CenterArea({
   onDrawFromDiscard,
   canDraw,
   compact = false,
+  ultraCompact = false,
 }: CenterAreaProps) {
   const deckCount = deck.length;
   const topDeckCard = deck[0] ?? null;
   const topDiscard = discardPile[discardPile.length - 1] ?? null;
-  const cardSize = compact ? 'sm' : 'lg';
-  const boxClass = compact ? 'w-14 h-20' : 'w-20 h-28';
+  const cardSize = ultraCompact ? 'xs' : compact ? 'sm' : 'lg';
+  const boxClass = ultraCompact ? 'w-11 h-16' : compact ? 'w-14 h-20' : 'w-20 h-28';
 
   const lang = useLangStore((s) => s.lang);
   const cardBack = useCustomizationStore((s) => s.cardBack);
