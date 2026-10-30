@@ -9,6 +9,8 @@ interface TurnIndicatorProps {
   timeLeft?: number;
   myTurn: boolean;
   cambioCaller: number | null;
+  cambioCallerName?: string;
+  remainingTurns?: number;
   turnCount: number;
   onCallCambio: () => void;
   onReset: () => void;
@@ -32,6 +34,8 @@ export function TurnIndicator({
   timeLeft,
   myTurn,
   cambioCaller,
+  cambioCallerName,
+  remainingTurns,
   turnCount,
   onCallCambio,
   onReset,
@@ -174,15 +178,41 @@ export function TurnIndicator({
 
         {/* Tur Sayacı */}
         {turnCount > 0 && phase !== 'results' && phase !== 'peek' && (
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/30 border border-[var(--gold)]/25">
-            <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-200/50 font-extrabold">
+          <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/25 border border-[#e8c468]/25">
+            <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-100/55 font-extrabold">
               {t.round}
             </span>
-            <span className="font-extrabold text-xs font-['JetBrains_Mono'] text-[var(--gold-light)]">
+            <span className="font-extrabold text-xs font-['JetBrains_Mono'] text-[#f7e2ab]">
               #{turnCount}
             </span>
           </div>
         )}
+
+        {/* Kimin Cambio Dediğini Gösteren Kalıcı Alt Bar Rozeti */}
+        <AnimatePresence>
+          {cambioCaller !== null && phase !== 'results' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-500/20 border border-amber-300/45"
+            >
+              <span className="text-xs">🔔</span>
+              <span className="text-xs font-bold text-[#fdf6e3]">
+                {cambioCallerName
+                  ? lang === 'tr'
+                    ? `${cambioCallerName} Cambio Dedi`
+                    : `${cambioCallerName} Called Cambio`
+                  : 'CAMBIO'}
+              </span>
+              {remainingTurns !== undefined && remainingTurns > 0 && (
+                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-black/30 text-amber-200">
+                  {lang === 'tr' ? `${remainingTurns} hamle` : `${remainingTurns} left`}
+                </span>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* ─── SAĞ: 3D AKSİYON BUTONLARI (CAMBIO / TEKRAR OYNA / YENİ EL) ─── */}

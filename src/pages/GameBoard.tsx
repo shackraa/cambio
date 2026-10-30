@@ -338,12 +338,13 @@ export function GameBoard() {
   const leftPlayer = players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1);
   const rightPlayer = players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3);
   const winnerPlayer = winner !== null ? players.find(p => p.seat === winner) : null;
+  const cambioCallerPlayer = cambioCaller !== null ? players.find(p => p.seat === cambioCaller) : null;
 
   return (
     <div
       className="h-screen w-screen flex items-center justify-center overflow-hidden relative"
       style={{
-        background: 'radial-gradient(ellipse at 50% 50%, #166847 0%, #0b3c29 60%, #062317 100%)',
+        background: 'radial-gradient(ellipse at 50% 50%, #1d5744 0%, #11362a 62%, #0b241c 100%)',
       }}
     >
       <ToastContainer />
@@ -352,19 +353,19 @@ export function GameBoard() {
       <AnimatePresence>
         {betweenHands && (
           <motion.div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-emerald-950/35 backdrop-blur-[2px] pointer-events-none"
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-emerald-950/30 backdrop-blur-[2px] pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
+              exit={{ scale: 0.96, opacity: 0 }}
               className="text-center"
             >
-              <div className="text-[var(--gold)] text-2xl font-black tracking-widest drop-shadow-[0_0_20px_rgba(212,168,67,0.8)]">{t.passingTurn}</div>
+              <div className="text-[#fdf6e3] text-2xl font-bold tracking-widest drop-shadow-[0_4px_16px_rgba(0,0,0,0.4)]">{t.passingTurn}</div>
             </motion.div>
           </motion.div>
         )}
@@ -373,36 +374,47 @@ export function GameBoard() {
       <AnimatePresence>
         {cambioFlash && (
           <motion.div
-            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/55 backdrop-blur-md pointer-events-none"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/45 backdrop-blur-md pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
             <motion.div
-              className="flex flex-col items-center px-14 py-8 rounded-3xl border border-[var(--gold)]/60"
+              className="flex flex-col items-center px-14 py-9 rounded-3xl border border-[#e8c468]/55"
               style={{
-                background: 'radial-gradient(ellipse at center, rgba(16, 68, 46, 0.96) 0%, rgba(7, 30, 20, 0.98) 100%)',
-                boxShadow: '0 24px 80px rgba(0,0,0,0.7), 0 0 50px rgba(212,168,67,0.35)',
+                background: 'radial-gradient(ellipse at center, rgba(26, 74, 57, 0.96) 0%, rgba(13, 38, 29, 0.98) 100%)',
+                boxShadow: '0 24px 70px rgba(0,0,0,0.55), 0 0 40px rgba(232,196,104,0.25)',
               }}
-              initial={{ scale: 0.75, y: 20 }}
+              initial={{ scale: 0.82, y: 18 }}
               animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 1.1, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+              exit={{ scale: 1.05, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 250, damping: 22 }}
             >
-              <span className="text-xs font-extrabold uppercase tracking-[0.35em] text-[var(--gold)] mb-2">
-                {langStore.lang === 'tr' ? 'SON TUR ÇAĞRISI' : 'FINAL ROUND CALLED'}
-              </span>
+              {/* Kimin Cambio Dediğini Gösteren Sıcak Masa Oyunu Rozeti */}
+              <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-300/45 mb-3">
+                <span className="text-base">🔔</span>
+                <span className="text-sm font-extrabold uppercase tracking-[0.16em] text-[#fdf6e3]">
+                  {cambioCallerPlayer
+                    ? langStore.lang === 'tr'
+                      ? `${cambioCallerPlayer.nickname} CAMBIO DEDİ!`
+                      : `${cambioCallerPlayer.nickname} CALLED CAMBIO!`
+                    : langStore.lang === 'tr'
+                      ? 'SON TUR ÇAĞRISI'
+                      : 'FINAL ROUND CALLED'}
+                </span>
+              </div>
+
               <h2
-                className="text-7xl font-black tracking-[0.18em] font-['Cinzel'] text-transparent bg-clip-text"
+                className="text-6xl font-extrabold tracking-[0.16em] text-transparent bg-clip-text"
                 style={{
-                  backgroundImage: 'linear-gradient(135deg, #fffdf5 0%, #f0c96c 50%, #d4a843 100%)',
-                  filter: 'drop-shadow(0 4px 20px rgba(212,168,67,0.5))',
+                  backgroundImage: 'linear-gradient(180deg, #fffdf7 0%, #f5dfa0 55%, #d9a74a 100%)',
+                  filter: 'drop-shadow(0 4px 16px rgba(0,0,0,0.35))',
                 }}
               >
-                CAMBIO
+                CAMBIO!
               </h2>
               {cambioCaller !== null && (
-                <div className="mt-4 text-center text-white/85 text-xs uppercase tracking-[0.2em] font-bold bg-white/[0.06] px-5 py-2 rounded-full border border-white/15">
+                <div className="mt-4 text-center text-[#fdf6e3]/90 text-xs uppercase tracking-[0.16em] font-bold bg-white/[0.08] px-5 py-2 rounded-full border border-white/15">
                   {t.cambioRoundTurnsLeft(remainingTurns)}
                 </div>
               )}
@@ -603,46 +615,46 @@ export function GameBoard() {
           </button>
         </div>
 
-        {/* Üst Başlık: Kraliyet CAMBIO Arması (Royal Crest Header) */}
+        {/* Üst Başlık: Sıcak Masa Oyunu CAMBIO Logosu (Kumar sembolleri ve alt yazı olmadan) */}
         <motion.div
-          className="flex flex-col items-center shrink-0 mt-1"
-          initial={{ opacity: 0, y: -12 }}
+          className="flex flex-col items-center shrink-0 mt-0.5"
+          initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <div
-            className="relative flex items-center gap-4 px-8 py-2 rounded-full border border-[var(--gold)]/45"
+            className="relative flex items-center gap-3.5 px-7 py-2 rounded-2xl border border-[#e8c468]/35"
             style={{
-              background: 'radial-gradient(ellipse at center, rgba(16, 68, 46, 0.92) 0%, rgba(7, 30, 20, 0.96) 100%)',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.18)',
+              background: 'linear-gradient(180deg, rgba(24, 68, 52, 0.94) 0%, rgba(14, 42, 32, 0.96) 100%)',
+              boxShadow: '0 8px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.16)',
             }}
           >
-            {/* Sol Süs Arması */}
-            <div className="flex items-center gap-1.5 text-[var(--gold)]">
-              <span className="text-xs opacity-60">♦</span>
-              <span className="text-sm">♠</span>
-              <span className="h-px w-6 bg-gradient-to-r from-transparent to-[var(--gold)]" />
-            </div>
-
-            <div className="flex flex-col items-center">
-              <h1
-                className="text-3xl font-black tracking-[0.26em] font-['Cinzel'] text-transparent bg-clip-text leading-none"
-                style={{
-                  backgroundImage: 'linear-gradient(180deg, #fffdf7 0%, #fae19c 45%, #d4a843 85%, #9e731c 100%)',
-                  filter: 'drop-shadow(0 2px 10px rgba(212,168,67,0.35))',
-                }}
+            {/* Sol Minyatür Masa Oyunu Kart İkonu */}
+            <div className="relative w-7 h-7 flex items-center justify-center shrink-0">
+              <div
+                className="absolute w-4 h-5.5 rounded-[4px] bg-[#1e2d5a] border border-[#e8c468]/70 shadow-xs"
+                style={{ transform: 'rotate(-12deg) translateX(-3px)' }}
+              />
+              <div
+                className="absolute w-4 h-5.5 rounded-[4px] bg-[#fdf6e3] border border-[#d4a843]/80 shadow-xs flex items-center justify-center"
+                style={{ transform: 'rotate(10deg) translateX(3px)' }}
               >
-                CAMBIO
-              </h1>
-              <span className="text-[9px] text-emerald-200/65 tracking-[0.34em] uppercase font-extrabold mt-1">
-                {langStore.lang === 'tr' ? 'ROYAL TABLE EDITION' : 'ROYAL TABLE EDITION'}
-              </span>
+                <span className="text-[8px] font-black text-[#b88728]">C</span>
+              </div>
             </div>
 
-            {/* Sağ Süs Arması */}
-            <div className="flex items-center gap-1.5 text-[var(--gold)]">
-              <span className="h-px w-6 bg-gradient-to-l from-transparent to-[var(--gold)]" />
-              <span className="text-sm">♥</span>
-              <span className="text-xs opacity-60">♣</span>
+            <h1
+              className="text-2xl font-extrabold tracking-[0.22em] text-transparent bg-clip-text leading-none select-none"
+              style={{
+                backgroundImage: 'linear-gradient(180deg, #fffdf8 0%, #f7e2ab 55%, #d9a74a 100%)',
+                filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))',
+              }}
+            >
+              CAMBIO
+            </h1>
+
+            {/* Sağ Dekoratif Masa Oyunu Yıldız Sembolü */}
+            <div className="w-5 h-5 rounded-full bg-[#e8c468]/12 border border-[#e8c468]/30 flex items-center justify-center text-[#f7e2ab] text-[10px]">
+              ✦
             </div>
           </div>
         </motion.div>
@@ -680,9 +692,9 @@ export function GameBoard() {
           <div
             className="relative w-full rounded-[36px] flex-1 min-h-0 flex flex-col justify-between"
             style={{
-              background: 'radial-gradient(ellipse at center, #228b62 0%, #115e40 60%, #093826 100%)',
-              boxShadow: '0 16px 50px rgba(0,0,0,0.45), inset 0 0 80px rgba(0,0,0,0.35)',
-              border: '2px solid rgba(212,168,67,0.3)',
+              background: 'radial-gradient(ellipse at center, #2b7a60 0%, #1b5643 62%, #123b2e 100%)',
+              boxShadow: '0 16px 44px rgba(0,0,0,0.34), inset 0 0 60px rgba(0,0,0,0.22)',
+              border: '2.5px solid rgba(232,196,104,0.34)',
               minHeight: '300px',
             }}
           >
@@ -883,6 +895,8 @@ export function GameBoard() {
               myTurn={myTurn}
               timeLeft={stickTimeLeft ?? undefined}
               cambioCaller={cambioCaller}
+              cambioCallerName={cambioCallerPlayer?.nickname}
+              remainingTurns={remainingTurns}
               turnCount={turnCount ?? 0}
               onCallCambio={() => doAction(callCambio, { type: 'CALL_CAMBIO', seat: lobbyInfo.seat })}
               onReset={async () => {

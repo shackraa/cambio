@@ -45,27 +45,26 @@
   }
 }
 
-/* ─── Lüks Oyun Paneli Dokusu (Tactile Casino Lounge Frame) ─── */
+/* ─── Sıcak Masa Oyunu Paneli Dokusu (Cozy Tabletop Board Game Frame) ─── */
 .luxury-panel {
   position: relative;
   background:
-    radial-gradient(120% 80% at 50% 0%, rgba(34, 139, 98, 0.28) 0%, transparent 70%),
-    linear-gradient(165deg, rgba(13, 52, 36, 0.95) 0%, rgba(6, 28, 19, 0.98) 100%);
-  border: 1px solid rgba(212, 168, 67, 0.34);
+    radial-gradient(120% 80% at 50% 0%, rgba(46, 128, 98, 0.24) 0%, transparent 70%),
+    linear-gradient(165deg, rgba(20, 56, 43, 0.94) 0%, rgba(12, 35, 27, 0.97) 100%);
+  border: 1.5px solid rgba(232, 196, 104, 0.30);
   box-shadow:
-    0 18px 40px -10px rgba(0, 0, 0, 0.55),
-    0 0 0 1px rgba(0, 0, 0, 0.35),
+    0 14px 34px -8px rgba(0, 0, 0, 0.42),
     inset 0 1px 0 rgba(255, 255, 255, 0.14),
-    inset 0 0 30px rgba(0, 0, 0, 0.22);
-  backdrop-filter: blur(16px);
+    inset 0 0 24px rgba(0, 0, 0, 0.14);
+  backdrop-filter: blur(14px);
 }
 
 .luxury-panel-header {
   position: relative;
   padding: 14px 20px;
-  background: linear-gradient(90deg, rgba(212, 168, 67, 0.15) 0%, rgba(12, 48, 34, 0.45) 55%, rgba(212, 168, 67, 0.06) 100%);
-  border-bottom: 1px solid rgba(212, 168, 67, 0.24);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.16);
+  background: linear-gradient(90deg, rgba(232, 196, 104, 0.13) 0%, rgba(18, 52, 40, 0.4) 55%, rgba(232, 196, 104, 0.05) 100%);
+  border-bottom: 1px solid rgba(232, 196, 104, 0.22);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
 }
 
 .luxury-panel-header::after {
@@ -75,7 +74,7 @@
   left: 20px;
   right: 20px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(243, 212, 124, 0.65), transparent);
+  background: linear-gradient(90deg, transparent, rgba(247, 226, 171, 0.5), transparent);
 }
 
 /* ─── Altın Kristal & Zümrüt Butonlar (3D Tactile Game Buttons) ─── */

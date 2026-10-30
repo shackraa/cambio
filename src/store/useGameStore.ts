@@ -353,59 +353,91 @@ export const useGameStore = create<GameStore>()(
       SoundManager.playCardDraw();
     },
 
-    // ── Takas: ÖNCE seçilen kartın etrafında ışık yanar (700ms), SONRA kartlar fiziksel olarak yer değiştirir! ──
+    // ── Takas: 3 Aşamalı Doğal El Koreografisi ──
+    // 1) Seçilen kart parlar (650ms)
+    // 2) Eldeki eski kart yumuşakça çöpe süzülür (750ms)
+    // 3) Çekilen yeni kart boşalan slota yumuşakça yerleşir!
     swapCard: (position, initiatorSeat) => {
-      const { drawnCard, currentTurn, players, phase } = get();
+      const { drawnCard, currentTurn, players, phase, lastSwappedPositions } = get();
       if ((phase !== 'action' && phase !== 'power') || !drawnCard) return;
+      if (lastSwappedPositions.length > 0) return; // Zaten takas animasyonu çalışıyorsa tekrar tetikleme
       const activeSeat = initiatorSeat !== undefined ? initiatorSeat : currentTurn;
       const playerIdx = players.findIndex(p => p.seat === activeSeat);
       if (playerIdx === -1) return;
 
-      // 1. AŞAMA: Hangi kartın seçildiğini gözün takip edebilmesi için önce o kartın etrafında altın ışık halkası yak!
+      // 1. AŞAMA: Hangi kartın seçildiğini gözün takip edebilmesi için önce o kartı vurgula
       SoundManager.playCardFlip();
       set(state => {
         state.lastSwappedPosition = { seat: activeSeat, pos: position };
         state.lastSwappedPositions = [{ seat: activeSeat, pos: position }];
       });
 
-      // 2. AŞAMA (700ms sonra): Işık yandıktan sonra eski kart çöpe, çekilen kart o slota fiziksel olarak uçar!
+      // 2. AŞAMA (650ms sonra): Önce eldeki eski kart çöpe doğru süzülür (slotta ghost yer tutucu kalır)
       setTimeout(() => {
+        const currentSnap = useGameStore.getState();
+        const pSnap = currentSnap.players[playerIdx];
+        if (!pSnap || !currentSnap.drawnCard) return;
+        const oldCard = pSnap.cards[position];
+        if (!oldCard || oldCard.isGhost) return;
+
         useGameStore.setState(state => {
           const player = state.players[playerIdx];
           if (!player || !state.drawnCard) return;
-          const oldCard = player.cards[position];
-          if (!oldCard) return;
+          const cardToDiscard = player.cards[position];
+          if (!cardToDiscard) return;
 
-          state.discardPile.push({ ...oldCard, isRevealed: true, isPenalty: false });
-          player.cards[position] = { ...state.drawnCard, isRevealed: false, isPenalty: false };
-          state.drawnCard = null;
-          state.drawnFrom = null;
+          // Eski kartı açık olarak çöpe gönder (layoutId sayesinde elden çöpe uçar)
+          state.discardPile.push({ ...cardToDiscard, isRevealed: true, isPenalty: false });
 
-          state.knownCards = state.knownCards.filter(
-            k => !(k.playerId === player.id && k.position === position)
-          );
-
-          state.gameLog.push({
-            id: mkLogId(),
-            timestamp: Date.now(),
-            playerName: player.nickname,
-            action: 'swap',
-            detail: `çektiği kartla ${position + 1}. kartını değiştirdi`,
-            detailEn: `swapped drawn card with slot #${position + 1}`,
-          });
-          if (state.gameLog.length > 50) state.gameLog.shift();
-
-          state.phase = 'stick_window';
+          // Slotta diğer kartların kaymaması için görünmez yer tutucu bırak
+          player.cards[position] = {
+            id: `ghost-swap-${activeSeat}-${position}`,
+            suit: 'spades',
+            rank: 'A',
+            value: 1,
+            isRevealed: false,
+            isPenalty: false,
+            isGhost: true,
+          };
         });
         SoundManager.playCardDrop();
 
+        // 3. AŞAMA (750ms sonra): Eski kart çöpe konarken, çekilen yeni kart boşalan slota süzülür!
         setTimeout(() => {
-          useGameStore.setState(s => {
-            s.lastSwappedPosition = null;
-            s.lastSwappedPositions = [];
+          useGameStore.setState(state => {
+            const player = state.players[playerIdx];
+            if (!player || !state.drawnCard) return;
+
+            player.cards[position] = { ...state.drawnCard, isRevealed: false, isPenalty: false };
+            state.drawnCard = null;
+            state.drawnFrom = null;
+
+            state.knownCards = state.knownCards.filter(
+              k => !(k.playerId === player.id && k.position === position)
+            );
+
+            state.gameLog.push({
+              id: mkLogId(),
+              timestamp: Date.now(),
+              playerName: player.nickname,
+              action: 'swap',
+              detail: `çektiği kartla ${position + 1}. kartını değiştirdi`,
+              detailEn: `swapped drawn card with slot #${position + 1}`,
+            });
+            if (state.gameLog.length > 50) state.gameLog.shift();
+
+            state.phase = 'stick_window';
           });
-        }, 1250);
-      }, 700);
+          SoundManager.playCardDraw();
+
+          setTimeout(() => {
+            useGameStore.setState(s => {
+              s.lastSwappedPosition = null;
+              s.lastSwappedPositions = [];
+            });
+          }, 1250);
+        }, 750);
+      }, 650);
     },
 
     // ── Çekilen kartı direkt çöpe at ────────────────────────
