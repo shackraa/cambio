@@ -108,9 +108,12 @@ export function useBotAI(
       );
 
       // Elinde topDiscard.rank ile eşleşen kartı olan botları bul
+      // ÖNEMLİ: Kırmızı Papaz (-1 puan) oyundaki en değerli karttır; botlar ASLA kendi elindeki -1 puanlık Kırmızı K'yi çöpe yapıştırıp elinden çıkarmaz!
       const matchingCandidates: Array<{ botSeat: number; cardPos: number }> = [];
       bots.forEach((bot) => {
-        const matchIdx = bot.cards.findIndex((c) => c.rank === topDiscard.rank);
+        const matchIdx = bot.cards.findIndex(
+          (c) => c.rank === topDiscard.rank && c.value >= 0
+        );
         if (matchIdx !== -1) {
           matchingCandidates.push({ botSeat: bot.seat, cardPos: matchIdx });
         }
@@ -144,7 +147,7 @@ export function useBotAI(
             const botPlayer = cur.players.find((p) => p.seat === chosen.botSeat);
             if (!botPlayer) return;
             const currentPos = botPlayer.cards.findIndex(
-              (c) => c.rank === curTop.rank
+              (c) => c.rank === curTop.rank && c.value >= 0
             );
             if (currentPos === -1) return;
 
@@ -284,9 +287,27 @@ export function useBotAI(
           }
         });
 
+        // Kırmızı Papaz (-1 puan) veya Joker (0 puan) çekildiyse ve elde daha yüksek puanlı bir kart varsa,
+        // bot zorluğu ne olursa olsun ASLA çöpe atılmaz; her zaman elde tutulur!
+        if (card.value <= 0 && highestValue > card.value) {
+          s.swapCard(highestIndex, botSeat);
+          broadcastBotMove({ type: 'SWAP_CARD', position: highestIndex }, botSeat);
+          return;
+        }
+
         if (difficulty === 'casual' && Math.random() < 0.25) {
-          highestIndex = Math.floor(Math.random() * me.cards.length);
-          highestValue = me.cards[highestIndex]?.value ?? highestValue;
+          // Casual modda bile -1 (Kırmızı K) veya 0 (Joker) olan kartı elden çıkarma!
+          const swappableIndices = me.cards
+            .map((c, idx) => ({ val: c.value, idx }))
+            .filter((item) => item.val > 0 && item.val > card.value);
+          if (swappableIndices.length > 0) {
+            const pick =
+              swappableIndices[
+                Math.floor(Math.random() * swappableIndices.length)
+              ];
+            highestIndex = pick.idx;
+            highestValue = pick.val;
+          }
         }
 
         if (s.drawnFrom === 'discard') {
