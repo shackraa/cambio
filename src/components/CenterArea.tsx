@@ -11,6 +11,7 @@ interface CenterAreaProps {
   onDrawFromDiscard?: () => void;
   canDraw?: boolean;
   myPlayerId?: string;
+  compact?: boolean;
 }
 
 // Çöpteki her kartın masaya atıldığında hafif organik bir açıyla durması için deterministik açı
@@ -39,9 +40,12 @@ export function CenterArea({
   onDrawFromDeck,
   onDrawFromDiscard,
   canDraw,
+  compact = false,
 }: CenterAreaProps) {
   const deckCount = deck.length;
   const topDiscard = discardPile[discardPile.length - 1] ?? null;
+  const cardSize = compact ? 'sm' : 'lg';
+  const boxClass = compact ? 'w-14 h-20' : 'w-20 h-28';
 
   const lang = useLangStore((s) => s.lang);
   const t = translations[lang];
@@ -51,8 +55,8 @@ export function CenterArea({
   const deckReversed = [...deck].reverse();
 
   return (
-    <div className="flex flex-col items-center gap-4 relative">
-      <div className="flex items-center gap-14 relative z-10">
+    <div className="flex flex-col items-center gap-3 sm:gap-4 relative">
+      <div className="flex items-center gap-5 sm:gap-14 relative z-10">
         {/* ─── KAPALI DESTE (DECK) — Fiziksel Yığın ─── */}
         <motion.div
           className={`flex flex-col items-center gap-1 relative ${
@@ -63,9 +67,8 @@ export function CenterArea({
           onClick={canDraw && deckCount > 0 ? onDrawFromDeck : undefined}
         >
           <div
-            className="relative w-20 h-28 rounded-[10px]"
+            className={`relative ${boxClass} rounded-[10px]`}
             style={{
-              // Gölgeleri kartlara tek tek vermek yerine yığının tabanına tek bir yumuşak, geniş gölge veriyoruz!
               boxShadow: deckCount > 0 ? '0 14px 32px rgba(0, 0, 0, 0.38)' : 'none',
             }}
           >
@@ -88,7 +91,7 @@ export function CenterArea({
                   >
                     <GameCard
                       card={{ ...card, isRevealed: false }}
-                      size="lg"
+                      size={cardSize}
                       canInteract={canDraw && isTopCard}
                     />
                   </div>
@@ -100,8 +103,8 @@ export function CenterArea({
               </div>
             )}
           </div>
-          <div className="absolute -bottom-8 w-max text-center">
-            <span className="text-xs font-semibold text-emerald-100/80 bg-emerald-950/60 px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-sm">
+          <div className="absolute -bottom-6 sm:-bottom-8 w-max text-center">
+            <span className="text-[10px] sm:text-xs font-semibold text-emerald-100/80 bg-emerald-950/60 px-2.5 sm:px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-sm">
               📦 {t.cardCount(deckCount)}
             </span>
           </div>
@@ -109,7 +112,7 @@ export function CenterArea({
 
         {/* ─── ÇÖP DESTESİ (DISCARD PILE) — Fiziksel Biriken Yığın ─── */}
         <motion.div
-          className={`relative w-20 h-28 ${
+          className={`relative ${boxClass} ${
             canDraw && topDiscard ? 'cursor-pointer' : 'cursor-default'
           }`}
           whileHover={canDraw && topDiscard ? { scale: 1.04 } : {}}
@@ -124,11 +127,11 @@ export function CenterArea({
             }}
           >
             {discardPile.length === 0 && (
-              <span className="text-white/30 text-2xl">🗑️</span>
+              <span className="text-white/30 text-xl sm:text-2xl">🗑️</span>
             )}
           </div>
 
-          {/* Çöpe atılan TÜM kartlar üst üste birikir — üst üste koyu gölge binmemesi için alt kartlarda no-card-shadow kullanılır */}
+          {/* Çöpe atılan TÜM kartlar üst üste birikir */}
           <div className="relative w-full h-full">
             {discardPile.map((card, idx) => {
               const offset = stableOffset(card.id, idx);
@@ -145,7 +148,7 @@ export function CenterArea({
                 >
                   <GameCard
                     card={{ ...card, isRevealed: true }}
-                    size="lg"
+                    size={cardSize}
                     canInteract={canDraw && isTop}
                     animate={{
                       opacity: 1,
@@ -160,8 +163,8 @@ export function CenterArea({
             })}
           </div>
 
-          <div className="absolute -bottom-8 w-max left-1/2 -translate-x-1/2 text-center">
-            <span className="text-xs font-semibold text-emerald-100/80 bg-emerald-950/60 px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-sm">
+          <div className="absolute -bottom-6 sm:-bottom-8 w-max left-1/2 -translate-x-1/2 text-center">
+            <span className="text-[10px] sm:text-xs font-semibold text-emerald-100/80 bg-emerald-950/60 px-2.5 sm:px-3 py-0.5 rounded-full border border-emerald-400/20 shadow-sm">
               🗑 {t.discardPile} ({discardPile.length})
             </span>
           </div>

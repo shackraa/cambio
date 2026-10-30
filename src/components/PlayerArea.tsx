@@ -18,7 +18,7 @@ function DrawnCardDisplay({
 }: {
   drawnCard: Card;
   isMe?: boolean;
-  cardSize: 'sm' | 'md' | 'lg';
+  cardSize: 'xs' | 'sm' | 'md' | 'lg';
   drawnFrom: 'deck' | 'discard' | null;
   onDiscardDrawn?: () => void;
   t: any;
@@ -90,6 +90,7 @@ interface PlayerAreaProps {
   player: Player;
   position: 'bottom' | 'top' | 'left' | 'right';
   isMe?: boolean;
+  compact?: boolean;
   canInteract?: boolean;
   onCardClick?: (position: number) => void;
   highlightPositions?: number[];
@@ -102,6 +103,7 @@ export function PlayerArea({
   player,
   position,
   isMe,
+  compact = false,
   canInteract = true,
   onCardClick,
   highlightPositions = [],
@@ -109,7 +111,7 @@ export function PlayerArea({
   drawnCard,
   onDiscardDrawn
 }: PlayerAreaProps) {
-  const cardSize = 'lg'; // 1920x1080 sahnede sabit boyut
+  const cardSize: 'xs' | 'sm' | 'md' | 'lg' = compact ? (isMe ? 'sm' : 'xs') : 'lg';
   const knownCards = useGameStore(s => s.knownCards);
   const phase     = useGameStore(s => s.phase);
   const peekState = useGameStore(s => s.peekState);
@@ -171,18 +173,18 @@ export function PlayerArea({
   return (
     <div className="flex items-center gap-1.5 relative flex-col">
       {/* İsim rozeti, Cambio Çağrısı Pulu ve Final Puanı — z-10 */}
-      <div className="flex gap-2 items-center relative z-10">
+      <div className="flex gap-1.5 sm:gap-2 items-center relative z-10">
         <div
-          className={`px-4 py-1.5 whitespace-nowrap min-w-[105px] justify-center rounded-full text-sm font-bold flex items-center gap-2 transition-all duration-300 ${
+          className={`px-2.5 sm:px-4 py-1 sm:py-1.5 whitespace-nowrap min-w-[72px] sm:min-w-[105px] justify-center rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 transition-all duration-300 ${
             player.isCurrentTurn
               ? 'bg-[#f4d78c] text-[#261a05] shadow-[0_4px_16px_rgba(244,215,140,0.45)] scale-105 border border-[#fff8e6]'
               : 'bg-[#123327]/85 text-[#f5ebd6]/95 border border-[#e8c468]/25 shadow-sm'
           }`}
         >
-          <span className={`w-2 h-2 rounded-full ${player.isOnline ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-red-400'}`} />
+          <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${player.isOnline ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-red-400'}`} />
           <span>{player.nickname}</span>
           {!isMe && (
-            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
+            <span className={`text-[9px] sm:text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
               player.isCurrentTurn ? 'bg-black/15 text-[#261a05]' : 'bg-white/10 text-emerald-100/80'
             }`}>
               {player.cards.length}
@@ -197,7 +199,7 @@ export function PlayerArea({
               initial={{ opacity: 0, scale: 0.8, x: -6 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[11px] font-extrabold tracking-wider uppercase shadow-[0_4px_14px_rgba(234,88,12,0.45)] border border-amber-200/70"
+              className="flex items-center gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 text-white text-[9px] sm:text-[11px] font-extrabold tracking-wider uppercase shadow-[0_4px_14px_rgba(234,88,12,0.45)] border border-amber-200/70"
             >
               <span>🔔</span>
               <span>CAMBIO!</span>
@@ -230,14 +232,14 @@ export function PlayerArea({
       {/* Çekilen Kart (Eğer sıra bu oyuncudaysa ve kart çekildiyse) */}
       {player.isCurrentTurn && phase === 'action' && drawnCard && (
         <div
-          className={`absolute flex items-center gap-3 z-50 ${
+          className={`absolute flex items-center gap-2 sm:gap-3 z-50 ${
             isVertical
               ? position === 'left'
-                ? 'left-full ml-5'
-                : 'right-full mr-5'
+                ? 'left-full ml-2 sm:ml-5'
+                : 'right-full mr-2 sm:mr-5'
               : position === 'top'
-                ? 'top-full mt-3'
-                : 'bottom-full mb-3'
+                ? 'top-full mt-2 sm:mt-3 left-1/2 -translate-x-1/2'
+                : 'bottom-full mb-2 sm:mb-3 left-1/2 -translate-x-1/2'
           }`}
         >
           <DrawnCardDisplay

@@ -66,9 +66,9 @@ export function TurnIndicator({
   };
 
   return (
-    <div className="flex items-center justify-between w-full px-5 min-h-[54px] gap-4">
+    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between w-full px-2 sm:px-5 min-h-[44px] sm:min-h-[54px] gap-2 sm:gap-4">
       {/* ─── SOL: OYUNCU SIRASI MADALYONU ─── */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentPlayerName + String(myTurn)}
@@ -76,7 +76,7 @@ export function TurnIndicator({
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 10, scale: 0.96 }}
             transition={{ duration: 0.22 }}
-            className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all ${
+            className={`flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border transition-all ${
               myTurn
                 ? 'bg-gradient-to-r from-[#fae19c]/25 via-[#d4a843]/15 to-transparent border-[#f3d47c]/65 shadow-[0_0_25px_rgba(212,168,67,0.28)]'
                 : 'bg-black/30 border-white/10'
@@ -84,18 +84,18 @@ export function TurnIndicator({
           >
             {/* Dönen / Parlayan Sıra İkonu */}
             <div
-              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border ${
+              className={`w-6 h-6 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl flex items-center justify-center shrink-0 border ${
                 myTurn
                   ? 'bg-gradient-to-br from-[#fae19c] to-[#b88728] text-black border-amber-100 shadow-[0_0_12px_rgba(243,212,124,0.6)]'
                   : 'bg-emerald-950/80 text-emerald-200/70 border-white/10'
               }`}
             >
               {myTurn ? (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 2L14.8 8.5L22 9.3L16.5 14L18.2 21L12 17.3L5.8 21L7.5 14L2 9.3L9.2 8.5L12 2Z" />
                 </svg>
               ) : (
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                   <circle cx="12" cy="8" r="4" />
                   <path d="M4 20c1.5-4 14.5-4 16 0" />
                 </svg>
@@ -103,11 +103,11 @@ export function TurnIndicator({
             </div>
 
             <div className="flex flex-col leading-tight min-w-0">
-              <span className="text-emerald-200/50 text-[9px] uppercase tracking-[0.18em] font-extrabold">
+              <span className="text-emerald-200/50 text-[8px] sm:text-[9px] uppercase tracking-[0.16em] font-extrabold">
                 {t.turn}
               </span>
               <span
-                className={`font-extrabold text-sm truncate ${
+                className={`font-extrabold text-xs sm:text-sm truncate ${
                   myTurn ? 'text-[#fae19c] drop-shadow-[0_1px_8px_rgba(243,212,124,0.4)]' : 'text-white/90'
                 }`}
               >
@@ -119,7 +119,7 @@ export function TurnIndicator({
       </div>
 
       {/* ─── ORTA: OYUN FAZI KAPSÜLÜ, CANLI SÜRE HALKASI VE TUR ROZETİ ─── */}
-      <div className="flex items-center gap-3 justify-center">
+      <div className="flex items-center gap-1.5 sm:gap-3 justify-center">
         {/* Faz Kapsülü */}
         <AnimatePresence mode="wait">
           <motion.div
@@ -128,21 +128,21 @@ export function TurnIndicator({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -5 }}
             transition={{ duration: 0.2 }}
-            className="flex items-center gap-2.5 px-4 py-2 rounded-2xl shadow-inner"
+            className="flex items-center gap-1.5 sm:gap-2.5 px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl shadow-inner"
             style={{
               background: pStyle.bg,
               border: `1px solid ${pStyle.border}`,
             }}
           >
             <span
-              className="w-2 h-2 rounded-full animate-pulse shrink-0"
+              className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full animate-pulse shrink-0"
               style={{ backgroundColor: pStyle.dot, boxShadow: `0 0 8px ${pStyle.dot}` }}
             />
             <div className="flex flex-col leading-none">
-              <span className="text-[8px] uppercase tracking-[0.18em] text-white/50 font-bold">
+              <span className="hidden sm:inline text-[8px] uppercase tracking-[0.18em] text-white/50 font-bold">
                 {t.phase}
               </span>
-              <span className="text-xs font-extrabold tracking-wide mt-0.5" style={{ color: pStyle.text }}>
+              <span className="text-[11px] sm:text-xs font-extrabold tracking-wide sm:mt-0.5" style={{ color: pStyle.text }}>
                 {PHASE_LABELS[phase]}
               </span>
             </div>
@@ -156,9 +156,9 @@ export function TurnIndicator({
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/40 border border-sky-400/35"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-black/40 border border-sky-400/35"
             >
-              <svg className="w-3.5 h-3.5 text-sky-300 animate-spin" style={{ animationDuration: '3s' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+              <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-sky-300 animate-spin" style={{ animationDuration: '3s' }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <circle cx="12" cy="12" r="9" />
                 <path d="M12 7v5l3 2" />
               </svg>
@@ -166,7 +166,7 @@ export function TurnIndicator({
                 key={timeLeft}
                 initial={{ scale: 1.25 }}
                 animate={{ scale: 1 }}
-                className={`font-black text-xs font-['JetBrains_Mono'] ${
+                className={`font-black text-[11px] sm:text-xs font-['JetBrains_Mono'] ${
                   timeLeft <= 1 ? 'text-red-400' : 'text-sky-200'
                 }`}
               >
@@ -178,7 +178,7 @@ export function TurnIndicator({
 
         {/* Tur Sayacı */}
         {turnCount > 0 && phase !== 'results' && phase !== 'peek' && (
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/25 border border-[#e8c468]/25">
+          <div className="hidden sm:flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-black/25 border border-[#e8c468]/25">
             <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-100/55 font-extrabold">
               {t.round}
             </span>
@@ -195,10 +195,10 @@ export function TurnIndicator({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-amber-500/20 border border-amber-300/45"
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl bg-amber-500/20 border border-amber-300/45"
             >
               <span className="text-xs">🔔</span>
-              <span className="text-xs font-bold text-[#fdf6e3]">
+              <span className="text-[11px] sm:text-xs font-bold text-[#fdf6e3] truncate max-w-[110px] sm:max-w-none">
                 {cambioCallerName
                   ? lang === 'tr'
                     ? `${cambioCallerName} Cambio Dedi`
@@ -206,8 +206,8 @@ export function TurnIndicator({
                   : 'CAMBIO'}
               </span>
               {remainingTurns !== undefined && remainingTurns > 0 && (
-                <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-black/30 text-amber-200">
-                  {lang === 'tr' ? `${remainingTurns} hamle` : `${remainingTurns} left`}
+                <span className="text-[9px] sm:text-[10px] font-extrabold px-1.5 sm:px-2 py-0.5 rounded-full bg-black/30 text-amber-200">
+                  {lang === 'tr' ? `${remainingTurns}` : `${remainingTurns}`}
                 </span>
               )}
             </motion.div>
@@ -216,7 +216,7 @@ export function TurnIndicator({
       </div>
 
       {/* ─── SAĞ: 3D AKSİYON BUTONLARI (CAMBIO / TEKRAR OYNA / YENİ EL) ─── */}
-      <div className="flex items-center gap-3 flex-1 justify-end">
+      <div className="flex items-center gap-2 sm:gap-3 justify-end">
         <AnimatePresence mode="wait">
           {phase === 'results' && onPlayAgain && (
             <motion.button
@@ -224,10 +224,10 @@ export function TurnIndicator({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="btn-gold-3d px-5 py-2.5 rounded-xl font-black text-xs uppercase tracking-[0.12em] cursor-pointer flex items-center gap-2"
+              className="btn-gold-3d px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-black text-[11px] sm:text-xs uppercase tracking-[0.1em] cursor-pointer flex items-center gap-1.5 sm:gap-2"
               onClick={onPlayAgain}
             >
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+              <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" viewBox="0 0 24 24" fill="currentColor">
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
               <span>{t.playAgain}</span>
@@ -240,7 +240,7 @@ export function TurnIndicator({
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="btn-crimson-3d px-5 py-2.5 rounded-xl font-black text-xs tracking-[0.18em] uppercase cursor-pointer flex items-center gap-2 font-['Cinzel']"
+              className="btn-crimson-3d px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-xl font-black text-[11px] sm:text-xs tracking-[0.14em] uppercase cursor-pointer flex items-center gap-1.5 sm:gap-2"
               onClick={onCallCambio}
             >
               <span className="w-2 h-2 rounded-full bg-amber-300 shadow-[0_0_8px_#fde047]" />
@@ -252,7 +252,7 @@ export function TurnIndicator({
         {/* Yeni El / Sıfırla Butonu */}
         <button
           type="button"
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-extrabold cursor-pointer ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-[11px] sm:text-xs font-extrabold cursor-pointer ${
             resetCountdown !== null
               ? 'btn-crimson-3d'
               : 'btn-emerald-3d'
@@ -261,7 +261,7 @@ export function TurnIndicator({
           title={lang === 'tr' ? 'Yeni el dağıt' : 'Deal new hand'}
         >
           <svg
-            className={`w-3.5 h-3.5 text-[var(--gold-light)] ${resetCountdown !== null ? 'animate-spin' : ''}`}
+            className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-[var(--gold-light)] ${resetCountdown !== null ? 'animate-spin' : ''}`}
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
