@@ -7,7 +7,6 @@ import { PlayerArea } from '../components/PlayerArea';
 import { CenterArea } from '../components/CenterArea';
 import { TurnIndicator } from '../components/TurnIndicator';
 import { ChatPanel } from '../components/ChatPanel';
-import { GameCard } from '../components/GameCard';
 import { GameLog } from '../components/GameLog';
 import { RulesPanel } from '../components/RulesPanel';
 import { GameBackgroundOverlay } from '../components/GameBackgroundOverlay';
@@ -21,7 +20,7 @@ export function GameBoard() {
   const { code } = useParams<{ code: string }>();
 
   const [lobbyInfo] = useState(() => ({
-    playerId:  sessionStorage.getItem('playerId') ?? 'local',
+    playerId:  sessionStorage.getItem('playerId') ?? 'player-0',
     seat:      parseInt(sessionStorage.getItem('seat') ?? '0', 10),
     roomId:    sessionStorage.getItem('roomId') ?? '',
     isHost:    sessionStorage.getItem('isHost') === 'true',
@@ -50,12 +49,15 @@ export function GameBoard() {
     skipPower,
     callCambio,
     cambioCaller,
+    remainingTurns,
     peekPhaseEndTime,
     swappingCards,
     stickCard,
     giveCardToOpponent,
-    lastSwappedPosition,
+    lastSwappedPositions,
     turnCount,
+    winner,
+    finalScores,
   } = useGameStore();
 
   const { sendAction, syncGameState, loadGameState, initGameInDB } = useRealtimeGame({
@@ -74,6 +76,7 @@ export function GameBoard() {
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
   const [stickTimeLeft, setStickTimeLeft] = useState<number | null>(null);
   const [betweenHands, setBetweenHands] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(true);
 
   // Global sahne ölçeği
   const [stageScale, setStageScale] = useState(1);
@@ -91,6 +94,16 @@ export function GameBoard() {
   const transitionPeekState = useGameStore(s => s.transitionPeekState);
   const peekSelectedPositions = useGameStore(s => s.peekSelectedPositions);
   const peekState = useGameStore(s => s.peekState);
+
+  // Faz değiştiğinde geçici powerSelection temizlensin, results açılırsa modal gösterilsin
+  useEffect(() => {
+    if (phase !== 'power') {
+      setPowerSelection(null);
+    }
+    if (phase === 'results') {
+      setShowResultsModal(true);
+    }
+  }, [phase]);
 
   // Peek fazı: Seçimlerin tamamlanmasını dinleyen effect
   useEffect(() => {
@@ -110,13 +123,12 @@ export function GameBoard() {
     if (phase === 'peek') {
       const msLeft = Math.max(0, (peekPhaseEndTime || Date.now()) - Date.now());
       const timer = setTimeout(() => {
-        // Eğer online oyun ise state transition'ı sadece Host yapar ve broadcast eder
         if (isOnlineMode && !lobbyInfo.isHost) return;
 
         let nextState: any = null;
         if (peekState === 'dealing') nextState = 'starting';
         else if (peekState === 'starting') nextState = 'select';
-        else if (peekState === 'select') return; // SEÇİM İÇİN SÜRE YOK, HERKES SEÇENE KADAR BEKLE
+        else if (peekState === 'select') return; // Seçim için herkesin seçmesini bekle
         else if (peekState === 'highlight') nextState = 'reveal';
         else if (peekState === 'reveal') {
           endPeekPhase();
@@ -159,7 +171,7 @@ export function GameBoard() {
 
   useEffect(() => {
     if (phase === 'stick_window') {
-      setStickTimeLeft(5);
+      setStickTimeLeft(3);
       const interval = setInterval(() => {
         setStickTimeLeft(prev => {
           if (prev === null || prev <= 1) { clearInterval(interval); return null; }
@@ -175,8 +187,8 @@ export function GameBoard() {
           setBetweenHands(false);
           advanceTurn(useGameStore.getState());
           if (isOnlineMode && myTurn) await syncGameState();
-        }, 800);
-      }, 5000);
+        }, 400);
+      }, 3000);
       return () => { clearTimeout(timer); clearInterval(interval); setStickTimeLeft(null); };
     }
   }, [phase, myTurn, isOnlineMode, syncGameState]);
@@ -189,8 +201,6 @@ export function GameBoard() {
     }
   }, [isOnlineMode, myTurn, sendAction, syncGameState]);
 
-  // endPeekPhase used directly where needed
-
   const handleUsePower = useCallback((targetSeat: number, targetPos: number, swapWith?: number) => {
     if (activePower) {
       doAction(
@@ -200,7 +210,31 @@ export function GameBoard() {
     }
   }, [activePower, usePower, doAction]);
 
-  // Yeni genel kart tıklama yöneticisi
+  // Bir oyuncunun kartlarıyla şu an etkileşime girilip girilemeyeceğini hesapla (hover/click için)
+  const canInteractWithSeat = useCallback((seat: number) => {
+    const isMySeat = seat === lobbyInfo.seat;
+    if (phase === 'peek') {
+      return peekState === 'select' && isMySeat;
+    }
+    if (phase === 'stick_window') {
+      return discardPile.length > 0;
+    }
+    if (phase === 'give_card') {
+      return isMySeat;
+    }
+    if (phase === 'action' && myTurn) {
+      return isMySeat;
+    }
+    if (phase === 'power' && activePower && myTurn) {
+      if (activePower === 'peek_own') return isMySeat;
+      if (activePower === 'peek_other') return !isMySeat;
+      if (activePower === 'blind_swap') return !powerSelection ? isMySeat : !isMySeat;
+      if (activePower === 'spy_swap') return !powerSelection ? !isMySeat : isMySeat;
+    }
+    return false;
+  }, [phase, peekState, lobbyInfo.seat, discardPile.length, myTurn, activePower, powerSelection]);
+
+  // Genel kart tıklama yöneticisi
   const handleCardClick = useCallback((seat: number, pos: number) => {
     if (phase === 'peek') {
       const peekState = useGameStore.getState().peekState;
@@ -257,18 +291,21 @@ export function GameBoard() {
     if (phase !== 'power' || !activePower || !myTurn) return;
 
     if (activePower === 'peek_own') {
-      if (seat === lobbyInfo.seat) doAction(() => handleUsePower(seat, pos));
+      if (seat === lobbyInfo.seat) handleUsePower(seat, pos);
     } 
     else if (activePower === 'peek_other') {
-      if (seat !== lobbyInfo.seat) doAction(() => handleUsePower(seat, pos));
+      if (seat !== lobbyInfo.seat) handleUsePower(seat, pos);
     }
     else if (activePower === 'blind_swap') {
       if (!powerSelection) {
         if (seat === lobbyInfo.seat) setPowerSelection({ seat, pos, step: 1 });
       } else {
         if (seat !== lobbyInfo.seat) {
-          doAction(() => handleUsePower(seat, pos, powerSelection.pos));
+          handleUsePower(seat, pos, powerSelection.pos);
           setPowerSelection(null);
+        } else {
+          // Fikrini değiştirip kendi başka bir kartını seçerse
+          setPowerSelection({ seat, pos, step: 1 });
         }
       }
     }
@@ -277,16 +314,24 @@ export function GameBoard() {
         if (seat !== lobbyInfo.seat) {
           setPowerSelection({ seat, pos, step: 1 });
           // Hemen kartı göster (usePower'ı eksik argümanla çağırırsak sadece gösterir)
-          doAction(() => handleUsePower(seat, pos));
+          handleUsePower(seat, pos);
         }
       } else {
         if (seat === lobbyInfo.seat) {
-          doAction(() => handleUsePower(powerSelection.seat, powerSelection.pos, pos));
+          handleUsePower(powerSelection.seat, powerSelection.pos, pos);
           setPowerSelection(null);
         }
       }
     }
-  }, [phase, activePower, myTurn, lobbyInfo.seat, powerSelection, handleUsePower, doAction, discardPile, stickCard, giveCardToOpponent, swapCard]);
+  }, [phase, activePower, myTurn, lobbyInfo.seat, powerSelection, handleUsePower, doAction, discardPile, stickCard, giveCardToOpponent, swapCard, isOnlineMode, sendAction]);
+
+  const getSwapHighlightsForSeat = (seat: number) =>
+    lastSwappedPositions.filter(p => p.seat === seat).map(p => p.pos);
+
+  const topPlayer = players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2);
+  const leftPlayer = players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1);
+  const rightPlayer = players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3);
+  const winnerPlayer = winner !== null ? players.find(p => p.seat === winner) : null;
 
   return (
     <div className="h-screen w-screen flex items-center justify-center overflow-hidden bg-[#020806] relative">
@@ -296,19 +341,19 @@ export function GameBoard() {
       <AnimatePresence>
         {betweenHands && (
           <motion.div
-            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm pointer-events-none"
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 backdrop-blur-[2px] pointer-events-none"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.15 }}
           >
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.85, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               className="text-center"
             >
-              <div className="text-[var(--gold)] text-3xl font-black tracking-widest mb-2">{t.passingTurn}</div>
+              <div className="text-[var(--gold)] text-2xl font-black tracking-widest drop-shadow-[0_0_20px_rgba(212,168,67,0.8)]">{t.passingTurn}</div>
             </motion.div>
           </motion.div>
         )}
@@ -317,7 +362,7 @@ export function GameBoard() {
       <AnimatePresence>
         {cambioFlash && (
           <motion.div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-red-900/30 backdrop-blur-sm pointer-events-none"
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-red-950/40 backdrop-blur-sm pointer-events-none"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           >
             <motion.h2
@@ -333,22 +378,119 @@ export function GameBoard() {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="mt-2 text-center text-red-500 text-[10px] uppercase tracking-widest font-bold"
+                className="mt-4 text-center text-red-300 text-lg uppercase tracking-widest font-bold bg-black/60 px-6 py-2 rounded-full border border-red-500/40"
               >
-                {t.cambioRoundTurnsLeft(4 - currentTurn)}
+                {t.cambioRoundTurnsLeft(remainingTurns)}
               </motion.div>
             )}
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* Oyun Sonu Kazanan Kutlama Modalı */}
+      <AnimatePresence>
+        {phase === 'results' && showResultsModal && (
+          <motion.div
+            className="fixed inset-0 z-[180] flex items-center justify-center bg-black/65 backdrop-blur-md p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="relative w-full max-w-lg rounded-3xl p-8 flex flex-col items-center text-center border-2 border-[var(--gold)]/60 shadow-[0_0_80px_rgba(212,168,67,0.35)]"
+              style={{
+                background: 'radial-gradient(ellipse at top, #133b2b 0%, #071912 100%)',
+              }}
+              initial={{ scale: 0.8, y: 30, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.85, y: 20, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+            >
+              <div className="text-5xl mb-2">🏆</div>
+              <h2 className="text-3xl font-black text-[var(--gold)] tracking-widest uppercase font-['Cinzel']">
+                {winnerPlayer ? `${winnerPlayer.nickname} KAZANDI!` : 'EL BİTTİ!'}
+              </h2>
+              <p className="text-white/50 text-xs uppercase tracking-widest mt-1 mb-6">
+                En düşük puanla eli tamamladı
+              </p>
+
+              <div className="w-full space-y-2.5 mb-7">
+                {[...finalScores]
+                  .sort((a, b) => a.score - b.score)
+                  .map((fs, idx) => {
+                    const p = players.find(pl => pl.seat === fs.seat);
+                    const isWin = fs.seat === winner;
+                    return (
+                      <div
+                        key={fs.seat}
+                        className={`flex items-center justify-between px-4 py-3 rounded-2xl border ${
+                          isWin
+                            ? 'bg-[var(--gold)]/20 border-[var(--gold)] text-white shadow-[0_0_20px_rgba(212,168,67,0.25)]'
+                            : 'bg-black/40 border-white/10 text-white/80'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-black ${
+                            isWin ? 'bg-[var(--gold)] text-black' : 'bg-white/10 text-white/60'
+                          }`}>
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold text-sm">{p?.nickname ?? `Oyuncu ${fs.seat}`}</span>
+                          {fs.calledCambio && (
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              fs.cambioModifier === -10
+                                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                                : 'bg-red-500/20 text-red-300 border border-red-500/40'
+                            }`}>
+                              {fs.cambioModifier === -10 ? 'CAMBIO (-10)' : 'CAMBIO (+10)'}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {fs.cambioModifier !== 0 && fs.baseScore !== undefined && (
+                            <span className="text-xs text-white/40 line-through">{fs.baseScore}</span>
+                          )}
+                          <span className="text-lg font-black text-[var(--gold)]">{fs.score} pt</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+
+              <div className="flex items-center gap-3 w-full">
+                <button
+                  onClick={() => setShowResultsModal(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-sm transition-colors cursor-pointer"
+                >
+                  Masayı İncele
+                </button>
+                <button
+                  onClick={() => {
+                    setShowResultsModal(false);
+                    if (isOnlineMode) {
+                      initGameInDB().then(() => loadGameState());
+                    } else {
+                      initGame('Sen', ['Ahmet', 'Zeliha', 'Mehmet']);
+                    }
+                  }}
+                  className="flex-1 py-3 rounded-xl font-black text-black text-sm shadow-lg transition-transform hover:scale-[1.02] cursor-pointer"
+                  style={{ background: 'linear-gradient(135deg, #d4a843, #f0c96c)' }}
+                >
+                  {t.playAgain}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* 1920x1080 Scalable Stage */}
       <div 
-        className="relative origin-center shrink-0 flex flex-col p-8 gap-4"
+        className="absolute top-1/2 left-1/2 origin-center shrink-0 flex flex-col p-8 gap-4"
         style={{
           width: '1920px',
           height: '1080px',
-          transform: `scale(${stageScale})`
+          transform: `translate(-50%, -50%) scale(${stageScale})`
         }}
       >
         {/* Sağ Üst Butonlar */}
@@ -425,7 +567,7 @@ export function GameBoard() {
             }}
           >
             <div className="absolute top-[28%] left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] flex flex-col items-center gap-4 w-max pointer-events-none">
-              <GameBackgroundOverlay myPlayerId={lobbyInfo.playerId} />
+              <GameBackgroundOverlay myPlayerId={me?.id ?? lobbyInfo.playerId} />
             </div>
             
             <AnimatePresence>
@@ -459,16 +601,14 @@ export function GameBoard() {
             >
               {/* Üst orta: Karşı oyuncu */}
               <div className="col-start-2 row-start-1 flex justify-center items-start">
-                {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2) && (
+                {topPlayer && (
                   <PlayerArea
-                    player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!}
+                    player={topPlayer}
                     position="top"
-                    onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat, pos)}
-                    highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat ? [powerSelection.pos] : []}
-                    swapHighlightPositions={
-                      lastSwappedPosition?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 2)!.seat
-                        ? [lastSwappedPosition.pos] : []
-                    }
+                    canInteract={canInteractWithSeat(topPlayer.seat)}
+                    onCardClick={(pos) => handleCardClick(topPlayer.seat, pos)}
+                    highlightPositions={powerSelection?.seat === topPlayer.seat ? [powerSelection.pos] : []}
+                    swapHighlightPositions={getSwapHighlightsForSeat(topPlayer.seat)}
                     drawnCard={drawnCard}
                   />
                 )}
@@ -476,16 +616,14 @@ export function GameBoard() {
 
               {/* Sol: Ahmet */}
               <div className="col-start-1 row-start-2 flex items-center">
-                {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1) && (
+                {leftPlayer && (
                   <PlayerArea
-                    player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!}
+                    player={leftPlayer}
                     position="left"
-                    onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat, pos)}
-                    highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat ? [powerSelection.pos] : []}
-                    swapHighlightPositions={
-                      lastSwappedPosition?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 1)!.seat
-                        ? [lastSwappedPosition.pos] : []
-                    }
+                    canInteract={canInteractWithSeat(leftPlayer.seat)}
+                    onCardClick={(pos) => handleCardClick(leftPlayer.seat, pos)}
+                    highlightPositions={powerSelection?.seat === leftPlayer.seat ? [powerSelection.pos] : []}
+                    swapHighlightPositions={getSwapHighlightsForSeat(leftPlayer.seat)}
                     drawnCard={drawnCard}
                   />
                 )}
@@ -496,6 +634,7 @@ export function GameBoard() {
               <div className="relative flex flex-col items-center">
                 <CenterArea 
                   deckCount={deck.length} 
+                  topDeckCard={deck[0]}
                   discardPile={discardPile}
                   canDraw={myTurn && phase === 'draw'}
                   onDrawFromDeck={() => doAction(() => drawFromDeck(), { type: 'DRAW_FROM_DECK' })}
@@ -506,12 +645,12 @@ export function GameBoard() {
                 <AnimatePresence>
                   {phase === 'power' && activePower && (
                     <motion.div
-                      className="absolute bottom-[calc(100%+1rem)] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-4 w-max pointer-events-none"
+                      className="absolute bottom-[calc(100%+1rem)] left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-3 w-max pointer-events-none"
                       initial={{ opacity: 0, scale: 0.8, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.8, y: 10 }}
                     >
-                      <span className="text-white text-2xl font-bold drop-shadow-xl text-center bg-black/60 px-8 py-3 rounded-full border border-[var(--gold)]/30 backdrop-blur-md">
+                      <span className="text-white text-xl font-bold drop-shadow-xl text-center bg-black/70 px-7 py-2.5 rounded-full border border-[var(--gold)]/40 backdrop-blur-md">
                         {myTurn ? (
                           <>
                             {activePower === 'peek_own' && t.hint_peek_own}
@@ -522,13 +661,16 @@ export function GameBoard() {
                         ) : t.hint_waiting}
                       </span>
                       
-                      {myTurn && activePower === 'spy_swap' && powerSelection && (
+                      {myTurn && (activePower === 'blind_swap' || (activePower === 'spy_swap' && powerSelection)) && (
                         <div className="pointer-events-auto">
                           <motion.button
-                            className="mt-2 px-8 py-3 bg-red-600 hover:bg-red-500 border-2 border-red-400 rounded-xl text-white font-black text-lg shadow-[0_0_20px_rgba(220,38,38,0.6)]"
+                            className="mt-1 px-6 py-2.5 bg-red-600/90 hover:bg-red-500 border-2 border-red-400 rounded-xl text-white font-black text-sm shadow-[0_0_20px_rgba(220,38,38,0.6)] cursor-pointer"
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            onClick={() => doAction(() => skipPower(), { type: 'SKIP_POWER' })}
+                            onClick={() => {
+                              setPowerSelection(null);
+                              doAction(() => skipPower(), { type: 'SKIP_POWER' });
+                            }}
                           >
                             {t.hint_skip}
                           </motion.button>
@@ -543,10 +685,10 @@ export function GameBoard() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 20 }}
                     >
-                      <span className="text-white/30 text-3xl font-black tracking-widest uppercase drop-shadow-xl text-center pointer-events-none">
+                      <span className="text-[var(--gold)] text-3xl font-black tracking-widest uppercase drop-shadow-xl text-center pointer-events-none">
                         {myTurn ? 'Doğru Bildin!' : `${currentPlayer?.nickname} Doğru Bildi!`}
                       </span>
-                      <span className="text-white/40 text-base font-bold drop-shadow-md text-center pointer-events-none">
+                      <span className="text-white/80 text-base font-bold bg-black/60 px-5 py-1.5 rounded-full border border-white/15 drop-shadow-md text-center pointer-events-none">
                         {myTurn ? 'Rakibe vermek için kendi kartlarından birini seç.' : 'Rakibe vermek için bir kart seçiyor...'}
                       </span>
                     </motion.div>
@@ -558,12 +700,12 @@ export function GameBoard() {
                   {swappingCards && (
                     <motion.div
                       className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.3 }}
+                      initial={{ opacity: 0, scale: 0.6 }}
+                      animate={{ opacity: 1, scale: 1.1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.35 }}
                     >
-                      <span className="text-[var(--gold)] text-5xl font-black drop-shadow-[0_0_20px_rgba(212,168,67,0.8)]">⇄</span>
+                      <span className="text-[var(--gold)] text-6xl font-black drop-shadow-[0_0_25px_rgba(212,168,67,0.95)]">⇄</span>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -572,16 +714,14 @@ export function GameBoard() {
 
               {/* Sağ: Mehmet */}
               <div className="col-start-3 row-start-2 flex items-center">
-                {players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3) && (
+                {rightPlayer && (
                   <PlayerArea
-                    player={players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!}
+                    player={rightPlayer}
                     position="right"
-                    onCardClick={(pos) => handleCardClick(players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat, pos)}
-                    highlightPositions={powerSelection?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat ? [powerSelection.pos] : []}
-                    swapHighlightPositions={
-                      lastSwappedPosition?.seat === players.find(p => (p.seat - lobbyInfo.seat + 4) % 4 === 3)!.seat
-                        ? [lastSwappedPosition.pos] : []
-                    }
+                    canInteract={canInteractWithSeat(rightPlayer.seat)}
+                    onCardClick={(pos) => handleCardClick(rightPlayer.seat, pos)}
+                    highlightPositions={powerSelection?.seat === rightPlayer.seat ? [powerSelection.pos] : []}
+                    swapHighlightPositions={getSwapHighlightsForSeat(rightPlayer.seat)}
                     drawnCard={drawnCard}
                   />
                 )}
@@ -594,6 +734,7 @@ export function GameBoard() {
                   player={me}
                   position="bottom"
                   isMe
+                  canInteract={canInteractWithSeat(me.seat)}
                   onCardClick={(pos) => handleCardClick(me.seat, pos)}
                   highlightPositions={
                     phase === 'give_card'
@@ -602,9 +743,7 @@ export function GameBoard() {
                         ? [powerSelection.pos]
                         : []
                   }
-                  swapHighlightPositions={
-                    lastSwappedPosition?.seat === me.seat ? [lastSwappedPosition.pos] : []
-                  }
+                  swapHighlightPositions={getSwapHighlightsForSeat(me.seat)}
                   drawnCard={drawnCard}
                   onDiscardDrawn={() => doAction(discardDrawn, { type: 'DISCARD_DRAWN' })}
                 />
@@ -625,7 +764,7 @@ export function GameBoard() {
               onCallCambio={() => doAction(callCambio, { type: 'CALL_CAMBIO', seat: lobbyInfo.seat })}
               onReset={async () => {
                 if (resetCountdown !== null) return;
-                let count = 5;
+                let count = 3;
                 setResetCountdown(count);
                 const interval = setInterval(() => {
                   count--;
@@ -643,7 +782,13 @@ export function GameBoard() {
                 }, 1000);
               }}
               resetCountdown={resetCountdown}
-              onPlayAgain={() => useGameStore.getState().initGame('Sen', ['Ahmet', 'Zeliha', 'Mehmet'])}
+              onPlayAgain={() => {
+                if (isOnlineMode) {
+                  initGameInDB().then(() => loadGameState());
+                } else {
+                  useGameStore.getState().initGame('Sen', ['Ahmet', 'Zeliha', 'Mehmet']);
+                }
+              }}
             />
           </div>
         </div>

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { getPower } from '../engine/gameEngine';
 
-function getRandomDelay(min = 1000, max = 2500) {
+function getRandomDelay(min = 1000, max = 2200) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
@@ -25,8 +25,9 @@ export function useBotAI(isOnlineMode: boolean) {
     // ── PEEK FAZI: Tüm botlar kendi kartlarını seçmeli ──────────────
     if (phase === 'peek' && peekState === 'select') {
       const bots = players.filter(p => p.seat !== 0);
+      const timeouts: ReturnType<typeof setTimeout>[] = [];
 
-      bots.forEach(bot => {
+      bots.forEach((bot, idx) => {
         const hasSelected = peekSelectedPositions.filter(pos => pos.playerId === bot.id).length >= 2;
         if (!hasSelected) {
           const timeout = setTimeout(() => {
@@ -40,11 +41,11 @@ export function useBotAI(isOnlineMode: boolean) {
                 });
               }
             });
-          }, getRandomDelay(1500, 3000));
-          return () => clearTimeout(timeout);
+          }, 900 + idx * 500);
+          timeouts.push(timeout);
         }
       });
-      return;
+      return () => timeouts.forEach(t => clearTimeout(t));
     }
 
     const currentPlayer = players.find(p => p.seat === currentTurn);
@@ -64,10 +65,10 @@ export function useBotAI(isOnlineMode: boolean) {
         const me = s.players.find(p => p.seat === botSeat);
         if (!me) return;
 
-        // 1) Önce Cambio kontrolü: El puanı <= 7 ise ve henüz kimse Cambio dememiş
-        if (!s.cambioCaller) {
+        // 1) Önce Cambio kontrolü: El puanı <= 6 ise ve henüz kimse Cambio dememiş
+        if (s.cambioCaller === null && s.turnCount >= 4) {
           const myScore = me.cards.reduce((sum, c) => sum + c.value, 0);
-          if (myScore <= 7 && Math.random() < 0.6) {
+          if (myScore <= 6 && Math.random() < 0.65) {
             s.callCambio();
             return; // Cambio dendi, kart çekme
           }
@@ -75,7 +76,8 @@ export function useBotAI(isOnlineMode: boolean) {
 
         // 2) Cambio demediyse kart çek
         const topDiscard = s.discardPile[s.discardPile.length - 1];
-        if (topDiscard && topDiscard.value >= 0 && topDiscard.value <= 5) {
+        const highestMyCard = me.cards.reduce((max, c) => Math.max(max, c.value), -10);
+        if (topDiscard && topDiscard.value <= 4 && topDiscard.value < highestMyCard) {
           s.drawFromDiscard();
         } else {
           s.drawFromDeck();
@@ -88,47 +90,36 @@ export function useBotAI(isOnlineMode: boolean) {
         const card = s.drawnCard;
         const power = getPower(card.rank, card.suit);
         const me = s.players.find(p => p.seat === botSeat);
-        if (!me) return;
+        if (!me || me.cards.length === 0) {
+          s.discardDrawn(botSeat);
+          return;
+        }
 
-        // Açık desteden çekilmişse MUTLAKA takas yap (zaten iyi bir kart seçti)
+        // En yüksek kartı bul
+        let highestValue = -100;
+        let highestIndex = 0;
+        me.cards.forEach((c, idx) => {
+          if (c.value > highestValue) {
+            highestValue = c.value;
+            highestIndex = idx;
+          }
+        });
+
+        // Açık desteden çekilmişse MUTLAKA takas yap
         if (s.drawnFrom === 'discard') {
-          let highestValue = -100;
-          let highestIndex = 0;
-          me.cards.forEach((c, idx) => {
-            if (c.value > highestValue) {
-              highestValue = c.value;
-              highestIndex = idx;
-            }
-          });
           s.swapCard(highestIndex, botSeat);
           return;
         }
 
         // Desteden çekildiyse: Kart değerine göre karar ver
-        if (card.value <= 5) {
-          // İyi kart: En yüksek kartla değiştir (eğer daha iyiyse)
-          let highestValue = -100;
-          let highestIndex = 0;
-          me.cards.forEach((c, idx) => {
-            if (c.value > highestValue) {
-              highestValue = c.value;
-              highestIndex = idx;
-            }
-          });
-
-          if (card.value < highestValue) {
-            s.swapCard(highestIndex, botSeat);
-          } else {
-            // Kart elimizdekilerden daha kötü: Güç varsa kullan, yoksa at
-            if (power) {
-              s.discardDrawn(botSeat); // Güç kartı → çöpe at, güç aktif olacak
-            } else {
-              s.discardDrawn(botSeat);
-            }
-          }
+        if (card.value <= 4 && card.value < highestValue) {
+          s.swapCard(highestIndex, botSeat);
         } else if (power) {
-          // Güç kartı ama kötü: Çöpe at ve gücü kullan
+          // Güç kartı: Çöpe at ve gücü kullan
           s.discardDrawn(botSeat);
+        } else if (card.value < highestValue && highestValue >= 8) {
+          // Elimde çok yüksek kart varsa orta şeker kartla bile değiştir
+          s.swapCard(highestIndex, botSeat);
         } else {
           // Kötü kart, güç yok: Çöpe at
           s.discardDrawn(botSeat);
@@ -139,14 +130,15 @@ export function useBotAI(isOnlineMode: boolean) {
       // ── POWER FAZI ───────────────────────────────────────────────
       if (s.phase === 'power' && s.activePower) {
         const power = s.activePower;
-        const otherPlayers = s.players.filter(p => p.seat !== botSeat);
-        if (otherPlayers.length === 0) return;
-
+        const otherPlayers = s.players.filter(p => p.seat !== botSeat && p.cards.length > 0);
         const me = s.players.find(p => p.seat === botSeat);
-        if (!me) return;
+        if (!me || me.cards.length === 0 || otherPlayers.length === 0) {
+          s.skipPower(botSeat);
+          return;
+        }
 
         const randomOpponent = otherPlayers[Math.floor(Math.random() * otherPlayers.length)];
-        const randomOpponentPos = Math.floor(Math.random() * Math.max(1, randomOpponent.cards.length));
+        const randomOpponentPos = Math.floor(Math.random() * randomOpponent.cards.length);
 
         // Kendi en yüksek kartını bul
         let highestMyValue = -100;
@@ -158,7 +150,7 @@ export function useBotAI(isOnlineMode: boolean) {
           }
         });
 
-        // En düşük rakip kartını bul (bot her şeyi biliyor — AI avantajı)
+        // En düşük rakip kartını bul
         let lowestOpponentValue = 100;
         let lowestOpponentPos = 0;
         randomOpponent.cards.forEach((c, idx) => {
@@ -169,23 +161,33 @@ export function useBotAI(isOnlineMode: boolean) {
         });
 
         if (power === 'peek_own') {
-          const randomMyPos = Math.floor(Math.random() * Math.max(1, me.cards.length));
+          const randomMyPos = Math.floor(Math.random() * me.cards.length);
           s.usePower('peek_own', botSeat, randomMyPos, undefined, false, botSeat);
         } else if (power === 'peek_other') {
           s.usePower('peek_other', randomOpponent.seat, randomOpponentPos, undefined, false, botSeat);
         } else if (power === 'blind_swap') {
-          s.usePower('blind_swap', randomOpponent.seat, lowestOpponentPos, highestMyIndex, false, botSeat);
-        } else if (power === 'spy_swap') {
-          if (lowestOpponentValue < highestMyValue) {
-            s.usePower('spy_swap', randomOpponent.seat, lowestOpponentPos, highestMyIndex, false, botSeat);
+          if (highestMyValue >= 5) {
+            s.usePower('blind_swap', randomOpponent.seat, randomOpponentPos, highestMyIndex, false, botSeat);
           } else {
             s.skipPower(botSeat);
           }
+        } else if (power === 'spy_swap') {
+          // Önce rakibin kartına bakar (1. aşama), 1.5sn sonra takaslar veya pas geçer (2. aşama)
+          s.usePower('spy_swap', randomOpponent.seat, lowestOpponentPos, undefined, false, botSeat);
+          setTimeout(() => {
+            const currentS = useGameStore.getState();
+            if (currentS.phase !== 'power' || currentS.activePower !== 'spy_swap') return;
+            if (lowestOpponentValue < highestMyValue) {
+              currentS.usePower('spy_swap', randomOpponent.seat, lowestOpponentPos, highestMyIndex, false, botSeat);
+            } else {
+              currentS.skipPower(botSeat);
+            }
+          }, 1500);
         }
         return;
       }
 
-    }, getRandomDelay(1200, 2500));
+    }, getRandomDelay(1000, 2000));
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);

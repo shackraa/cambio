@@ -23,13 +23,13 @@ function DrawnCardDisplay({
   onDiscardDrawn?: () => void;
   t: any;
 }) {
-  // Desteden çekilmişse: önce kapalı, 350ms sonra çevir
+  // Desteden çekilmişse: önce kapalı, 300ms sonra çevir
   // Çöpten çekilmişse: zaten açık geliyor
   const [isFlipped, setIsFlipped] = useState(drawnFrom === 'discard');
 
   useEffect(() => {
     if (drawnFrom === 'deck' && isMe) {
-      const timer = setTimeout(() => setIsFlipped(true), 350);
+      const timer = setTimeout(() => setIsFlipped(true), 300);
       return () => clearTimeout(timer);
     }
   }, [drawnFrom, isMe]);
@@ -41,29 +41,37 @@ function DrawnCardDisplay({
   return (
     <>
       <GameCard card={displayCard} size={cardSize} />
-      {isMe && onDiscardDrawn && (
+      {isMe && (
         <AnimatePresence>
           {isFlipped && (
             <motion.div
-              className="flex flex-col gap-1.5"
+              className="flex flex-col gap-1.5 bg-black/75 backdrop-blur-md border border-[var(--gold)]/35 rounded-2xl px-3.5 py-2.5 shadow-2xl"
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.15 }}
+              transition={{ delay: 0.1 }}
             >
-              <p className="text-white/50 text-[10px]">{t.drawnAction_addOrDiscard}</p>
-              <motion.button
-                className="px-3 py-1.5 bg-[var(--gold)]/20 hover:bg-[var(--gold)]/40
-                           border border-[var(--gold)]/40 rounded-xl text-[var(--gold)]
-                           text-xs font-bold"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onDiscardDrawn}
-              >
-                {t.drawnAction_discard}
-              </motion.button>
-              <span className="text-white/30 text-[9px] text-center">
-                {t.drawnAction_orClickBottom}
-              </span>
+              {drawnFrom === 'deck' && onDiscardDrawn ? (
+                <>
+                  <p className="text-white/70 text-[10px] font-semibold">{t.drawnAction_addOrDiscard}</p>
+                  <motion.button
+                    className="px-3 py-1.5 bg-[var(--gold)]/20 hover:bg-[var(--gold)]/40
+                               border border-[var(--gold)]/50 rounded-xl text-[var(--gold)]
+                               text-xs font-bold cursor-pointer"
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={onDiscardDrawn}
+                  >
+                    {t.drawnAction_discard}
+                  </motion.button>
+                  <span className="text-white/40 text-[9px] text-center">
+                    {t.drawnAction_orClickBottom}
+                  </span>
+                </>
+              ) : (
+                <p className="text-emerald-300 text-[10px] font-bold max-w-[130px] text-center">
+                  {t.drawnAction_orClickBottom}
+                </p>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -76,6 +84,7 @@ interface PlayerAreaProps {
   player: Player;
   position: 'bottom' | 'top' | 'left' | 'right';
   isMe?: boolean;
+  canInteract?: boolean;
   onCardClick?: (position: number) => void;
   highlightPositions?: number[];
   swapHighlightPositions?: number[]; // takas edilen slotlar
@@ -83,15 +92,23 @@ interface PlayerAreaProps {
   onDiscardDrawn?: () => void;
 }
 
-// lg kartın piksel boyutları: tailwind w-20 = 80px, h-28 = 112px, gap-1.5 = 6px
+// lg kartın piksel boyutları: tailwind w-20 = 80px, h-28 = 112px, gap-3 = 12px
 const XL_CARD_W = 80;
 const XL_CARD_H = 112;
-const CARD_GAP  = 6;
+const CARD_GAP  = 12;
 const GRID_H = XL_CARD_H;                      // 112px
 
-export function PlayerArea({ player, position, isMe, onCardClick, highlightPositions = [], swapHighlightPositions = [], drawnCard, onDiscardDrawn }: PlayerAreaProps) {
-  // Yan oyuncular (sol/sağ) dikey sıralı
-  const isVerticalPlayer = position === 'left' || position === 'right';
+export function PlayerArea({
+  player,
+  position,
+  isMe,
+  canInteract = true,
+  onCardClick,
+  highlightPositions = [],
+  swapHighlightPositions = [],
+  drawnCard,
+  onDiscardDrawn
+}: PlayerAreaProps) {
   const cardSize = 'lg'; // 1920x1080 sahnede sabit boyut
   const knownCards = useGameStore(s => s.knownCards);
   const phase     = useGameStore(s => s.phase);
@@ -129,7 +146,6 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
   }
 
   const processedCards = player.cards.map((card, idx) => {
-
     const known = knownCards.find(
       k => k.playerId === player.id && k.position === idx
     );
@@ -154,13 +170,11 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
   });
 
   // Döndürülmüş kart satırı (sol/sağ oyuncular için)
-  // Wrapper: görsel boyut = 80 × dynamicGridW (yükseklik ↔ genişlik yer değiştirir)
-  // İç grid: absolute ile merkeze konumlanır, sonra 90° döndürülür
   const rotatedCards = isVertical ? (
     <div
       style={{
         position: 'relative',
-        width:  `${GRID_H}px`,   // 112px (eski hali 80di, ama kart yüksekliği XL_CARD_H yani 112, düzeltiyoruz)
+        width:  `${GRID_H}px`,
         height: `${dynamicGridW}px`,
       }}
     >
@@ -169,7 +183,6 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
           position: 'absolute',
           width:  `${dynamicGridW}px`,
           height: `${GRID_H}px`,
-          // merkezi hizala
           left: `${(GRID_H - dynamicGridW) / 2}px`,
           top:  `${(dynamicGridW - GRID_H) / 2}px`,
           transform: position === 'left' ? 'rotate(-90deg)' : 'rotate(90deg)',
@@ -184,7 +197,7 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
             cards={processedCards}
             size={cardSize}
             direction="horizontal"
-            canInteract={!!onCardClick}
+            canInteract={canInteract && !!onCardClick}
             onCardClick={onCardClick}
             highlightPositions={mergedHighlightPositions}
             swapHighlightPositions={swapHighlightPositions}
@@ -205,7 +218,7 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
         cards={processedCards}
         size={cardSize}
         direction="horizontal"
-        canInteract={!!onCardClick}
+        canInteract={canInteract && !!onCardClick}
         onCardClick={onCardClick}
         highlightPositions={mergedHighlightPositions}
         swapHighlightPositions={swapHighlightPositions}
@@ -224,7 +237,7 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: 'easeOut' }}
     >
-      {/* İsim rozeti ve Final Puanı — z-10 (kartlar üstüne gelince kartlar önde olsun) */}
+      {/* İsim rozeti ve Final Puanı — z-10 */}
       <div className="flex gap-2 items-center relative z-10">
         <div
           className={`px-4 py-1.5 whitespace-nowrap min-w-[100px] justify-center rounded-full text-sm font-bold flex items-center gap-2 transition-all duration-300 ${
@@ -269,8 +282,8 @@ export function PlayerArea({ player, position, isMe, onCardClick, highlightPosit
         {player.isCurrentTurn && phase === 'action' && drawnCard && (
           <motion.div
             key={drawnCard.id}
-            className={`absolute flex items-center gap-3 z-50 ${isVertical ? (position === 'left' ? 'left-full ml-4' : 'right-full mr-4') : 'bottom-full mb-3'}`}
-            initial={{ opacity: 0, scale: 0.5, y: isVertical ? 0 : 30, x: isVertical ? (position === 'left' ? -30 : 30) : 0 }}
+            className={`absolute flex items-center gap-3 z-50 ${isVertical ? (position === 'left' ? 'left-full ml-4' : 'right-full mr-4') : (position === 'top' ? 'top-full mt-3' : 'bottom-full mb-3')}`}
+            initial={{ opacity: 0, scale: 0.5, y: isVertical ? 0 : (position === 'top' ? -30 : 30), x: isVertical ? (position === 'left' ? -30 : 30) : 0 }}
             animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
             exit={{ opacity: 0, scale: 0.6, y: isVertical ? 0 : 20 }}
             transition={{ type: 'spring', stiffness: 350, damping: 25 }}

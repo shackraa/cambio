@@ -30,6 +30,8 @@ function getCardScore(card: CardType): string {
 
 export function GameCard({ card, size = 'md', onClick, highlight, canInteract, className = '', style, ...motionProps }: CardProps) {
   const isRed = card.suit === 'hearts' || card.suit === 'diamonds';
+  const isSpecial = ['J', 'Q', 'K'].includes(card.rank);
+  const isPowerCard = ['7', '8', '9', '10', 'J', 'Q'].includes(card.rank) || (card.rank === 'K' && !isRed);
 
   type SizeKey = 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   const sizeMap: Record<SizeKey, { w: string; h: string; text: string; corner: string }> = {
@@ -52,20 +54,29 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
   }
 
   return (
-    // motion.div: Layout animasyonu + hover/tap — perspective BURAYA KONULMAZ (framer-motion transform'la çakışır)
     <motion.div
       layoutId={card.id}
       layout
       {...motionProps}
-      className={`${sizes.w} ${sizes.h} shrink-0 cursor-pointer select-none relative ${canInteract ? 'hoverable-card' : ''} ${className}`}
-      whileTap={canInteract ? { scale: 0.95 } : {}}
+      className={`${sizes.w} ${sizes.h} shrink-0 select-none relative ${canInteract ? 'cursor-pointer hoverable-card' : 'cursor-default'} ${className}`}
+      whileTap={canInteract ? { scale: 0.94 } : {}}
       transition={motionProps.transition || CARD_TRANSITION}
-      onClick={onClick}
+      onClick={canInteract ? onClick : undefined}
       style={{
-        filter: highlight ? 'drop-shadow(0 0 12px #d4a843)' : undefined,
+        filter: highlight ? 'drop-shadow(0 0 14px rgba(212,168,67,0.95))' : undefined,
         ...style,
       }}
     >
+      {/* Seçili / Highlight Çerçevesi */}
+      {highlight && (
+        <motion.div
+          className="absolute -inset-1 rounded-[12px] border-2 border-[var(--gold)] pointer-events-none z-20"
+          animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.03, 1] }}
+          transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+          style={{ boxShadow: '0 0 16px rgba(212,168,67,0.8)' }}
+        />
+      )}
+
       {/* Ceza Kartı Göstergesi */}
       {card.isPenalty && (
         <motion.div
@@ -78,15 +89,12 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
         </motion.div>
       )}
 
-      {/* 
-        Perspektif container: framer-motion motion.div'den AYRI bir wrapper.
-        perspective burada tanımlanır — layout animasyonu bu div'e dokunmaz.
-      */}
+      {/* Perspektif container: framer-motion motion.div'den AYRI bir wrapper */}
       <div
         style={{
           width: '100%',
           height: '100%',
-          perspective: '800px',
+          perspective: '900px',
           perspectiveOrigin: '50% 50%',
         }}
       >
@@ -97,7 +105,7 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
             height: '100%',
             position: 'relative',
             transformStyle: 'preserve-3d',
-            transition: 'transform 0.7s cubic-bezier(0.34, 1.05, 0.64, 1)',
+            transition: 'transform 0.6s cubic-bezier(0.34, 1.2, 0.64, 1)',
             transform: card.isRevealed ? 'rotateY(180deg)' : 'rotateY(0deg)',
           }}
         >
@@ -112,12 +120,16 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
               borderRadius: '10px',
             }}
           >
-            <div className="relative z-10 text-[var(--gold)] opacity-60 text-2xl">🂠</div>
+            <div className="relative z-10 flex flex-col items-center justify-center">
+              <div className="w-8 h-8 rounded-full border border-[var(--gold)]/40 flex items-center justify-center bg-black/20 shadow-inner">
+                <span className="text-[var(--gold)] opacity-85 text-sm font-black font-['Cinzel']">C</span>
+              </div>
+            </div>
           </div>
 
           {/* KART ÖN YÜZÜ */}
           <div
-            className="card-face"
+            className={`card-face ${isSpecial ? 'special-card-bg' : ''} ${card.rank === 'K' && isRed ? 'red-king-card-bg' : ''}`}
             style={{
               position: 'absolute',
               inset: 0,
@@ -129,25 +141,41 @@ export function GameCard({ card, size = 'md', onClick, highlight, canInteract, c
             }}
           >
             {card.rank === 'Joker' ? (
-              <div className="flex flex-col items-center justify-center h-full gap-1">
-                <span className="text-purple-600 text-2xl">🃏</span>
-                <span className="text-purple-600 font-bold text-xs">JOKER</span>
+              <div className="flex flex-col items-center justify-center h-full gap-0.5">
+                <span className="text-purple-600 text-2xl drop-shadow-sm">🃏</span>
+                <span className="text-purple-700 font-black text-[10px] tracking-wider">JOKER</span>
+                <span className="text-[8px] bg-purple-500/15 text-purple-800 rounded px-1.5 font-bold mt-0.5">
+                  0 pt
+                </span>
               </div>
             ) : (
               <>
-                <div className={`absolute top-1 left-1.5 leading-tight ${isRed ? 'suit-red' : 'suit-black'}`}>
-                  <div className={`font-bold ${sizes.corner}`}>{card.rank}</div>
-                  <div className={sizes.corner}>{SUIT_SYMBOL[card.suit]}</div>
+                <div className={`absolute top-1 left-1.5 leading-none flex flex-col items-center ${isRed ? 'suit-red' : 'suit-black'}`}>
+                  <div className={`font-black ${sizes.corner}`}>{card.rank}</div>
+                  <div className={`${sizes.corner} -mt-0.5`}>{SUIT_SYMBOL[card.suit]}</div>
                 </div>
-                <div className={`${sizes.text} ${isRed ? 'suit-red' : 'suit-black'} font-bold`}>
-                  {SUIT_SYMBOL[card.suit]}
+
+                {/* Orta Sembol veya Kraliyet Rozeti */}
+                <div className={`${sizes.text} ${isRed ? 'suit-red' : 'suit-black'} font-bold flex flex-col items-center justify-center`}>
+                  <span>{SUIT_SYMBOL[card.suit]}</span>
+                  {isPowerCard && (
+                    <span className="text-[7px] uppercase tracking-wider font-extrabold px-1 rounded bg-amber-500/20 text-amber-900 border border-amber-600/30 -mt-1">
+                      ⚡ GÜÇ
+                    </span>
+                  )}
                 </div>
-                <div className={`absolute bottom-1 right-1.5 leading-tight rotate-180 ${isRed ? 'suit-red' : 'suit-black'}`}>
-                  <div className={`font-bold ${sizes.corner}`}>{card.rank}</div>
-                  <div className={sizes.corner}>{SUIT_SYMBOL[card.suit]}</div>
+
+                <div className={`absolute bottom-1 right-1.5 leading-none rotate-180 flex flex-col items-center ${isRed ? 'suit-red' : 'suit-black'}`}>
+                  <div className={`font-black ${sizes.corner}`}>{card.rank}</div>
+                  <div className={`${sizes.corner} -mt-0.5`}>{SUIT_SYMBOL[card.suit]}</div>
                 </div>
-                <div className="absolute bottom-5 left-0 right-0 flex justify-center">
-                  <span className="text-[8px] bg-black/10 rounded px-1 text-gray-600 font-semibold">
+
+                <div className="absolute bottom-1.5 left-1.5 flex justify-center">
+                  <span className={`text-[8px] rounded px-1 font-bold ${
+                    card.value < 0
+                      ? 'bg-amber-400/30 text-amber-900 border border-amber-500/40'
+                      : 'bg-black/10 text-gray-700'
+                  }`}>
                     {getCardScore(card)} pt
                   </span>
                 </div>

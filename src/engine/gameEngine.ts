@@ -93,16 +93,18 @@ export function calculateHandScore(cards: Card[]): number {
 }
 
 // ─── Beraberlik çözümü ────────────────────────────────────────
-// Cambio demeyen kazanır; ikisi de demediyse en az puan kazanır
+// En düşük final skora sahip olan kazanır.
+// Eşitlik durumunda Cambio demeyen önceliklidir (gerçek Cambio kuralı).
 export function resolveWinner(
   scores: { seat: number; score: number; calledCambio: boolean }[]
 ): number {
-  const noCambio = scores.filter(s => !s.calledCambio);
-  const candidates = noCambio.length > 0 ? noCambio : scores;
-  const min = Math.min(...candidates.map(s => s.score));
-  const winners = candidates.filter(s => s.score === min);
-  // Tek kazanan
-  if (winners.length === 1) return winners[0].seat;
-  // Beraberlikte: Joker/Kırmızı K/As öncelikli → rastgele seç (gerçek oyun özel kural)
-  return winners[0].seat;
+  if (scores.length === 0) return 0;
+  const minScore = Math.min(...scores.map(s => s.score));
+  const lowest = scores.filter(s => s.score === minScore);
+  if (lowest.length === 1) return lowest[0].seat;
+
+  // Beraberlikte Cambio demeyen kazanır
+  const nonCambio = lowest.filter(s => !s.calledCambio);
+  if (nonCambio.length > 0) return nonCambio[0].seat;
+  return lowest[0].seat;
 }
