@@ -166,7 +166,19 @@ export function SmartCoachBanner({ visible, mySeat, onDismiss }: SmartCoachBanne
         transition={{ duration: 0.2 }}
         className="hidden md:flex items-start gap-2 max-w-[260px] xl:max-w-[300px] px-3 py-2 rounded-2xl bg-black/55 backdrop-blur-md border border-[var(--gold)]/35 shadow-[0_6px_18px_rgba(0,0,0,0.35)]"
       >
-        <span className="text-[var(--gold-light)] text-xs mt-0.5 shrink-0 font-black">💡</span>
+        <svg
+          className="w-3.5 h-3.5 text-[var(--gold-light)] mt-0.5 shrink-0"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M9 18h6" />
+          <path d="M10 22h4" />
+          <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14" />
+        </svg>
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-[10px] font-black uppercase tracking-[0.14em] text-[var(--gold-light)] leading-tight">
             {hint.title}

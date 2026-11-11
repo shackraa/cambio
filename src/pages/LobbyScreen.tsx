@@ -20,7 +20,7 @@ export function LobbyScreen() {
     startGame,
   } = useRoom();
 
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<'code' | 'link' | null>(null);
 
   // Lobiye abone ol
   useEffect(() => {
@@ -66,8 +66,16 @@ export function LobbyScreen() {
   const handleCopyCode = () => {
     if (!code) return;
     navigator.clipboard.writeText(code.toUpperCase());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setCopied('code');
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleCopyLink = () => {
+    if (!code) return;
+    const shareUrl = `${window.location.origin}/join/${code.toUpperCase()}`;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied('link');
+    setTimeout(() => setCopied(null), 2000);
   };
 
   const slots = [0, 1, 2, 3];
@@ -95,22 +103,50 @@ export function LobbyScreen() {
               </span>
             </div>
 
-            <button
-              type="button"
-              onClick={handleCopyCode}
-              className="btn-gold-3d px-4 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>{copied ? '✓' : '⧉'}</span>
-              <span>
-                {copied
-                  ? lang === 'tr'
-                    ? 'Kopyalandı!'
-                    : 'Copied!'
-                  : lang === 'tr'
-                    ? 'Kodu Kopyala'
-                    : 'Copy Code'}
-              </span>
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="btn-gold-3d px-3.5 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                title={lang === 'tr' ? 'Tek tıkla davet linkini kopyala' : 'Copy 1-click invite link'}
+              >
+                <span>
+                  {copied === 'link' ? (
+                    '✓'
+                  ) : (
+                    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                    </svg>
+                  )}
+                </span>
+                <span>
+                  {copied === 'link'
+                    ? lang === 'tr'
+                      ? 'Link Kopyalandı!'
+                      : 'Link Copied!'
+                    : lang === 'tr'
+                      ? 'Davet Linki'
+                      : 'Invite Link'}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyCode}
+                className="btn-emerald-3d px-3.5 py-2.5 rounded-xl text-xs font-extrabold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>{copied === 'code' ? '✓' : '⧉'}</span>
+                <span>
+                  {copied === 'code'
+                    ? lang === 'tr'
+                      ? 'Kopyalandı!'
+                      : 'Copied!'
+                    : lang === 'tr'
+                      ? 'Kodu Kopyala'
+                      : 'Copy Code'}
+                </span>
+              </button>
+            </div>
           </div>
 
           <p className="text-emerald-100/70 text-xs text-center">

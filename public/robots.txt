@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Allow: /rules
+Allow: /nasil-oynanir
+Disallow: /lobby/
+Disallow: /game/
+Disallow: /join/
+
+Sitemap: https://playcambio.com/sitemap.xml

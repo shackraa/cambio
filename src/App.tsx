@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { HomeScreen } from './pages/HomeScreen';
 import { LobbyScreen } from './pages/LobbyScreen';
 import { GameBoard } from './pages/GameBoard';
+import { RulesGuidePage } from './pages/RulesGuidePage';
 import { ToastContainer } from './components/ToastContainer';
 import { GlobalBackground } from './components/GlobalBackground';
 
@@ -15,6 +16,9 @@ function AppLayout() {
       <ToastContainer />
       <Routes>
         <Route path="/" element={<HomeScreen />} />
+        <Route path="/join/:inviteCode" element={<HomeScreen />} />
+        <Route path="/rules" element={<RulesGuidePage forcedLang="en" />} />
+        <Route path="/nasil-oynanir" element={<RulesGuidePage forcedLang="tr" />} />
         <Route path="/lobby/:code" element={<LobbyScreen />} />
         <Route path="/game/:code" element={<GameBoard />} />
       </Routes>

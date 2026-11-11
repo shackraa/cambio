@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRoom } from '../hooks/useRoom';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { RulesPanel } from '../components/RulesPanel';
 import { InteractiveTutorialModal } from '../components/InteractiveTutorialModal';
 import { GameCard } from '../components/GameCard';
@@ -9,6 +9,7 @@ import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 import { getPlayerStats } from '../utils/playerStats';
 import { SoundManager } from '../utils/SoundManager';
+import { applyPageSEO } from '../utils/seo';
 import type { Card } from '../types/game';
 
 interface ShowcaseCardItem {
@@ -310,8 +311,27 @@ export function HomeScreen() {
     return saved;
   });
 
+  const { inviteCode } = useParams<{ inviteCode?: string }>();
+  const urlJoinParam =
+    inviteCode ||
+    (typeof window !== 'undefined'
+      ? new URLSearchParams(window.location.search).get('join') ?? ''
+      : '');
+  const initialJoin = urlJoinParam.trim().toUpperCase().slice(0, 4);
+
   useEffect(() => {
-    document.documentElement.lang = lang;
+    applyPageSEO({
+      lang,
+      canonicalPath: '/',
+      title:
+        lang === 'tr'
+          ? 'PlayCambio — Ücretsiz Online Cambio Kart Oyunu | Arkadaşlarınla Oyna'
+          : 'PlayCambio — Play Cambio Card Game Online Free | Multiplayer',
+      description:
+        lang === 'tr'
+          ? 'Arkadaşlarınla veya yapay zekaya karşı ücretsiz online Cambio kart oyunu oyna! Kuralları 1 dakikada öğren, hafızanı test et ve en düşük puanla kazan.'
+          : 'Play the Cambio card game online free with friends or AI bots directly in your browser — no download or signup required. Learn rules in 1 minute!',
+    });
     setNickname((prev) => {
       if (!prev || prev === 'You' || prev === 'Sen') {
         const next = lang === 'tr' ? 'Sen' : 'You';
@@ -331,8 +351,8 @@ export function HomeScreen() {
         | 'tactical'
         | 'grandmaster') || 'tactical'
   );
-  const [joinCode, setJoinCode] = useState('');
-  const [mode, setMode] = useState<'idle' | 'join'>('idle');
+  const [joinCode, setJoinCode] = useState(initialJoin);
+  const [mode, setMode] = useState<'idle' | 'join'>(initialJoin.length === 4 ? 'join' : 'idle');
   const [showRules, setShowRules] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialCompleted] = useState(
@@ -1019,10 +1039,18 @@ export function HomeScreen() {
         onStartPracticeMatch={handlePlayWithBots}
       />
 
-      {/* Sürüm Göstergesi */}
-      <span className="fixed bottom-2 left-3 z-20 text-[10px] font-mono text-white/35 select-none pointer-events-none">
-        v19
-      </span>
+      {/* SEO İç Linkler (Tarayıcılar ve Googlebot için Kurallar Rehberi) + Sürüm Göstergesi */}
+      <footer className="relative z-20 mt-4 flex flex-wrap items-center justify-center gap-4 text-[11px] text-emerald-100/55">
+        <Link to="/rules" className="hover:text-[#fae19c] transition-colors underline underline-offset-4">
+          How to Play Cambio (EN Rules)
+        </Link>
+        <span>·</span>
+        <Link to="/nasil-oynanir" className="hover:text-[#fae19c] transition-colors underline underline-offset-4">
+          Cambio Nasıl Oynanır? (TR Kurallar)
+        </Link>
+        <span>·</span>
+        <span className="font-mono text-white/40 select-none">v20</span>
+      </footer>
     </div>
   );
 }

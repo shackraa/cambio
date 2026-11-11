@@ -1,0 +1,22 @@
+{
+  "name": "PlayCambio — Multiplayer Card Game",
+  "short_name": "Cambio",
+  "description": "Play the Cambio memory and strategy card game online free with friends or AI bots.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b241c",
+  "theme_color": "#0d2e22",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

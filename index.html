@@ -1,28 +1,122 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=6" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Basic SEO -->
-    <title>Cambio Online Kart Oyunu | Arkadaşlarınla Ücretsiz Oyna</title>
-    <meta name="description" content="Cambio, eğlenceli ve stratejik bir çok oyunculu kart oyunudur. Hemen ücretsiz odanı kur, arkadaşlarınla çevrimiçi Cambio oyna, hafızanı test et ve kazan!" />
-    <meta name="keywords" content="cambio, cambio oyunu, online kart oyunu, çok oyunculu kart oyunu, arkadaşlarla oyun, ücretsiz kart oyunu, hafıza oyunu, strateji oyunu" />
-    <meta name="author" content="PlayCambio" />
-    <meta name="robots" content="index, follow" />
-    <link rel="canonical" href="https://playcambio.com/" />
+    <meta name="theme-color" content="#0d2e22" />
 
-    <!-- Open Graph (Facebook/WhatsApp/Discord) -->
+    <!-- Bilingual Global & Turkish SEO -->
+    <title>PlayCambio — Play Cambio Card Game Online Free | Cambio Oyna</title>
+    <meta
+      name="description"
+      content="Play Cambio card game online free with friends or AI bots in your browser — no download or signup needed. Çevrimiçi ücretsiz Cambio kart oyunu oyna, kuralları 1 dakikada öğren ve arkadaşlarınla yarış!"
+    />
+    <meta
+      name="keywords"
+      content="play cambio online, cambio card game, cambio rules, free multiplayer card game, online memory card game, cabo card game, cambio nasıl oynanır, cambio kart oyunu, cambio oyna, arkadaşlarla online iskambil oyunu, ücretsiz kart oyunu"
+    />
+    <meta name="author" content="PlayCambio" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />
+    <link rel="canonical" href="https://playcambio.com/" />
+    <link rel="alternate" hreflang="en" href="https://playcambio.com/rules" />
+    <link rel="alternate" hreflang="tr" href="https://playcambio.com/nasil-oynanir" />
+    <link rel="alternate" hreflang="x-default" href="https://playcambio.com/" />
+
+    <!-- Open Graph (WhatsApp / Discord / Facebook) -->
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="PlayCambio" />
     <meta property="og:url" content="https://playcambio.com/" />
-    <meta property="og:title" content="Cambio Online Kart Oyunu | Arkadaşlarınla Oyna" />
-    <meta property="og:description" content="Strateji ve hafızanı birleştir, en düşük puana ulaşan sen ol! Hemen ücretsiz oda kur ve çevrimiçi oyna." />
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://playcambio.com/" />
-    <meta property="twitter:title" content="Cambio Online Kart Oyunu" />
-    <meta property="twitter:description" content="Strateji ve hafızanı birleştir, en düşük puana ulaşan sen ol! Hemen ücretsiz oda kur ve çevrimiçi oyna." />
+    <meta property="og:title" content="PlayCambio — Play Cambio Online Free | Cambio Kart Oyunu" />
+    <meta
+      property="og:description"
+      content="Real-time multiplayer memory & strategy card game. Create a free room, challenge friends or AI bots, and reach the lowest score! Hemen ücretsiz oda kur ve arkadaşlarınla Cambio oyna."
+    />
+    <meta property="og:image" content="https://playcambio.com/logo.png" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:locale:alternate" content="tr_TR" />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://playcambio.com/" />
+    <meta name="twitter:title" content="PlayCambio — Free Online Cambio Card Game | Cambio Oyna" />
+    <meta
+      name="twitter:description"
+      content="Play the classic Cambio memory & strategy card game free online with friends or AI bots — no signup required."
+    />
+    <meta name="twitter:image" content="https://playcambio.com/logo.png" />
+
+    <!-- Structured Data (VideoGame + Bilingual FAQPage for Google Rich Results) -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "VideoGame",
+            "@id": "https://playcambio.com/#game",
+            "name": "PlayCambio — Online Cambio Card Game",
+            "alternateName": ["Cambio Card Game", "Cambio Kart Oyunu", "Cambio Oyna"],
+            "url": "https://playcambio.com/",
+            "image": "https://playcambio.com/logo.png",
+            "description": "Free browser-based real-time multiplayer Cambio memory and strategy card game for 2 to 4 players, with live rooms and AI bots.",
+            "genre": ["Card Game", "Memory Game", "Strategy Game"],
+            "playMode": ["MultiPlayer", "SinglePlayer"],
+            "numberOfPlayers": {
+              "@type": "QuantitativeValue",
+              "minValue": 2,
+              "maxValue": 4
+            },
+            "applicationCategory": "Game",
+            "operatingSystem": "Web Browser",
+            "inLanguage": ["en", "tr"],
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD",
+              "availability": "https://schema.org/InStock"
+            }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How do you play Cambio card game online?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Each player starts with 4 face-down cards and peeks at 2 of them. On your turn, draw a card and either swap it with one of your hidden cards or discard it to trigger special powers (7-8 peek own, 9-10 peek opponent, J-Q blind swap, Black King spy & swap). Match any discard quickly to stick and shed cards. Call 'CAMBIO!' when you have the lowest score — your hand locks and lowest total wins."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "What are Red King and Joker worth in Cambio?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Red Kings (King of Hearts and King of Diamonds) are worth -1 point and are the best cards in Cambio. Jokers are worth 0 points. Aces are 1, numbers 2-10 equal face value, Jacks and Queens are 10, and Black Kings (Spades/Clubs) are 10 points with a spy-swap power."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Cambio kart oyunu nasıl oynanır?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Her oyuncuya 4 kapalı kart dağıtılır ve başlangıçta sadece 2 kartına bakabilirsin. Sıran geldiğinde kart çekip elindeki yüksek puanlı kartlarla değiştir veya gücü olan kartları (7-8 kendi kartına bakma, 9-10 rakip kartına bakma, J-Q kör takas, Siyah Papaz casus takası) çöpe atarak gücünü kullan. Yerdeki kartla eşleşen kartı hızla yapıştırarak kart eksilt; en düşük puana inince 'CAMBIO!' de."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Cambio'da Kırmızı Papaz (K ♥ ♦) ve Joker kaç puandır?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Kırmızı Papazlar (Kupa K ve Karo K) -1 puandır ve oyundaki en değerli karttır. Jokerler 0 puandır. As 1, sayı kartları 2-10 arası yüz değerinde, Vale (J), Kız (Q) ve Siyah Papaz (K ♠ ♣) ise 10 puandır."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
 
     <!-- Google Analytics -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-2VP07LM8TH"></script>
@@ -32,7 +126,7 @@
       gtag('js', new Date());
       gtag('config', 'G-2VP07LM8TH');
     </script>
-    
+
     <!-- Google Search Console Verification -->
     <meta name="google-site-verification" content="WjOF-Otnr9fqYUdyNKMtlbe8lgEN1UU9-6dLFKjkmHo" />
   </head>
