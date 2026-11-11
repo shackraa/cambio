@@ -4,7 +4,8 @@ Her degisiklik tarih ve saat bazinda asagida kayit altindadir. Istemediginiz bir
 
 | Versiyon | Tarih & Saat | Aciklama |
 |---|---|---|
-| `v22-default-english-always` | 2026-11-11 17:21:38 | v22: Enforce English as the always-default UI language on app load without browser/route overrides |
+| `v23-unified-proportional-monitor-scaling` | 2026-11-11 17:26:21 | v23: Add proportional root-rem viewport scaling and unify desktop layout across 15-inch laptops and large monitors |
+| `v22-default-english-always` | 2026-11-11 17:21:39 | v22: Enforce English as the always-default UI language on app load without browser/route overrides |
 | `v21-premium-bg-seo-prerender-share-and-timestamped-versions` | 2026-11-11 17:17:44 | v21: Unified luxury animated tabletop background, alternative game SEO pages (Cabo/Dutch/Golf), static HTML prerenderer, post-game score share card, and exact date+time version log |
 | `v20-global-tr-en-seo-and-invite-links` | 2026-11-11 16:31:52 | v20: Add bilingual EN/TR SEO, VideoGame/FAQPage Schema.org JSON-LD, /rules & /nasil-oynanir landing pages, sitemap/robots/PWA manifest, browser language auto-detection, and 1-click /join/:code invite links |
 | `v19-interactive-tutorial-smart-coach-and-version-control` | 2026-11-11 16:23:48 | v19: Add interactive 5-step playable tutorial, live tactical SmartCoach, enhanced visual rules, and always-on version rollback helper |

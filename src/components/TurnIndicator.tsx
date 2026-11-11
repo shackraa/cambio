@@ -103,11 +103,11 @@ export const TurnIndicator = memo(function TurnIndicator({
     dot: '#94a3b8',
   };
 
-  // SABİT YÜKSEKLİK (h-[40px] sm:h-[50px] flex-nowrap):
+  // SABİT YÜKSEKLİK (rem birimiyle tüm masaüstü monitörlerde orantılı):
   // Hiçbir hamlede, kart atılışında veya sayaç çıkışında alt barın yüksekliği 1 piksel bile değişmez;
   // böylece üstteki yeşil masa asla küçülüp büyümez!
   return (
-    <div className="flex flex-nowrap items-center justify-between w-full px-1.5 sm:px-4 h-[40px] sm:h-[50px] gap-1.5 sm:gap-3 overflow-hidden select-none">
+    <div className="flex flex-nowrap items-center justify-between w-full px-1.5 sm:px-4 h-[2.5rem] sm:h-[3.125rem] gap-1.5 sm:gap-3 overflow-hidden select-none">
       {/* ─── SOL: OYUNCU SIRASI MADALYONU ─── */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
         <div
@@ -151,7 +151,7 @@ export const TurnIndicator = memo(function TurnIndicator({
               {t.turn}
             </span>
             <span
-              className={`font-extrabold text-[11px] sm:text-sm truncate max-w-[85px] sm:max-w-[140px] ${
+              className={`font-extrabold text-[11px] sm:text-sm truncate max-w-[5.5rem] sm:max-w-[9rem] ${
                 myTurn ? 'text-[#fae19c]' : 'text-white/90'
               }`}
             >

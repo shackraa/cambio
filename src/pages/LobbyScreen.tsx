@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { useRoom } from '../hooks/useRoom';
 import { useRealtimeGame } from '../hooks/useRealtimeGame';
 import { useLangStore } from '../store/useLangStore';
+import { useProportionalViewportScale } from '../hooks/useProportionalViewportScale';
 
 export function LobbyScreen() {
+  useProportionalViewportScale(true);
   const { code } = useParams<{ code: string }>();
   const navigate = useNavigate();
   const lang = useLangStore((s) => s.lang);

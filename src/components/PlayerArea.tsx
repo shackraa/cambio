@@ -221,7 +221,7 @@ export const PlayerArea = memo(function PlayerArea({
           className={`${
             ultraCompact
               ? 'px-2 py-0.5 text-[10px] min-w-[60px]'
-              : 'px-2.5 sm:px-4 py-0.5 sm:py-1.5 text-xs sm:text-sm min-w-[72px] sm:min-w-[105px]'
+              : 'px-2.5 sm:px-4 py-0.5 sm:py-1.5 text-xs sm:text-sm min-w-[4.5rem] sm:min-w-[6.5rem]'
           } whitespace-nowrap justify-center rounded-full font-bold flex items-center gap-1.5 transition-colors duration-200 ${
             player.isCurrentTurn
               ? 'bg-[#f4d78c] text-[#261a05] shadow-[0_4px_14px_rgba(244,215,140,0.4)] border border-[#fff8e6]'

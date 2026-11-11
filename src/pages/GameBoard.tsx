@@ -24,7 +24,27 @@ import { useCustomizationStore } from '../store/useCustomizationStore';
 import { StickFeedbackBanner } from '../components/StickFeedbackBanner';
 import { formatPlayerName } from '../utils/formatPlayerName';
 import { useScreenWakeLock } from '../hooks/useScreenWakeLock';
+import { useProportionalViewportScale } from '../hooks/useProportionalViewportScale';
 import { track } from '../utils/analytics';
+
+function computeLayoutMetrics() {
+  const w = typeof window !== 'undefined' ? window.innerWidth : 1480;
+  const h = typeof window !== 'undefined' ? window.innerHeight : 820;
+  const isFs = typeof document !== 'undefined' && Boolean(document.fullscreenElement);
+  // 15 inç laptop (1280x610, 1366x660, 1536x740) ve büyük monitörler aynı masaüstü mizanpajını kullanır;
+  // root rem ölçeklemesi tüm öğeleri birebir aynı oranda tutar!
+  const isDesktop = w >= 900 && h >= 500;
+  const isUltraCompact = !isDesktop && (h < 560 || w < 600);
+  const isCompact = !isDesktop && !isUltraCompact;
+  const cardSize: 'xs' | 'sm' | 'md' | 'lg' = isDesktop ? 'lg' : isUltraCompact ? 'xs' : 'sm';
+  return {
+    isDesktop,
+    isCompact,
+    isUltraCompact,
+    cardSize,
+    hideMobileTabBar: isFs || h < 580,
+  };
+}
 
 export function GameBoard() {
   const { code } = useParams<{ code: string }>();
@@ -41,6 +61,8 @@ export function GameBoard() {
 
   // Oyun açıkken telefon/tablet ekranının kararmasını ve kapanmasını önle
   useScreenWakeLock();
+  // Büyük monitör ile 15" laptop arasında birebir aynı masa oranını koru
+  useProportionalViewportScale(true);
 
   useEffect(() => {
     document.documentElement.lang = langStore.lang;
@@ -123,40 +145,11 @@ export function GameBoard() {
     burgundy: 'radial-gradient(ellipse at center, #73293b 0%, #4d1a27 62%, #331019 100%)',
   };
 
-  // Masaüstü / Mobil / Tam Ekran sığdırma ve duyarlı kart boyutlandırması
-  const [layoutMetrics, setLayoutMetrics] = useState(() => {
-    const w = typeof window !== 'undefined' ? window.innerWidth : 1280;
-    const h = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const isFs = typeof document !== 'undefined' && Boolean(document.fullscreenElement);
-    const isUltraCompact = h < 560 || w < 600;
-    const isCompact = !isUltraCompact && (h < 680 || w < 960);
-    // Masadaki TÜM kartlar (Sen, Zeliha, Ahmet, Mehmet ve Orta Deste) tamamen eşit ve dolgun 'lg' boyuttadır!
-    const cardSize: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'lg';
-    return {
-      isDesktop: w >= 1024 && h >= 600,
-      isCompact,
-      isUltraCompact,
-      cardSize,
-      hideMobileTabBar: isFs || h < 580,
-    };
-  });
+  // Masaüstü (tüm inçler eşit oran) / Mobil sığdırma tespiti
+  const [layoutMetrics, setLayoutMetrics] = useState(computeLayoutMetrics);
 
   useLayoutEffect(() => {
-    const updateLayout = () => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      const isFs = Boolean(document.fullscreenElement);
-      const isUltraCompact = h < 560 || w < 600;
-      const isCompact = !isUltraCompact && (h < 680 || w < 960);
-      const cardSize: 'xs' | 'sm' | 'md' | 'lg' = isUltraCompact ? 'xs' : isCompact ? 'sm' : 'lg';
-      setLayoutMetrics({
-        isDesktop: w >= 1024 && h >= 600,
-        isCompact,
-        isUltraCompact,
-        cardSize,
-        hideMobileTabBar: isFs || h < 580,
-      });
-    };
+    const updateLayout = () => setLayoutMetrics(computeLayoutMetrics());
     updateLayout();
     window.addEventListener('resize', updateLayout);
     window.addEventListener('orientationchange', updateLayout);
@@ -648,10 +641,10 @@ export function GameBoard() {
         )}
       </AnimatePresence>
 
-      {/* Doğal 4K / Full HD 1:1 Sahne (Zoom/Scale kullanılmaz, kartlar masada yağ gibi kayarak uçar) */}
-      <div className="w-full h-dvh flex flex-col p-1.5 sm:p-3 lg:p-4 gap-1.5 sm:gap-2.5 overflow-hidden relative z-10 max-w-[1920px] mx-auto">
-        {/* Üst Bar: Mobilde Sol Logo + Sağ Kontroller, Masaüstünde Orta Logo + Sağ Kontroller */}
-        <div className="relative flex items-center justify-between lg:justify-center shrink-0 px-1 sm:px-2">
+      {/* Doğal 4K / Orantılı Masaüstü Sahnesi */}
+      <div className="w-full h-dvh flex flex-col p-1.5 sm:p-3 gap-1.5 sm:gap-2.5 overflow-hidden relative z-10 max-w-[116rem] mx-auto">
+        {/* Üst Bar: Mobilde Sol Logo + Sağ Kontroller, Tüm Masaüstü Monitörlerde Orta Logo + Sağ Kontroller */}
+        <div className={`relative flex items-center ${isDesktop ? 'justify-center' : 'justify-between'} shrink-0 px-1 sm:px-2`}>
           {/* CAMBIO Logosu */}
           <motion.div
             className="flex flex-col items-center shrink-0"
@@ -693,7 +686,7 @@ export function GameBoard() {
           </motion.div>
 
           {/* Sağ Üst Kontroller: (Mobil Tam Ekranda Paneller Tuşu) + Desteler + Ses + TR/EN + Tam Ekran */}
-          <div className="lg:absolute lg:right-2 lg:top-1/2 lg:-translate-y-1/2 z-50 flex items-center gap-1.5 sm:gap-2">
+          <div className={`${isDesktop ? 'absolute right-2 top-1/2 -translate-y-1/2' : ''} z-50 flex items-center gap-1.5 sm:gap-2`}>
             {/* Mobilde Tam Ekrandayken (alt tab bar gizliyken) Panelleri Açan Kompakt Buton */}
             {!isDesktop && hideMobileTabBar && (
               <button
@@ -836,10 +829,10 @@ export function GameBoard() {
           </div>
         </div>
 
-      <div className="flex flex-1 min-h-0 gap-2 sm:gap-3 xl:gap-5 px-1 sm:px-2 relative z-10">
+      <div className="flex flex-1 min-h-0 gap-2 sm:gap-3 px-1 sm:px-2 relative z-10">
         {/* SOL PANEL: Yalnızca Masaüstünde (isDesktop) mount edilir — mobilde 0 CPU maliyeti */}
         {isDesktop && (
-          <div className="flex flex-col w-[275px] xl:w-[310px] shrink-0 z-50 gap-3 min-h-0">
+          <div className="flex flex-col w-[17.5rem] shrink-0 z-50 gap-3 min-h-0">
             <div className="luxury-panel px-4 py-3 rounded-[20px] flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-2.5">
                 <span className="inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
@@ -872,7 +865,7 @@ export function GameBoard() {
               background: TABLE_THEME_GRADIENTS[tableTheme],
               boxShadow: '0 14px 36px rgba(0,0,0,0.34), inset 0 0 50px rgba(0,0,0,0.2)',
               border: '2px solid rgba(232,196,104,0.34)',
-              minHeight: '200px',
+              minHeight: '12rem',
             }}
           >
             {/* Oyun İçi Akıllı Koç Rozeti (Masa sol üst köşesinde, grid yüksekliğini etkilemez) */}
@@ -1140,7 +1133,7 @@ export function GameBoard() {
 
         {/* SAĞ PANEL: Yalnızca Masaüstünde (isDesktop) mount edilir */}
         {isDesktop && (
-          <div className="flex w-[310px] xl:w-[355px] shrink-0 flex-col gap-3 z-50 min-h-0">
+          <div className="flex w-[19.5rem] shrink-0 flex-col gap-3 z-50 min-h-0">
             <RulesPanel onStartTutorial={() => setShowTutorial(true)} />
             <Leaderboard />
           </div>

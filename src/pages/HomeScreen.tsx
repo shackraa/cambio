@@ -10,6 +10,7 @@ import { translations } from '../i18n/translations';
 import { getPlayerStats } from '../utils/playerStats';
 import { SoundManager } from '../utils/SoundManager';
 import { applyPageSEO } from '../utils/seo';
+import { useProportionalViewportScale } from '../hooks/useProportionalViewportScale';
 import type { Card } from '../types/game';
 
 interface ShowcaseCardItem {
@@ -212,93 +213,94 @@ const TABLE_AMBIENT_CARDS: Array<{
   rotate: number;
   card: Card;
 }> = [
-  // Sol Üst Köşe Yelpazesi
+  // Sol Üst Köşe Yelpazesi (tüm monitör boyutlarında aynı yüzdesel konum)
   {
     id: 'amb-tl-1',
-    posClass: 'top-8 left-8 xl:top-12 xl:left-14',
+    posClass: 'top-[4%] left-[2.5%]',
     rotate: -18,
     card: { id: 'amb-1', suit: 'spades', rank: 'A', value: 1, isRevealed: true, isPenalty: false },
   },
   {
     id: 'amb-tl-2',
-    posClass: 'top-10 left-20 xl:top-14 xl:left-28',
+    posClass: 'top-[5.5%] left-[6.5%]',
     rotate: -4,
     card: { id: 'amb-2', suit: 'hearts', rank: 'K', value: -1, isRevealed: false, isPenalty: false },
   },
   {
     id: 'amb-tl-3',
-    posClass: 'top-28 left-10 xl:top-36 xl:left-16',
+    posClass: 'top-[18%] left-[3%]',
     rotate: 14,
     card: { id: 'amb-3', suit: 'diamonds', rank: 'Q', value: 10, isRevealed: true, isPenalty: false },
   },
   // Sol Orta Kenar
   {
     id: 'amb-ml-1',
-    posClass: 'top-1/2 -translate-y-16 left-6 xl:left-12',
+    posClass: 'top-[46%] left-[2%]',
     rotate: -12,
     card: { id: 'amb-4', suit: 'clubs', rank: '7', value: 7, isRevealed: false, isPenalty: false },
   },
   {
     id: 'amb-ml-2',
-    posClass: 'top-1/2 translate-y-6 left-14 xl:left-24',
+    posClass: 'top-[54%] left-[5.5%]',
     rotate: 9,
     card: { id: 'amb-5', suit: 'hearts', rank: '10', value: 10, isRevealed: true, isPenalty: false },
   },
   // Sol Alt Köşe Yelpazesi
   {
     id: 'amb-bl-1',
-    posClass: 'bottom-10 left-10 xl:bottom-14 xl:left-16',
+    posClass: 'bottom-[5%] left-[2.5%]',
     rotate: 16,
     card: { id: 'amb-6', suit: 'joker', rank: 'Joker', value: 0, isRevealed: true, isPenalty: false },
   },
   {
     id: 'amb-bl-2',
-    posClass: 'bottom-14 left-24 xl:bottom-18 xl:left-32',
+    posClass: 'bottom-[7%] left-[7%]',
     rotate: -8,
     card: { id: 'amb-7', suit: 'spades', rank: '8', value: 8, isRevealed: false, isPenalty: false },
   },
   // Sağ Üst Köşe Yelpazesi
   {
     id: 'amb-tr-1',
-    posClass: 'top-20 right-10 xl:top-24 xl:right-16',
+    posClass: 'top-[9%] right-[2.5%]',
     rotate: 15,
     card: { id: 'amb-8', suit: 'diamonds', rank: 'K', value: -1, isRevealed: true, isPenalty: false },
   },
   {
     id: 'amb-tr-2',
-    posClass: 'top-24 right-24 xl:top-28 xl:right-32',
+    posClass: 'top-[11%] right-[7%]',
     rotate: -9,
     card: { id: 'amb-9', suit: 'clubs', rank: 'J', value: 10, isRevealed: false, isPenalty: false },
   },
   // Sağ Orta Kenar
   {
     id: 'amb-mr-1',
-    posClass: 'top-1/2 -translate-y-14 right-6 xl:right-12',
+    posClass: 'top-[46%] right-[2%]',
     rotate: 11,
     card: { id: 'amb-10', suit: 'spades', rank: 'K', value: 10, isRevealed: true, isPenalty: false },
   },
   {
     id: 'amb-mr-2',
-    posClass: 'top-1/2 translate-y-8 right-16 xl:right-24',
+    posClass: 'top-[54%] right-[5.5%]',
     rotate: -14,
     card: { id: 'amb-11', suit: 'hearts', rank: '9', value: 9, isRevealed: false, isPenalty: false },
   },
   // Sağ Alt Köşe Yelpazesi
   {
     id: 'amb-br-1',
-    posClass: 'bottom-10 right-10 xl:bottom-14 xl:right-16',
+    posClass: 'bottom-[5%] right-[2.5%]',
     rotate: -16,
     card: { id: 'amb-12', suit: 'clubs', rank: 'A', value: 1, isRevealed: true, isPenalty: false },
   },
   {
     id: 'amb-br-2',
-    posClass: 'bottom-14 right-24 xl:bottom-18 xl:right-32',
+    posClass: 'bottom-[7%] right-[7%]',
     rotate: 7,
     card: { id: 'amb-13', suit: 'diamonds', rank: '7', value: 7, isRevealed: false, isPenalty: false },
   },
 ];
 
 export function HomeScreen() {
+  useProportionalViewportScale(true);
   const langStore = useLangStore();
   const lang = langStore.lang;
   const t = translations[lang];
@@ -518,7 +520,7 @@ export function HomeScreen() {
       </div>
 
       {/* ─── ANA 4K WIDESCREEN İÇERİK KAPSAYICISI ─── */}
-      <div className="relative z-10 w-full max-w-[1280px] flex flex-col items-center gap-5 sm:gap-6">
+      <div className="relative z-10 w-full max-w-[78rem] flex flex-col items-center gap-5 sm:gap-6">
         {/* Üst Başlık */}
         <motion.div
           className="flex flex-col items-center text-center gap-1.5"
@@ -1071,7 +1073,7 @@ export function HomeScreen() {
           4-Card Golf
         </Link>
         <span>·</span>
-        <span className="font-mono text-white/40 select-none">v22</span>
+        <span className="font-mono text-white/40 select-none">v23</span>
       </footer>
     </div>
   );
