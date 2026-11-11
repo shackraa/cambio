@@ -9,6 +9,8 @@ import { TurnIndicator } from '../components/TurnIndicator';
 import { ChatPanel } from '../components/ChatPanel';
 import { GameLog } from '../components/GameLog';
 import { RulesPanel } from '../components/RulesPanel';
+import { InteractiveTutorialModal } from '../components/InteractiveTutorialModal';
+import { SmartCoachBanner } from '../components/SmartCoachBanner';
 import { GameBackgroundOverlay } from '../components/GameBackgroundOverlay';
 import { Leaderboard } from '../components/Leaderboard';
 import { ToastContainer } from '../components/ToastContainer';
@@ -91,6 +93,23 @@ export function GameBoard() {
   const [showResultsModal, setShowResultsModal] = useState(true);
   const [isMuted, setIsMuted] = useState(() => SoundManager.getMuted());
   const [showCustomize, setShowCustomize] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
+  const [showCoach, setShowCoach] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('cambio_coach_enabled') !== 'false';
+    } catch {
+      return true;
+    }
+  });
+  const toggleCoach = useCallback(() => {
+    setShowCoach((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('cambio_coach_enabled', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
   const [activeMobilePanel, setActiveMobilePanel] = useState<'log' | 'chat' | 'rules' | 'leaderboard' | null>(null);
   const tableTheme = useCustomizationStore(s => s.tableTheme);
 
@@ -634,6 +653,38 @@ export function GameBoard() {
               </button>
             )}
 
+            {/* İnteraktif Kurallar / 1 Dk Öğren */}
+            <button
+              type="button"
+              onClick={() => setShowTutorial(true)}
+              className="btn-emerald-3d h-8 sm:h-9 px-2.5 sm:px-3.5 rounded-xl text-xs font-extrabold flex items-center gap-1.5 cursor-pointer"
+              title={langStore.lang === 'tr' ? '1 Dakikada İnteraktif Öğren' : '1m Playable Tutorial'}
+            >
+              <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                <circle cx="12" cy="12" r="10" />
+                <polygon points="10 8 16 12 10 16 10 8" />
+              </svg>
+              <span className="hidden md:inline text-[11px] uppercase tracking-wider">
+                {langStore.lang === 'tr' ? 'Öğren' : 'Learn'}
+              </span>
+            </button>
+
+            {/* Akıllı Koç Aç / Kapat */}
+            <button
+              type="button"
+              onClick={toggleCoach}
+              className={`hidden md:flex h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl text-xs font-extrabold items-center gap-1.5 cursor-pointer border transition-colors ${
+                showCoach
+                  ? 'bg-[#fae19c]/20 border-[#f3d47c]/55 text-[#fae19c]'
+                  : 'btn-emerald-3d opacity-70'
+              }`}
+              title={langStore.lang === 'tr' ? 'Oyun İçi Taktik Koçu Aç/Kapat' : 'Toggle In-Game Tactical Coach'}
+            >
+              <span className="text-[11px] uppercase tracking-wider">
+                {langStore.lang === 'tr' ? (showCoach ? 'Koç: Açık' : 'Koç: Kapalı') : showCoach ? 'Coach: On' : 'Coach: Off'}
+              </span>
+            </button>
+
             {/* Kart & Masa Kişiselleştirme Butonu */}
             <button
               type="button"
@@ -764,6 +815,15 @@ export function GameBoard() {
               minHeight: '200px',
             }}
           >
+            {/* Oyun İçi Akıllı Koç Rozeti (Masa sol üst köşesinde, grid yüksekliğini etkilemez) */}
+            <div className="absolute top-2.5 left-3 z-30 pointer-events-auto">
+              <SmartCoachBanner
+                visible={showCoach}
+                mySeat={lobbyInfo.seat}
+                onDismiss={toggleCoach}
+              />
+            </div>
+
             {/* ─── Grid Layout: 3 satır × 3 sütun ─── */}
             <div
               className={`flex-1 min-h-0 grid ${isUltraCompact ? 'px-1 py-1' : 'px-1.5 sm:px-3 py-1.5 sm:py-3'}`}
@@ -1021,7 +1081,7 @@ export function GameBoard() {
         {/* SAĞ PANEL: Yalnızca Masaüstünde (isDesktop) mount edilir */}
         {isDesktop && (
           <div className="flex w-[310px] xl:w-[355px] shrink-0 flex-col gap-3 z-50 min-h-0">
-            <RulesPanel />
+            <RulesPanel onStartTutorial={() => setShowTutorial(true)} />
             <Leaderboard />
           </div>
         )}
@@ -1029,6 +1089,9 @@ export function GameBoard() {
 
       {/* Kişiselleştirme (Kart Sırtı & Masa Rengi) Modalı */}
       <CustomizationModal isOpen={showCustomize} onClose={() => setShowCustomize(false)} />
+
+      {/* İnteraktif 1 Dakikalık Öğretici */}
+      <InteractiveTutorialModal open={showTutorial} onClose={() => setShowTutorial(false)} />
 
       {/* MOBİL ÇEKMECE (BOTTOM SHEET) MODALI — İçinde Sekme Geçişleriyle */}
       <AnimatePresence>
@@ -1094,7 +1157,14 @@ export function GameBoard() {
                     }
                   />
                 )}
-                {activeMobilePanel === 'rules' && <RulesPanel />}
+                {activeMobilePanel === 'rules' && (
+                  <RulesPanel
+                    onStartTutorial={() => {
+                      setActiveMobilePanel(null);
+                      setShowTutorial(true);
+                    }}
+                  />
+                )}
                 {activeMobilePanel === 'leaderboard' && <Leaderboard />}
               </div>
             </motion.div>

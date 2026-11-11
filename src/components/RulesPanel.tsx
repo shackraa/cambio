@@ -4,7 +4,11 @@ import { useGameStore } from '../store/useGameStore';
 import { useLangStore } from '../store/useLangStore';
 import { translations } from '../i18n/translations';
 
-export function RulesPanel() {
+interface RulesPanelProps {
+  onStartTutorial?: () => void;
+}
+
+export function RulesPanel({ onStartTutorial }: RulesPanelProps = {}) {
   const lang = useLangStore((s) => s.lang);
   const t = translations[lang];
   const activePower = useGameStore(s => s.activePower);
@@ -111,6 +115,15 @@ export function RulesPanel() {
               </span>
             </div>
           </div>
+          {onStartTutorial && (
+            <button
+              type="button"
+              onClick={onStartTutorial}
+              className="btn-gold-3d px-2.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider cursor-pointer shrink-0"
+            >
+              {lang === 'tr' ? '1 Dk Pratik' : '1m Tutorial'}
+            </button>
+          )}
         </div>
 
         {/* Geniş, Ferah Sekme Anahtarı */}
@@ -224,6 +237,32 @@ export function RulesPanel() {
               transition={{ duration: 0.2 }}
               className="space-y-2"
             >
+              {/* Görsel Tur Akışı Özeti (1 Bakışta Oyun Döngüsü) */}
+              <div className="grid grid-cols-4 gap-1 p-2 rounded-2xl bg-black/35 border border-[var(--gold)]/25 text-center">
+                {(lang === 'tr'
+                  ? [
+                      { n: '1', label: 'Çek' },
+                      { n: '2', label: 'Takas / At' },
+                      { n: '3', label: 'Yapıştır' },
+                      { n: '4', label: 'Cambio!' },
+                    ]
+                  : [
+                      { n: '1', label: 'Draw' },
+                      { n: '2', label: 'Swap / Drop' },
+                      { n: '3', label: 'Stick' },
+                      { n: '4', label: 'Cambio!' },
+                    ]
+                ).map((step) => (
+                  <div key={step.n} className="flex flex-col items-center gap-0.5 px-1 py-1 rounded-xl bg-white/[0.04]">
+                    <span className="w-4 h-4 rounded-full bg-[var(--gold)]/25 text-[var(--gold-light)] text-[9px] font-black flex items-center justify-center">
+                      {step.n}
+                    </span>
+                    <span className="text-[9px] font-bold text-amber-50/90 leading-tight">
+                      {step.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
               {RULES.map((rule) => (
                 <div
                   key={rule.step}
