@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { p2pRoomManager, type RoomData, type RoomPlayer } from '../lib/p2pRoomEngine';
+import { track } from '../utils/analytics';
 
 function generateRoomCode(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -63,6 +64,7 @@ export function useRoom() {
         setMySeat(0);
         setRoom(roomData);
         setPlayers(roomData.players);
+        track('room_created');
         navigate(`/lobby/${code}`);
       } catch (e) {
         setError((e as Error).message);
@@ -99,6 +101,7 @@ export function useRoom() {
         setMySeat(seat);
         setRoom(joinedRoom);
         setPlayers(joinedRoom.players);
+        track('room_joined');
         navigate(`/lobby/${cleanCode}`);
       } catch (e) {
         setError((e as Error).message);

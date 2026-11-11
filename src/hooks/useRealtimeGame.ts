@@ -4,6 +4,7 @@ import { useGameStore } from '../store/useGameStore';
 import { createDeck, shuffleDeck, dealCards } from '../engine/gameEngine';
 import { SoundManager } from '../utils/SoundManager';
 import { p2pRoomManager } from '../lib/p2pRoomEngine';
+import { track } from '../utils/analytics';
 
 // ─── Broadcast event tipleri ─────────────────────────────────
 export type GameEvent =
@@ -159,6 +160,10 @@ export function useRealtimeGame({
     const shuffled = shuffleDeck(createDeck());
     const { playerHands, remainingDeck } = dealCards(shuffled);
     const randomStartSeat = Math.floor(Math.random() * 4);
+    track('game_started', {
+      mode: 'online',
+      humans: seatPlayers.filter((p) => !p.id.startsWith('bot-')).length,
+    });
 
     const players = seatPlayers.map((p, idx) => ({
       id: p.id,

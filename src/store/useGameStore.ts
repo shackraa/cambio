@@ -13,6 +13,7 @@ import {
 import { useToastStore } from './useToastStore';
 import { SoundManager } from '../utils/SoundManager';
 import { recordGameResult } from '../utils/playerStats';
+import { track, gameMode } from '../utils/analytics';
 
 // ─── Hamle logu ──────────────────────────────────────────────
 export type LogAction =
@@ -227,6 +228,7 @@ export const useGameStore = create<GameStore>()(
       // RESMİ KURAL / ADALET: Her elde oyun her zaman aynı koltukta başlamaz, rastgele bir oyuncu başlar
       const startSeat = Math.floor(Math.random() * 4);
       const players = makePlayers(myNickname, opponents, startSeat);
+      track('game_started', { mode: gameMode() });
 
       // Başlangıçta tüm 54 kart ortadaki kapalı destede durur!
       set(state => {
@@ -916,6 +918,7 @@ export const useGameStore = create<GameStore>()(
         if (state.gameLog.length > 50) state.gameLog.shift();
       });
       SoundManager.playCambio();
+      track('cambio_called', { mode: gameMode() });
     },
 
     // ── Oyunu bitir & sonuçları hesapla ─────────────────────
@@ -962,6 +965,12 @@ export const useGameStore = create<GameStore>()(
         if (myFinal) {
           recordGameResult(myFinal.score, state.winner === mySeat);
         }
+        track('game_finished', {
+          mode: gameMode(),
+          won: state.winner === mySeat,
+          my_score: myFinal?.score,
+          turns: state.turnCount,
+        });
 
         state.finalScores.forEach(fs => {
           const p = state.players.find(x => x.seat === fs.seat);
