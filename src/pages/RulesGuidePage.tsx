@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { GameCard } from '../components/GameCard';
 import { InteractiveTutorialModal } from '../components/InteractiveTutorialModal';
-import { useLangStore } from '../store/useLangStore';
 import { applyPageSEO } from '../utils/seo';
 import type { Card } from '../types/game';
 
@@ -77,13 +76,11 @@ const POWER_CARDS: Array<{
 
 export function RulesGuidePage({ forcedLang }: RulesGuidePageProps) {
   const navigate = useNavigate();
-  const setLang = useLangStore((s) => s.setLang);
   const [showTutorial, setShowTutorial] = useState(false);
 
   const tr = forcedLang === 'tr';
 
   useEffect(() => {
-    setLang(forcedLang);
     applyPageSEO({
       lang: forcedLang,
       canonicalPath: tr ? '/nasil-oynanir' : '/rules',
@@ -94,7 +91,7 @@ export function RulesGuidePage({ forcedLang }: RulesGuidePageProps) {
         ? 'Cambio kart oyunu resmi kuralları, kart değerleri (Kırmızı Papaz -1, Joker 0), özel kart güçleri ve 1 dakikalık interaktif öğretici. Ücretsiz çevrimiçi oyna!'
         : 'Learn how to play the Cambio card game in 1 minute! Complete card scoring guide (Red King -1, Joker 0), special card powers, sticking rules, and free online play.',
     });
-  }, [forcedLang, setLang, tr]);
+  }, [forcedLang, tr]);
 
   const handlePlayBots = () => {
     sessionStorage.setItem('nickname', tr ? 'Sen' : 'You');
@@ -349,6 +346,7 @@ export function RulesGuidePage({ forcedLang }: RulesGuidePageProps) {
         open={showTutorial}
         onClose={() => setShowTutorial(false)}
         onStartPracticeMatch={handlePlayBots}
+        forcedLang={forcedLang}
       />
     </div>
   );

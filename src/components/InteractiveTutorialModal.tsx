@@ -10,6 +10,7 @@ interface InteractiveTutorialModalProps {
   open: boolean;
   onClose: () => void;
   onStartPracticeMatch?: () => void;
+  forcedLang?: 'tr' | 'en';
 }
 
 type TutorialStep = 0 | 1 | 2 | 3 | 4;
@@ -52,9 +53,28 @@ export function InteractiveTutorialModal({
   open,
   onClose,
   onStartPracticeMatch,
+  forcedLang,
 }: InteractiveTutorialModalProps) {
-  const lang = useLangStore((s) => s.lang);
-  const tr = lang === 'tr';
+  return (
+    <AnimatePresence>
+      {open && (
+        <InteractiveTutorialContent
+          onClose={onClose}
+          onStartPracticeMatch={onStartPracticeMatch}
+          forcedLang={forcedLang}
+        />
+      )}
+    </AnimatePresence>
+  );
+}
+
+function InteractiveTutorialContent({
+  onClose,
+  onStartPracticeMatch,
+  forcedLang,
+}: Omit<InteractiveTutorialModalProps, 'open'>) {
+  const storeLang = useLangStore((s) => s.lang);
+  const tr = (forcedLang ?? storeLang) === 'tr';
 
   const [step, setStep] = useState<TutorialStep>(0);
   // Step 0: Peek 2 cards (slots 0 & 1)
@@ -72,24 +92,9 @@ export function InteractiveTutorialModal({
   // Step 4 (Cambio): 'ready' -> 'won'
   const [step4Won, setStep4Won] = useState(false);
 
-  const resetTutorial = () => {
-    setStep(0);
-    setPeekedSlots([]);
-    setHand(INITIAL_HAND.map((c) => ({ ...c, isRevealed: false })));
-    setDiscard([]);
-    setDrawnCard(null);
-    setStep1Done(false);
-    setStep2Sub('draw');
-    setStep3Stuck(false);
-    setStep4Won(false);
-  };
-
   useEffect(() => {
-    if (open) {
-      resetTutorial();
-      track('tutorial_started');
-    }
-  }, [open]);
+    track('tutorial_started');
+  }, []);
 
   // Adım değişiminde tahtayı deterministik olarak hazırla
   const goToStep = (target: TutorialStep) => {
@@ -201,7 +206,9 @@ export function InteractiveTutorialModal({
     setStep4Won(true);
     try {
       localStorage.setItem('cambio_tutorial_completed', 'true');
-    } catch {}
+    } catch {
+      /* localStorage erişilemezse sessizce geç */
+    }
     track('tutorial_completed');
   };
 
@@ -307,15 +314,13 @@ export function InteractiveTutorialModal({
   const topDiscard = discard[discard.length - 1] ?? null;
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[240] flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-md"
-          onClick={onClose}
-        >
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[240] flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-md"
+      onClick={onClose}
+    >
           <motion.div
             initial={{ scale: 0.94, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -579,9 +584,7 @@ export function InteractiveTutorialModal({
                 </div>
               )}
             </div>
-          </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
+    </motion.div>
   );
 }

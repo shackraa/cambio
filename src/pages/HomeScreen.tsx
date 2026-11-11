@@ -1071,7 +1071,7 @@ export function HomeScreen() {
           4-Card Golf
         </Link>
         <span>·</span>
-        <span className="font-mono text-white/40 select-none">v21</span>
+        <span className="font-mono text-white/40 select-none">v22</span>
       </footer>
     </div>
   );
