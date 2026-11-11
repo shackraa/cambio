@@ -24,6 +24,7 @@ import { useCustomizationStore } from '../store/useCustomizationStore';
 import { StickFeedbackBanner } from '../components/StickFeedbackBanner';
 import { formatPlayerName } from '../utils/formatPlayerName';
 import { useScreenWakeLock } from '../hooks/useScreenWakeLock';
+import { track } from '../utils/analytics';
 
 export function GameBoard() {
   const { code } = useParams<{ code: string }>();
@@ -91,6 +92,7 @@ export function GameBoard() {
   const [resetCountdown, setResetCountdown] = useState<number | null>(null);
   const [stickTimeLeft, setStickTimeLeft] = useState<number | null>(null);
   const [showResultsModal, setShowResultsModal] = useState(true);
+  const [scoreCopied, setScoreCopied] = useState(false);
   const [isMuted, setIsMuted] = useState(() => SoundManager.getMuted());
   const [showCustomize, setShowCustomize] = useState(false);
   const [showTutorial, setShowTutorial] = useState(false);
@@ -106,7 +108,9 @@ export function GameBoard() {
       const next = !prev;
       try {
         localStorage.setItem('cambio_coach_enabled', String(next));
-      } catch {}
+      } catch {
+        /* localStorage erişilemezse sessizce geç */
+      }
       return next;
     });
   }, []);
@@ -561,27 +565,83 @@ export function GameBoard() {
                   })}
               </div>
 
-              <div className="flex items-center gap-3 w-full">
+              <div className="flex flex-col gap-2.5 w-full">
                 <button
-                  onClick={() => setShowResultsModal(false)}
-                  className="flex-1 py-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
-                >
-                  {langStore.lang === 'tr' ? 'Masayı İncele' : 'Inspect Table'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowResultsModal(false);
-                    if (isOnlineMode) {
-                      initGameInDB().then(() => loadGameState());
-                    } else {
-                      initGame(langStore.lang === 'tr' ? 'Sen' : 'You', ['Ahmet', 'Zeliha', 'Mehmet']);
+                  type="button"
+                  onClick={async () => {
+                    const myFinal = finalScores.find((fs) => fs.seat === lobbyInfo.seat);
+                    const myScoreVal = myFinal?.score ?? 0;
+                    const iWon = winner === lobbyInfo.seat;
+                    const shareUrl = isOnlineMode && code ? `https://playcambio.com/join/${code}` : 'https://playcambio.com';
+                    const text =
+                      langStore.lang === 'tr'
+                        ? iWon
+                          ? `PlayCambio masasında ${myScoreVal} puanla 1. oldum! Beni yenebileceğini düşünüyorsan masaya gel: ${shareUrl}`
+                          : `PlayCambio'da eli ${myScoreVal} puanla bitirdim — rövanş için masaya gel! ${shareUrl}`
+                        : iWon
+                          ? `Just won PlayCambio with ${myScoreVal} pts! Think you can beat my memory? Play free: ${shareUrl}`
+                          : `Finished a PlayCambio round with ${myScoreVal} pts — join me for a rematch! ${shareUrl}`;
+
+                    track('score_shared', { won: iWon, score: myScoreVal });
+                    if (typeof navigator !== 'undefined' && navigator.share) {
+                      try {
+                        await navigator.share({ title: 'PlayCambio', text, url: shareUrl });
+                        return;
+                      } catch {
+                        /* Paylaşım iptal edilirse panoya kopyalamaya düş */
+                      }
+                    }
+                    try {
+                      await navigator.clipboard.writeText(text);
+                      setScoreCopied(true);
+                      setTimeout(() => setScoreCopied(false), 2200);
+                    } catch {
+                      /* Pano izni yoksa sessizce geç */
                     }
                   }}
-                  className="flex-1 py-3 rounded-xl font-black text-black text-xs uppercase tracking-wider shadow-lg transition-transform hover:scale-[1.02] cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #d4a843, #f0c96c)' }}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-100 font-extrabold text-xs uppercase tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2"
                 >
-                  {t.playAgain}
+                  <svg className="w-3.5 h-3.5 text-[var(--gold-light)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  <span>
+                    {scoreCopied
+                      ? langStore.lang === 'tr'
+                        ? 'Meydan Okuma Mesajı Kopyalandı!'
+                        : 'Challenge Copied to Clipboard!'
+                      : langStore.lang === 'tr'
+                        ? 'Skorunu Paylaş & Meydan Oku'
+                        : 'Share Score & Challenge Friends'}
+                  </span>
                 </button>
+
+                <div className="flex items-center gap-3 w-full">
+                  <button
+                    onClick={() => setShowResultsModal(false)}
+                    className="flex-1 py-3 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-white font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    {langStore.lang === 'tr' ? 'Masayı İncele' : 'Inspect Table'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowResultsModal(false);
+                      setScoreCopied(false);
+                      if (isOnlineMode) {
+                        initGameInDB().then(() => loadGameState());
+                      } else {
+                        initGame(langStore.lang === 'tr' ? 'Sen' : 'You', ['Ahmet', 'Zeliha', 'Mehmet']);
+                      }
+                    }}
+                    className="flex-1 py-3 rounded-xl font-black text-black text-xs uppercase tracking-wider shadow-lg transition-transform hover:scale-[1.02] cursor-pointer"
+                    style={{ background: 'linear-gradient(135deg, #d4a843, #f0c96c)' }}
+                  >
+                    {t.playAgain}
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

@@ -218,6 +218,31 @@
 .suit-red   { color: var(--red-suit); }
 .suit-black { color: var(--black-suit); }
 
+/* ─── Lüks Arka Plan GPU Animasyonları (Tüm kartlar uyumla nefes alır) ─── */
+@keyframes ambientCardFloat {
+  0%, 100% {
+    transform: translate3d(0, 0px, 0) rotate(var(--base-rot, 0deg));
+  }
+  50% {
+    transform: translate3d(0, -11px, 0) rotate(calc(var(--base-rot, 0deg) + 1.8deg));
+  }
+}
+
+@keyframes slowCompassSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.animate-ambient-card {
+  animation: ambientCardFloat var(--float-dur, 7s) ease-in-out var(--float-delay, 0s) infinite;
+  will-change: transform;
+}
+
+.animate-slow-compass {
+  animation: slowCompassSpin 110s linear infinite;
+  will-change: transform;
+}
+
 /* ─── Scrollbar ─── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: rgba(0,0,0,0.12); }

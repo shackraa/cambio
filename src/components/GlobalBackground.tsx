@@ -1,28 +1,82 @@
-import { motion } from 'framer-motion';
-import { GameCard } from './GameCard';
-
 export function GlobalBackground() {
   return (
-    <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-      {/* Arka plan süslemeleri (Modern zümrüt/teal renklerle) */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[120px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[600px] h-[600px] bg-teal-600/15 rounded-full blur-[150px]" />
+    <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden select-none">
+      {/* 1. Üstten Sıcak Avize / Masa Işığı Spotu */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            'radial-gradient(ellipse 80% 55% at 50% 15%, rgba(250, 225, 156, 0.08) 0%, rgba(28, 128, 88, 0.14) 45%, rgba(4, 24, 16, 0.72) 100%)',
+        }}
+      />
 
-      {/* Masa konsepti: Dağınık kartlar */}
-      <div className="absolute inset-0 opacity-40">
-        <motion.div className="absolute top-[10%] left-[10%] rotate-[-15deg] scale-[1.2]" animate={{ y: [0, -10, 0] }} transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}>
-          <GameCard card={{ id: 'bg1', suit: 'hearts', rank: 'A', value: 1, isRevealed: false, isPenalty: false }} size="lg" />
-        </motion.div>
-        <motion.div className="absolute top-[60%] left-[5%] rotate-[25deg] scale-[0.9]" animate={{ y: [0, 15, 0] }} transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}>
-          <GameCard card={{ id: 'bg2', suit: 'spades', rank: 'K', value: 10, isRevealed: false, isPenalty: false }} size="lg" />
-        </motion.div>
-        <motion.div className="absolute top-[20%] right-[15%] rotate-[35deg] scale-[1.1]" animate={{ y: [0, -15, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }}>
-          <GameCard card={{ id: 'bg3', suit: 'diamonds', rank: '7', value: 7, isRevealed: false, isPenalty: false }} size="lg" />
-        </motion.div>
-        <motion.div className="absolute bottom-[10%] right-[10%] rotate-[-20deg] scale-[1.3]" animate={{ y: [0, 10, 0] }} transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}>
-          <GameCard card={{ id: 'bg4', suit: 'clubs', rank: 'J', value: 10, isRevealed: false, isPenalty: false }} size="lg" />
-        </motion.div>
-      </div>
+      {/* 2. İnce Klasik İskambil Çuha Baklava Dokusu (Ultra hafif vektör pattern) */}
+      <svg
+        className="absolute inset-0 w-full h-full opacity-[0.045]"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <defs>
+          <pattern
+            id="cambio-felt-diamond"
+            width="48"
+            height="48"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M24 2 L46 24 L24 46 L2 24 Z"
+              fill="none"
+              stroke="#fae19c"
+              strokeWidth="0.9"
+            />
+            <circle cx="24" cy="24" r="1.4" fill="#fae19c" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#cambio-felt-diamond)" />
+      </svg>
+
+      {/* 3. Merkezde Çok Zarif Dönen Altın Geometrik Masa Pusulası & Semboller */}
+      <svg
+        viewBox="0 0 600 600"
+        className="absolute top-1/2 left-1/2 w-[min(92vw,760px)] h-[min(92vw,760px)] opacity-[0.08] animate-slow-compass"
+        aria-hidden="true"
+      >
+        <circle
+          cx="300"
+          cy="300"
+          r="268"
+          fill="none"
+          stroke="#e8c468"
+          strokeWidth="1.2"
+          strokeDasharray="6 10"
+        />
+        <circle
+          cx="300"
+          cy="300"
+          r="228"
+          fill="none"
+          stroke="#f7e2ab"
+          strokeWidth="1"
+        />
+        <circle
+          cx="300"
+          cy="300"
+          r="158"
+          fill="none"
+          stroke="#e8c468"
+          strokeWidth="0.8"
+          strokeDasharray="3 7"
+        />
+        <polygon
+          points="300,26 322,278 574,300 322,322 300,574 278,322 26,300 278,278"
+          fill="none"
+          stroke="#e8c468"
+          strokeWidth="0.9"
+        />
+      </svg>
+
+      {/* 4. Yumuşak Derinlik Halkaları */}
+      <div className="absolute -top-24 -left-24 w-[420px] h-[420px] rounded-full bg-[#fae19c]/[0.04] blur-[90px]" />
+      <div className="absolute -bottom-28 -right-20 w-[480px] h-[480px] rounded-full bg-emerald-400/[0.06] blur-[110px]" />
     </div>
   );
 }

@@ -413,21 +413,31 @@ export function HomeScreen() {
 
   return (
     <div className="min-h-dvh w-full flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 overflow-x-hidden relative antialiased">
-      {/* ─── ARKA PLAN: ZENGİN MASA ÇUHASI ÇERÇEVESİ VE DAĞITILMIŞ İSKAMBİL KARTLARI ─── */}
+      {/* ─── ARKA PLAN: LÜKS MONTE-CARLO ÇUHA ÇERÇEVESİ & UYUMLA SÜZÜLEN İSKAMBİL KARTLARI ─── */}
       <div className="fixed inset-0 pointer-events-none select-none overflow-hidden z-0">
-        {/* İnce altın masa içi bordür çizgisi */}
-        <div className="absolute inset-4 sm:inset-7 rounded-[36px] border border-[#e8c468]/18 shadow-[inset_0_0_90px_rgba(0,0,0,0.35)]" />
-        <div className="absolute inset-6 sm:inset-9 rounded-[30px] border border-[#e8c468]/8" />
+        {/* Çift Altın Masa Bordürü + İç Vinyet */}
+        <div className="absolute inset-3 sm:inset-6 rounded-[34px] border border-[#e8c468]/25 shadow-[inset_0_0_110px_rgba(0,0,0,0.45)]" />
+        <div className="absolute inset-5 sm:inset-8 rounded-[28px] border border-[#f7e2ab]/10" />
 
-        {/* Masanın dört bir yanına yayılmış gerçek iskambil kartları (büyük ekranlarda boşluğu doldurur) */}
+        {/* Köşelerde Altın Çuha Filigran Takım Sembolleri */}
+        <span className="hidden md:block absolute top-10 left-12 text-5xl text-[#e8c468]/[0.07] font-serif">♠</span>
+        <span className="hidden md:block absolute top-10 right-12 text-5xl text-[#e8c468]/[0.07] font-serif">♥</span>
+        <span className="hidden md:block absolute bottom-10 left-12 text-5xl text-[#e8c468]/[0.07] font-serif">♣</span>
+        <span className="hidden md:block absolute bottom-10 right-12 text-5xl text-[#e8c468]/[0.07] font-serif">♦</span>
+
+        {/* Masanın dört bir yanındaki TÜM ambient iskambil kartları uyum içinde yumuşakça süzülür */}
         <div className="hidden lg:block">
-          {TABLE_AMBIENT_CARDS.map((item) => (
+          {TABLE_AMBIENT_CARDS.map((item, idx) => (
             <div
               key={item.id}
-              className={`absolute ${item.posClass} opacity-80 transition-transform duration-500`}
-              style={{
-                transform: `rotate(${item.rotate}deg)`,
-              }}
+              className={`absolute ${item.posClass} opacity-80 animate-ambient-card`}
+              style={
+                {
+                  '--base-rot': `${item.rotate}deg`,
+                  '--float-dur': `${6.2 + (idx % 4) * 0.9}s`,
+                  '--float-delay': `${(idx * 0.45).toFixed(2)}s`,
+                } as React.CSSProperties
+              }
             >
               <GameCard card={item.card} size="md" />
             </div>
@@ -1039,17 +1049,29 @@ export function HomeScreen() {
         onStartPracticeMatch={handlePlayWithBots}
       />
 
-      {/* SEO İç Linkler (Tarayıcılar ve Googlebot için Kurallar Rehberi) + Sürüm Göstergesi */}
-      <footer className="relative z-20 mt-4 flex flex-wrap items-center justify-center gap-4 text-[11px] text-emerald-100/55">
+      {/* SEO İç Linkler (Tarayıcılar ve Googlebot için Kurallar & Alternatif Oyun Rehberleri) + Sürüm */}
+      <footer className="relative z-20 mt-4 flex flex-wrap items-center justify-center gap-3 text-[11px] text-emerald-100/55">
         <Link to="/rules" className="hover:text-[#fae19c] transition-colors underline underline-offset-4">
-          How to Play Cambio (EN Rules)
+          Rules (EN)
         </Link>
         <span>·</span>
         <Link to="/nasil-oynanir" className="hover:text-[#fae19c] transition-colors underline underline-offset-4">
-          Cambio Nasıl Oynanır? (TR Kurallar)
+          Kurallar (TR)
         </Link>
         <span>·</span>
-        <span className="font-mono text-white/40 select-none">v20</span>
+        <Link to="/play-cabo-online" className="hover:text-[#fae19c] transition-colors underline underline-offset-4">
+          Cabo Online
+        </Link>
+        <span>·</span>
+        <Link to="/play-dutch-online" className="hover:text-[#fae19c] transition-colors underline underline-offset-4">
+          Dutch / Tamalou
+        </Link>
+        <span>·</span>
+        <Link to="/play-golf-card-game" className="hover:text-[#fae19c] transition-colors underline underline-offset-4">
+          4-Card Golf
+        </Link>
+        <span>·</span>
+        <span className="font-mono text-white/40 select-none">v21</span>
       </footer>
     </div>
   );

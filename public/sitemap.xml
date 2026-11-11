@@ -28,4 +28,22 @@
     <xhtml:link rel="alternate" hreflang="tr" href="https://playcambio.com/nasil-oynanir" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://playcambio.com/" />
   </url>
+  <url>
+    <loc>https://playcambio.com/play-cabo-online</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://playcambio.com/play-dutch-online</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://playcambio.com/play-golf-card-game</loc>
+    <lastmod>2026-11-11</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>
